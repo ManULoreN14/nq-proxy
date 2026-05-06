@@ -212,31 +212,50 @@ export default async function handler(req, res) {
 
   if (resultado.nq) resultado.nq.isChg = true;
 
-  // Put/Call Ratios del CBOE — descarga directa sin IA
+  // Put/Call Ratios del CBOE — via CSV estático (más fiable que scraping HTML)
   try {
-    const cboeUrl = 'https://www.cboe.com/us/options/market_statistics/daily/';
-    const cboeResp = await fetch(cboeUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9'
-      }
-    });
-    if (cboeResp.ok) {
-      const html = await cboeResp.text();
-      // Extraer valores de la tabla Put/Call del CBOE
-      const extractPCR = (label) => {
-        const regex = new RegExp(label + '[\s\S]*?([\d]+\.[\d]+)', 'i');
-        const m = html.match(regex);
-        return m ? parseFloat(m[1]) : null;
-      };
-      resultado.pcr = {
-        equity: extractPCR('EQUITY PUT/CALL RATIO'),
-        total:  extractPCR('TOTAL PUT/CALL RATIO'),
-        index:  extractPCR('INDEX PUT/CALL RATIO'),
-        spx:    extractPCR('SPX.*?PUT/CALL RATIO')
-      };
+    // Intentar primero con el CSV de la CDN del CBOE
+    const csvUrls = [
+      'https://cdn.cboe.com/api/global/us_indices/daily_prices/PC_STATS.csv',
+      'https://www.cboe.com/data/pc_stats.csv'
+    ];
+    let pcrData = null;
+    for (const url of csvUrls) {
+      try {
+        const r = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/csv,text/plain' }
+        });
+        if (!r.ok) continue;
+        const csv = await r.text();
+        const lines = csv.trim().split('\n').filter(l => l.trim());
+        if (lines.length < 2) continue;
+        // Cabecera
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g,''));
+        // Última línea con datos
+        const lastLine = lines[lines.length - 1];
+        const vals = lastLine.split(',').map(v => v.trim().replace(/['"]/g,''));
+        const row = {};
+        headers.forEach((h, i) => row[h] = vals[i]);
+        // Mapear columnas — el CSV del CBOE tiene distintos nombres posibles
+        const getVal = (...keys) => {
+          for (const k of keys) {
+            const found = Object.keys(row).find(h => h.includes(k));
+            if (found && row[found] && !isNaN(row[found])) return parseFloat(parseFloat(row[found]).toFixed(2));
+          }
+          return null;
+        };
+        pcrData = {
+          equity: getVal('equity', 'eq_pc', 'equity_pc'),
+          total:  getVal('total', 'tot_pc', 'total_pc', 'pc_ratio'),
+          index:  getVal('index', 'idx_pc', 'index_pc'),
+          spx:    getVal('spx', 'spxw', 'spx_pc'),
+          fecha:  row['date'] || row['as_of'] || 'hoy',
+          fuente: 'csv'
+        };
+        if (pcrData.total || pcrData.equity) break;
+      } catch {}
     }
+    resultado.pcr = pcrData;
   } catch(e) {
     resultado.pcr = null;
   }
