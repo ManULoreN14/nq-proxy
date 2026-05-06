@@ -212,6 +212,35 @@ export default async function handler(req, res) {
 
   if (resultado.nq) resultado.nq.isChg = true;
 
+  // Put/Call Ratios del CBOE — descarga directa sin IA
+  try {
+    const cboeUrl = 'https://www.cboe.com/us/options/market_statistics/daily/';
+    const cboeResp = await fetch(cboeUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+    if (cboeResp.ok) {
+      const html = await cboeResp.text();
+      // Extraer valores de la tabla Put/Call del CBOE
+      const extractPCR = (label) => {
+        const regex = new RegExp(label + '[\s\S]*?([\d]+\.[\d]+)', 'i');
+        const m = html.match(regex);
+        return m ? parseFloat(m[1]) : null;
+      };
+      resultado.pcr = {
+        equity: extractPCR('EQUITY PUT/CALL RATIO'),
+        total:  extractPCR('TOTAL PUT/CALL RATIO'),
+        index:  extractPCR('INDEX PUT/CALL RATIO'),
+        spx:    extractPCR('SPX.*?PUT/CALL RATIO')
+      };
+    }
+  } catch(e) {
+    resultado.pcr = null;
+  }
+
   // Máximo y mínimo 90 días del NDX para Fibonacci + Zonas de liquidez
   try {
     const ndxFib = await fetchYahoo('^NDX', '1y');
