@@ -212,6 +212,346 @@ export default async function handler(req, res) {
 
   if (resultado.nq) resultado.nq.isChg = true;
 
+  // MAX PAIN — calculado desde cadena de opciones del QQQ (Yahoo Finance)
+  try {
+    // QQQ es el ETF del Nasdaq 100 — sus opciones determinan el Max Pain del índice
+    const expUrl = 'https://query1.finance.yahoo.com/v7/finance/options/QQQ';
+    const expResp = await fetch(expUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const expData = await expResp.json();
+    const expirations = expData?.optionChain?.result?.[0]?.expirationDates || [];
+
+    if (expirations.length > 0) {
+      // Usar la expiración más próxima (weekly)
+      const nextExp = expirations[0];
+      const optUrl = `https://query1.finance.yahoo.com/v7/finance/options/QQQ?date=${nextExp}`;
+      const optResp = await fetch(optUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      const optData = await optResp.json();
+      const chain = optData?.optionChain?.result?.[0];
+
+      if (chain) {
+        const calls = chain.options?.[0]?.calls || [];
+        const puts  = chain.options?.[0]?.puts  || [];
+        const precio = chain.quote?.regularMarketPrice;
+
+        // Calcular Max Pain matemáticamente
+        // Para cada strike, calcular el dolor total (suma de valor intrínseco de todas las opciones)
+        const strikes = [...new Set([
+          ...calls.map(c => c.strike),
+          ...puts.map(p => p.strike)
+        ])].sort((a,b) => a-b);
+
+        let minDolor = Infinity;
+        let maxPain = precio;
+
+        for (const strike of strikes) {
+          let dolor = 0;
+          // Dolor de calls: suma de (strike_call - strike_test) * OI para calls ITM
+          for (const call of calls) {
+            if (call.strike < strike) {
+              dolor += (strike - call.strike) * (call.openInterest || 0);
+            }
+          }
+          // Dolor de puts: suma de (strike_test - strike_put) * OI para puts ITM
+          for (const put of puts) {
+            if (put.strike > strike) {
+              dolor += (put.strike - strike) * (put.openInterest || 0);
+            }
+          }
+          if (dolor < minDolor) {
+            minDolor = dolor;
+            maxPain = strike;
+          }
+        }
+
+        const distPct = parseFloat(((maxPain - precio) / precio * 100).toFixed(2));
+        const expDate = new Date(nextExp * 1000).toISOString().slice(0,10);
+
+        resultado.maxpain = {
+          valor: maxPain,
+          precio: parseFloat(precio.toFixed(2)),
+          distPct,
+          expiracion: expDate,
+          señal: distPct > 3 ? 'acumulacion' : distPct < -3 ? 'distribucion' : 'neutro',
+          descripcion: distPct > 3
+            ? 'Precio bajo Max Pain — dealers incentivados a subir (acumulación)'
+            : distPct < -3
+            ? 'Precio sobre Max Pain — dealers incentivados a bajar (distribución)'
+            : 'Precio cerca del Max Pain — dealers neutrales'
+        };
+      }
+    }
+  } catch(e) { resultado.maxpain = null; }
+
+  // CONTEXTO SEMANAL — mismos cálculos pero en timeframe semanal
+  try {
+    const ndxW = await fetchYahoo('^NDX', '2y');
+    if (ndxW && ndxW.closes.length >= 10) {
+      // Convertir datos diarios a semanales (agrupar por semana)
+      const toWeekly = (arr) => {
+        const weeks = [];
+        for (let i = 0; i < arr.length; i += 5) {
+          const slice = arr.slice(i, i+5).filter(v => v);
+          if (slice.length > 0) weeks.push(slice[slice.length-1]);
+        }
+        return weeks;
+      };
+      const wCloses = toWeekly(ndxW.closes);
+      const wHighs  = toWeekly(ndxW.highs);
+      const wLows   = toWeekly(ndxW.lows);
+      const wn = wCloses.length;
+      const wPrecio = wCloses[wn-1];
+
+      // EMAs semanales
+      const calcEMAw = (arr, p) => {
+        if (arr.length < p) return null;
+        const k = 2/(p+1);
+        let ema = arr.slice(0,p).reduce((a,b)=>a+b,0)/p;
+        for (let i=p; i<arr.length; i++) ema = arr[i]*k + ema*(1-k);
+        return parseFloat(ema.toFixed(2));
+      };
+      const wEma20  = calcEMAw(wCloses, 20);
+      const wEma50  = calcEMAw(wCloses, 50);
+      const wSma200 = wCloses.length >= 200 ? parseFloat((wCloses.slice(-200).reduce((a,b)=>a+b,0)/200).toFixed(2)) : null;
+
+      // RSI semanal
+      const calcRSIw = (arr, p=14) => {
+        if (arr.length < p+1) return null;
+        let g=0, l=0;
+        for (let i=arr.length-p; i<arr.length; i++) {
+          const d = arr[i]-arr[i-1];
+          if (d>0) g+=d; else l-=d;
+        }
+        const ag=g/p, al=l/p;
+        return al===0 ? 100 : parseFloat((100-100/(1+ag/al)).toFixed(2));
+      };
+      const wRsi = calcRSIw(wCloses);
+
+      // MACD semanal
+      const calcEMAarr = (arr, p) => {
+        if (arr.length < p) return null;
+        const k = 2/(p+1);
+        let ema = arr.slice(0,p).reduce((a,b)=>a+b,0)/p;
+        for (let i=p; i<arr.length; i++) ema = arr[i]*k + ema*(1-k);
+        return ema;
+      };
+      const wMacdLine = calcEMAarr(wCloses,12) && calcEMAarr(wCloses,26)
+        ? parseFloat((calcEMAarr(wCloses,12) - calcEMAarr(wCloses,26)).toFixed(2)) : null;
+
+      // Vela semanal actual
+      const semanaAlcista = wCloses[wn-1] > wCloses[wn-2];
+      const rangeSemana = wHighs[wn-1] - wLows[wn-1];
+      const rangeMedia = wHighs.slice(-10).map((h,i)=>h-wLows[wn-10+i]).reduce((a,b)=>a+b,0)/10;
+      const semanaExpansion = rangeSemana > rangeMedia * 1.3;
+
+      // Máx/mín semana anterior
+      const maxSemAnt = wHighs[wn-2];
+      const minSemAnt = wLows[wn-2];
+
+      // Tendencia semanal
+      let tendenciaSemanal = 'lateral';
+      if (wEma20 && wEma50) {
+        if (wEma20 > wEma50 && wPrecio > wEma20) tendenciaSemanal = 'alcista_fuerte';
+        else if (wEma20 > wEma50) tendenciaSemanal = 'alcista';
+        else if (wEma20 < wEma50 && wPrecio < wEma20) tendenciaSemanal = 'bajista_fuerte';
+        else tendenciaSemanal = 'bajista';
+      }
+
+      resultado.semanal = {
+        precio: parseFloat(wPrecio.toFixed(2)),
+        ema20: wEma20,
+        ema50: wEma50,
+        sma200: wSma200,
+        rsi: wRsi,
+        macd: wMacdLine,
+        tendencia: tendenciaSemanal,
+        vela: {
+          alcista: semanaAlcista,
+          expansion: semanaExpansion,
+          rango: parseFloat(rangeSemana.toFixed(2))
+        },
+        niveles: {
+          maxSemAnt: parseFloat(maxSemAnt.toFixed(2)),
+          minSemAnt: parseFloat(minSemAnt.toFixed(2))
+        },
+        distEma20:  wEma20  ? parseFloat(((wPrecio-wEma20)/wEma20*100).toFixed(2))  : null,
+        distEma50:  wEma50  ? parseFloat(((wPrecio-wEma50)/wEma50*100).toFixed(2))  : null,
+        distSma200: wSma200 ? parseFloat(((wPrecio-wSma200)/wSma200*100).toFixed(2)) : null,
+      };
+    }
+  } catch(e) { resultado.semanal = null; }
+
+  // DETECTORES DE GIRO — 4 indicadores automáticos
+  try {
+    const ndxGiro = await fetchYahoo('^NDX', '6mo');
+    if (ndxGiro && ndxGiro.closes.length >= 20) {
+      const closes = ndxGiro.closes;
+      const highs  = ndxGiro.highs;
+      const lows   = ndxGiro.lows;
+      const n = closes.length;
+      const precio = closes[n-1];
+
+      // ── 1. DIVERGENCIAS RSI (alcista y bajista) ──
+      const calcRSIArr = (arr, period=14) => {
+        const rsis = [];
+        for (let i = period; i <= arr.length; i++) {
+          let gains=0, losses=0;
+          for (let j = i-period; j < i; j++) {
+            const d = arr[j] - (j>0 ? arr[j-1] : arr[j]);
+            if (d>0) gains+=d; else losses-=d;
+          }
+          const ag=gains/period, al=losses/period;
+          rsis.push(al===0 ? 100 : parseFloat((100-100/(1+ag/al)).toFixed(2)));
+        }
+        return rsis;
+      };
+      const rsiArr = calcRSIArr(closes);
+      const rsiN = rsiArr.length;
+
+      // Buscar divergencia en últimas 20 velas
+      let divAlcista = false, divBajista = false;
+      for (let i = 5; i < Math.min(20, rsiN); i++) {
+        const precioActual = closes[n-1], precioAnterior = closes[n-1-i];
+        const rsiActual = rsiArr[rsiN-1], rsiAnterior = rsiArr[rsiN-1-i];
+        // Divergencia alcista: precio baja pero RSI sube
+        if (precioActual < precioAnterior && rsiActual > rsiAnterior && rsiActual < 45) divAlcista = true;
+        // Divergencia bajista: precio sube pero RSI baja
+        if (precioActual > precioAnterior && rsiActual < rsiAnterior && rsiActual > 60) divBajista = true;
+      }
+
+      // ── 2. BANDAS DE BOLLINGER ──
+      const period = 20;
+      const sma20 = closes.slice(-period).reduce((a,b)=>a+b,0)/period;
+      const variance = closes.slice(-period).reduce((s,v)=>s+Math.pow(v-sma20,2),0)/period;
+      const std = Math.sqrt(variance);
+      const bbUpper = parseFloat((sma20 + 2*std).toFixed(2));
+      const bbLower = parseFloat((sma20 - 2*std).toFixed(2));
+      const bbWidth = parseFloat(((bbUpper-bbLower)/sma20*100).toFixed(2));
+      const bbPos   = parseFloat(((precio-bbLower)/(bbUpper-bbLower)*100).toFixed(1));
+      let bbSeñal = 'neutro';
+      if (precio >= bbUpper * 0.99) bbSeñal = 'techo_posible';
+      else if (precio <= bbLower * 1.01) bbSeñal = 'suelo_posible';
+
+      // ── 3. RATIO VIX/VXN ──
+      const vixV = resultado.vix?.v;
+      const vxnV = resultado.vxn?.v;
+      let vixVxnRatio = null, vixVxnSeñal = 'normal';
+      if (vixV && vxnV) {
+        vixVxnRatio = parseFloat((vxnV/vixV).toFixed(2));
+        if (vixVxnRatio > 1.4) vixVxnSeñal = 'estres_tech_extremo';
+        else if (vixVxnRatio > 1.25) vixVxnSeñal = 'estres_tech_alto';
+        else if (vixVxnRatio < 0.9) vixVxnSeñal = 'tech_calma_relativa';
+      }
+
+      // ── 4. DÍAS CONSECUTIVOS EN MISMA DIRECCIÓN ──
+      let diasConsecutivos = 0, direccion = 'lateral';
+      for (let i = n-1; i > n-15; i--) {
+        const sube = closes[i] > closes[i-1];
+        const baja = closes[i] < closes[i-1];
+        if (i === n-1) { direccion = sube ? 'subiendo' : baja ? 'bajando' : 'lateral'; }
+        if (direccion === 'subiendo' && sube) diasConsecutivos++;
+        else if (direccion === 'bajando' && baja) diasConsecutivos++;
+        else break;
+      }
+      let diasSeñal = 'normal';
+      if (diasConsecutivos >= 7 && direccion === 'subiendo') diasSeñal = 'agotamiento_alcista';
+      else if (diasConsecutivos >= 5 && direccion === 'bajando') diasSeñal = 'rebote_probable';
+      else if (diasConsecutivos >= 5 && direccion === 'subiendo') diasSeñal = 'vigilar_techo';
+
+      resultado.giro = {
+        divergencias: {
+          alcista: divAlcista,
+          bajista: divBajista,
+          señal: divAlcista ? 'suelo_posible' : divBajista ? 'techo_posible' : 'sin_divergencia'
+        },
+        bollinger: {
+          upper: bbUpper, lower: bbLower, sma20: parseFloat(sma20.toFixed(2)),
+          width: bbWidth, posicion: bbPos, señal: bbSeñal
+        },
+        vixVxn: {
+          ratio: vixVxnRatio, señal: vixVxnSeñal,
+          descripcion: vixVxnSeñal === 'estres_tech_extremo' ? 'Estrés extremo en tech — giro bajista posible' :
+                       vixVxnSeñal === 'estres_tech_alto' ? 'Estrés elevado en Nasdaq vs S&P' :
+                       vixVxnSeñal === 'tech_calma_relativa' ? 'Nasdaq más tranquilo que el mercado general' : 'Normal'
+        },
+        diasConsecutivos: {
+          dias: diasConsecutivos, direccion,
+          señal: diasSeñal,
+          descripcion: diasSeñal === 'agotamiento_alcista' ? diasConsecutivos + ' días subiendo — agotamiento alcista probable' :
+                       diasSeñal === 'rebote_probable' ? diasConsecutivos + ' días bajando — rebote técnico probable' :
+                       diasSeñal === 'vigilar_techo' ? diasConsecutivos + ' días subiendo — vigilar señales de techo' :
+                       diasConsecutivos + ' días ' + direccion + ' — sin señal extrema'
+        },
+        señalGlobal: (divBajista || bbSeñal==='techo_posible' || diasSeñal==='agotamiento_alcista') ? 'techo' :
+                     (divAlcista || bbSeñal==='suelo_posible' || diasSeñal==='rebote_probable') ? 'suelo' : 'neutro'
+      };
+    }
+  } catch(e) { resultado.giro = null; }
+
+  // GEX aproximado — calculado desde VIX, VXN y Put/Call
+  // No es el GEX real pero es una estimación útil
+  try {
+    const vix = resultado.vix?.v;
+    const vxn = resultado.vxn?.v;
+    const vixChg = resultado.vix?.chg;
+    const nqChg = resultado.nq?.chg;
+
+    if (vix && vxn) {
+      // Lógica de aproximación GEX:
+      // VIX < 16 + estable = gamma positiva alta
+      // VIX 16-20 = gamma positiva moderada
+      // VIX 20-25 = gamma neutra/transición
+      // VIX > 25 = gamma negativa
+      // VIX subiendo MIENTRAS precio sube = señal trampa (distribución)
+
+      let gexEstado, gexValor, gexDescripcion, gexAlerta;
+
+      const trampaInstitucional = vixChg > 2 && nqChg > 0.3;
+
+      if (vix < 16) {
+        gexEstado = 'positiva_alta';
+        gexValor = 3;
+        gexDescripcion = 'Dealers estabilizando fuerte. Mercado en rango, reversión a la media.';
+      } else if (vix < 20) {
+        gexEstado = 'positiva';
+        gexValor = 2;
+        gexDescripcion = 'Dealers comprando caídas y vendiendo rallies. Mercado sostenido.';
+      } else if (vix < 25) {
+        gexEstado = 'neutra';
+        gexValor = 0;
+        gexDescripcion = 'Transición. Dealers en equilibrio. Mayor incertidumbre de dirección.';
+      } else if (vix < 30) {
+        gexEstado = 'negativa';
+        gexValor = -2;
+        gexDescripcion = 'Dealers amplificando movimientos. Posibles tendencias violentas.';
+      } else {
+        gexEstado = 'negativa_extrema';
+        gexValor = -3;
+        gexDescripcion = 'Dealers sin control. Movimientos explosivos. Alto riesgo.';
+      }
+
+      // Ajuste por VXN (Nasdaq específico)
+      if (vxn > vix * 1.3) {
+        gexValor -= 1;
+        gexDescripcion += ' VXN elevado vs VIX indica estrés específico en tech.';
+      }
+
+      // Alerta trampa institucional
+      if (trampaInstitucional) {
+        gexAlerta = 'TRAMPA: Precio sube pero VIX también sube — posible distribución institucional';
+      }
+
+      resultado.gex = {
+        estado: gexEstado,
+        valor: gexValor,
+        descripcion: gexDescripcion,
+        alerta: gexAlerta || null,
+        trampa: trampaInstitucional,
+        vixUsado: vix,
+        vxnUsado: vxn
+      };
+    }
+  } catch(e) { resultado.gex = null; }
+
   // Put/Call Ratios del CBOE — via CSV estático (más fiable que scraping HTML)
   try {
     // Intentar primero con el CSV de la CDN del CBOE
