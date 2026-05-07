@@ -390,7 +390,7 @@ export default async function handler(req, res) {
       const n = closes.length;
       const precio = closes[n-1];
 
-      // ── 1. DIVERGENCIAS RSI (alcista y bajista) ──
+      // ── 1. DIVERGENCIAS RSI con confirmación múltiple ──
       const calcRSIArr = (arr, period=14) => {
         const rsis = [];
         for (let i = period; i <= arr.length; i++) {
@@ -407,16 +407,39 @@ export default async function handler(req, res) {
       const rsiArr = calcRSIArr(closes);
       const rsiN = rsiArr.length;
 
-      // Buscar divergencia en últimas 20 velas
+      // Detectar divergencia base
       let divAlcista = false, divBajista = false;
       for (let i = 5; i < Math.min(20, rsiN); i++) {
         const precioActual = closes[n-1], precioAnterior = closes[n-1-i];
         const rsiActual = rsiArr[rsiN-1], rsiAnterior = rsiArr[rsiN-1-i];
-        // Divergencia alcista: precio baja pero RSI sube
         if (precioActual < precioAnterior && rsiActual > rsiAnterior && rsiActual < 45) divAlcista = true;
-        // Divergencia bajista: precio sube pero RSI baja
         if (precioActual > precioAnterior && rsiActual < rsiAnterior && rsiActual > 60) divBajista = true;
       }
+
+      // ── CONFIRMADORES DE DIVERGENCIA (para llegar al 80% fiabilidad) ──
+      // Confirmador 1: Volumen decreciente en últimas 5 velas
+      let volDecreciente = false;
+      if (ndxGiro.volumes && ndxGiro.volumes.length >= 10) {
+        const volReciente = ndxGiro.volumes.slice(-5).filter(v=>v).reduce((a,b)=>a+b,0)/5;
+        const volAnterior = ndxGiro.volumes.slice(-10,-5).filter(v=>v).reduce((a,b)=>a+b,0)/5;
+        volDecreciente = volReciente < volAnterior * 0.85;
+      }
+
+      // Confirmador 2: VIX subiendo mientras precio sube (trampa)
+      const trampaVix = resultado.gex?.trampa || false;
+
+      // Confirmador 3: AccDis divergiendo (bajando mientras precio sube)
+      const accdisDiv = resultado.tecnicos?.accdis?.trend === 'bajando' && closes[n-1] > closes[n-6];
+
+      // Calcular fiabilidad de la divergencia
+      const confirmadoresBajistas = [volDecreciente, trampaVix, accdisDiv].filter(Boolean).length;
+      const confirmadoresAlcistas = [!volDecreciente, !trampaVix].filter(Boolean).length;
+
+      const divFiabilidad = divBajista
+        ? (confirmadoresBajistas >= 2 ? 'alta' : confirmadoresBajistas >= 1 ? 'media' : 'baja')
+        : divAlcista
+        ? (confirmadoresAlcistas >= 2 ? 'alta' : 'media')
+        : 'sin_divergencia';
 
       // ── 2. BANDAS DE BOLLINGER ──
       const period = 20;
@@ -461,6 +484,9 @@ export default async function handler(req, res) {
         divergencias: {
           alcista: divAlcista,
           bajista: divBajista,
+          fiabilidad: divFiabilidad,
+          confirmadores: confirmadoresBajistas,
+          volDecreciente, trampaVix, accdisDiv,
           señal: divAlcista ? 'suelo_posible' : divBajista ? 'techo_posible' : 'sin_divergencia'
         },
         bollinger: {
