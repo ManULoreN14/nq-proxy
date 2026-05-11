@@ -282,6 +282,76 @@ export default async function handler(req, res) {
     }
   } catch(e) { resultado.maxpain = null; }
 
+  // DATOS MACRO FRED — Federal Reserve Economic Data
+  try {
+    const FRED_KEY = 'f15ed9ee86d337183138a81bfd4952cb';
+    const fredFetch = async (series) => {
+      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${series}&api_key=${FRED_KEY}&file_type=json&limit=2&sort_order=desc`;
+      const r = await fetch(url);
+      const d = await r.json();
+      const obs = d?.observations?.filter(o => o.value !== '.');
+      if (!obs || obs.length === 0) return null;
+      return {
+        actual: parseFloat(parseFloat(obs[0].value).toFixed(4)),
+        anterior: obs[1] ? parseFloat(parseFloat(obs[1].value).toFixed(4)) : null,
+        fecha: obs[0].date,
+        tendencia: obs[1] ? (parseFloat(obs[0].value) > parseFloat(obs[1].value) ? 'subiendo' : 'bajando') : null
+      };
+    };
+
+    const [walcl, fedfunds, hySpread, nfci, t10y2y] = await Promise.all([
+      fredFetch('WALCL'),    // Balance Fed (liquidez sistema)
+      fredFetch('FEDFUNDS'), // Fed Funds Rate
+      fredFetch('BAMLH0A0HYM2'), // High Yield Spread — estrés crédito
+      fredFetch('NFCI'),     // National Financial Conditions Index
+      fredFetch('T10Y2Y')    // Curva de tipos 10Y-2Y (inversión = riesgo recesión)
+    ]);
+
+    // Interpretación automática
+    const interpretarFred = (walcl, fedfunds, hySpread, nfci, t10y2y) => {
+      let señales = [];
+      let score = 0;
+
+      if (walcl) {
+        const alcista = walcl.actual > 7500000;
+        score += alcista ? 1 : -1;
+        señales.push({ ind: 'Balance Fed', val: (walcl.actual/1000000).toFixed(2) + 'T', tend: walcl.tendencia, señal: walcl.tendencia === 'subiendo' ? 'alcista' : 'bajista', desc: walcl.tendencia === 'subiendo' ? 'Fed expandiendo balance — liquidez positiva' : 'Fed contrayendo balance — liquidez negativa' });
+      }
+      if (fedfunds) {
+        const alcista = fedfunds.actual < 4;
+        score += alcista ? 1 : fedfunds.actual > 5 ? -1 : 0;
+        señales.push({ ind: 'Fed Funds Rate', val: fedfunds.actual + '%', tend: fedfunds.tendencia, señal: fedfunds.actual < 4 ? 'alcista' : fedfunds.actual > 5 ? 'bajista' : 'neutro', desc: fedfunds.actual > 5 ? 'Tipos restrictivos — presión sobre valoraciones tech' : fedfunds.actual < 4 ? 'Tipos favorables para tech' : 'Tipos en zona neutral' });
+      }
+      if (hySpread) {
+        const bajista = hySpread.actual > 4;
+        const muyBajista = hySpread.actual > 6;
+        score += muyBajista ? -2 : bajista ? -1 : 1;
+        señales.push({ ind: 'HY Credit Spread', val: hySpread.actual + '%', tend: hySpread.tendencia, señal: muyBajista ? 'bajista_fuerte' : bajista ? 'bajista' : 'alcista', desc: muyBajista ? '⚠️ Spread HY elevado — estrés crediticio serio' : bajista ? 'Spread HY en zona de vigilancia' : 'Spread HY contenido — mercado de crédito tranquilo' });
+      }
+      if (nfci) {
+        const alcista = nfci.actual < 0;
+        score += alcista ? 1 : -1;
+        señales.push({ ind: 'NFCI (Condiciones Fin.)', val: nfci.actual, tend: nfci.tendencia, señal: alcista ? 'alcista' : 'bajista', desc: alcista ? 'Condiciones financieras acomodaticias (NFCI<0)' : 'Condiciones financieras restrictivas (NFCI>0) — señal de estrés' });
+      }
+      if (t10y2y) {
+        const invertida = t10y2y.actual < 0;
+        score += invertida ? -1 : 0.5;
+        señales.push({ ind: 'Curva 10Y-2Y', val: t10y2y.actual + '%', tend: t10y2y.tendencia, señal: invertida ? 'bajista' : 'alcista', desc: invertida ? '⚠️ Curva invertida — señal histórica de recesión' : 'Curva normal — sin señal de recesión inmediata' });
+      }
+
+      return { score: parseFloat(score.toFixed(1)), señales, estado: score >= 2 ? 'favorable' : score <= -2 ? 'restrictivo' : 'neutro' };
+    };
+
+    const fredInterpretacion = interpretarFred(walcl, fedfunds, hySpread, nfci, t10y2y);
+
+    resultado.fred = {
+      walcl, fedfunds, hySpread, nfci, t10y2y,
+      score: fredInterpretacion.score,
+      estado: fredInterpretacion.estado,
+      señales: fredInterpretacion.señales
+    };
+  } catch(e) { resultado.fred = null; }
+
   // CONTEXTO SEMANAL — mismos cálculos pero en timeframe semanal
   try {
     const ndxW = await fetchYahoo('^NDX', '2y');
