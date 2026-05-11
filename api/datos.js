@@ -299,53 +299,92 @@ export default async function handler(req, res) {
       };
     };
 
-    const [walcl, fedfunds, hySpread, nfci, t10y2y] = await Promise.all([
-      fredFetch('WALCL'),    // Balance Fed (liquidez sistema)
-      fredFetch('FEDFUNDS'), // Fed Funds Rate
-      fredFetch('BAMLH0A0HYM2'), // High Yield Spread — estrés crédito
-      fredFetch('NFCI'),     // National Financial Conditions Index
-      fredFetch('T10Y2Y')    // Curva de tipos 10Y-2Y (inversión = riesgo recesión)
+    const [walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y] = await Promise.all([
+      fredFetch('WALCL'),         // Balance Fed
+      fredFetch('FEDFUNDS'),      // Fed Funds Rate
+      fredFetch('BAMLH0A0HYM2'), // HY Credit Spread
+      fredFetch('NFCI'),          // Condiciones financieras
+      fredFetch('T10Y2Y'),        // Curva 10Y-2Y
+      fredFetch('T10Y3M'),        // Curva 10Y-3M (más fiable para recesión)
+      fredFetch('SOFR'),          // Tipo repo SOFR
+      fredFetch('T5Y5Y')          // Expectativas largo plazo
     ]);
 
-    // Interpretación automática
-    const interpretarFred = (walcl, fedfunds, hySpread, nfci, t10y2y) => {
+    // Estrés interbancario: SOFR vs Fed Funds
+    let sofrSpread = null;
+    if (sofr && fedfunds) {
+      sofrSpread = parseFloat((sofr.actual - fedfunds.actual).toFixed(3));
+    }
+
+    // Estado curva de tipos
+    const estadoCurva = (t10y3m && t10y2y) ? {
+      t10y2y: t10y2y.actual,
+      t10y3m: t10y3m.actual,
+      invertida_2y: t10y2y.actual < 0,
+      invertida_3m: t10y3m.actual < 0,
+      // La 10Y-3M invertida es la más fiable históricamente (Fed Cleveland)
+      señalRecesion: t10y3m.actual < -0.5 ? 'alta' : t10y3m.actual < 0 ? 'moderada' : 'baja',
+      descripcion: t10y3m.actual < -0.5 ? '⚠️ Curva 10Y-3M muy invertida — señal recesión alta fiabilidad' :
+                   t10y3m.actual < 0 ? 'Curva 10Y-3M invertida — vigilar' :
+                   t10y2y.actual < 0 ? 'Curva 10Y-2Y invertida, 10Y-3M normal — señal mixta' :
+                   'Curva normal — sin señal de recesión'
+    } : null;
+
+    const interpretarFred = (walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y, sofrSpread) => {
       let señales = [];
       let score = 0;
 
       if (walcl) {
-        const alcista = walcl.actual > 7500000;
+        const alcista = walcl.tendencia === 'subiendo';
         score += alcista ? 1 : -1;
-        señales.push({ ind: 'Balance Fed', val: (walcl.actual/1000000).toFixed(2) + 'T', tend: walcl.tendencia, señal: walcl.tendencia === 'subiendo' ? 'alcista' : 'bajista', desc: walcl.tendencia === 'subiendo' ? 'Fed expandiendo balance — liquidez positiva' : 'Fed contrayendo balance — liquidez negativa' });
+        señales.push({ ind: 'Balance Fed', val: (walcl.actual/1000000).toFixed(2) + 'T', tend: walcl.tendencia, señal: alcista ? 'alcista' : 'bajista', desc: alcista ? 'Fed expandiendo balance — liquidez positiva para activos de riesgo' : 'Fed contrayendo balance (QT) — reducción de liquidez' });
       }
       if (fedfunds) {
         const alcista = fedfunds.actual < 4;
-        score += alcista ? 1 : fedfunds.actual > 5 ? -1 : 0;
-        señales.push({ ind: 'Fed Funds Rate', val: fedfunds.actual + '%', tend: fedfunds.tendencia, señal: fedfunds.actual < 4 ? 'alcista' : fedfunds.actual > 5 ? 'bajista' : 'neutro', desc: fedfunds.actual > 5 ? 'Tipos restrictivos — presión sobre valoraciones tech' : fedfunds.actual < 4 ? 'Tipos favorables para tech' : 'Tipos en zona neutral' });
+        const bajista = fedfunds.actual > 5;
+        score += alcista ? 1 : bajista ? -1 : 0;
+        señales.push({ ind: 'Fed Funds Rate', val: fedfunds.actual + '%', tend: fedfunds.tendencia, señal: alcista ? 'alcista' : bajista ? 'bajista' : 'neutro', desc: bajista ? 'Tipos restrictivos — presión sobre valoraciones tech y múltiplos' : alcista ? 'Tipos favorables para tech — múltiplos soportados' : 'Tipos en zona neutral' });
+      }
+      if (sofr && fedfunds) {
+        const estres = Math.abs(sofrSpread) > 0.5;
+        score += estres ? -2 : 0;
+        señales.push({ ind: 'SOFR vs Fed Funds (Repo)', val: 'Spread: ' + sofrSpread + '%', tend: Math.abs(sofrSpread) > 0.5 ? 'subiendo' : 'estable', señal: estres ? 'bajista_fuerte' : 'alcista', desc: estres ? '🚨 Estrés interbancario — spread repo elevado (similar a señales pre-2008)' : 'Mercado repo tranquilo — sin estrés interbancario' });
       }
       if (hySpread) {
         const bajista = hySpread.actual > 4;
         const muyBajista = hySpread.actual > 6;
         score += muyBajista ? -2 : bajista ? -1 : 1;
-        señales.push({ ind: 'HY Credit Spread', val: hySpread.actual + '%', tend: hySpread.tendencia, señal: muyBajista ? 'bajista_fuerte' : bajista ? 'bajista' : 'alcista', desc: muyBajista ? '⚠️ Spread HY elevado — estrés crediticio serio' : bajista ? 'Spread HY en zona de vigilancia' : 'Spread HY contenido — mercado de crédito tranquilo' });
+        señales.push({ ind: 'HY Credit Spread', val: hySpread.actual + '%', tend: hySpread.tendencia, señal: muyBajista ? 'bajista_fuerte' : bajista ? 'bajista' : 'alcista', desc: muyBajista ? '⚠️ Spread HY crítico — estrés crediticio serio, precede correcciones Nasdaq 2-4 semanas' : bajista ? 'HY en zona de vigilancia — crédito bajo presión' : 'HY contenido — mercado de crédito tranquilo' });
       }
       if (nfci) {
         const alcista = nfci.actual < 0;
         score += alcista ? 1 : -1;
-        señales.push({ ind: 'NFCI (Condiciones Fin.)', val: nfci.actual, tend: nfci.tendencia, señal: alcista ? 'alcista' : 'bajista', desc: alcista ? 'Condiciones financieras acomodaticias (NFCI<0)' : 'Condiciones financieras restrictivas (NFCI>0) — señal de estrés' });
+        señales.push({ ind: 'NFCI (Condiciones Fin.)', val: nfci.actual, tend: nfci.tendencia, señal: alcista ? 'alcista' : 'bajista', desc: alcista ? 'Condiciones financieras acomodaticias (NFCI<0) — entorno favorable' : 'Condiciones financieras restrictivas (NFCI>0) — estrés sistémico' });
+      }
+      // Curva de tipos — sección especial
+      if (t10y3m) {
+        const muyInvertida = t10y3m.actual < -0.5;
+        const invertida = t10y3m.actual < 0;
+        score += muyInvertida ? -2 : invertida ? -1 : 0.5;
+        señales.push({ ind: 'Curva 10Y-3M (Fed Cleveland)', val: t10y3m.actual + '%', tend: t10y3m.tendencia, señal: muyInvertida ? 'bajista_fuerte' : invertida ? 'bajista' : 'alcista', desc: muyInvertida ? '🚨 Curva 10Y-3M muy invertida — predictor recesión alta fiabilidad histórica' : invertida ? '⚠️ Curva 10Y-3M invertida — señal recesión moderada' : 'Curva 10Y-3M normal — sin señal recesión' });
       }
       if (t10y2y) {
         const invertida = t10y2y.actual < 0;
-        score += invertida ? -1 : 0.5;
-        señales.push({ ind: 'Curva 10Y-2Y', val: t10y2y.actual + '%', tend: t10y2y.tendencia, señal: invertida ? 'bajista' : 'alcista', desc: invertida ? '⚠️ Curva invertida — señal histórica de recesión' : 'Curva normal — sin señal de recesión inmediata' });
+        score += invertida ? -0.5 : 0.5;
+        señales.push({ ind: 'Curva 10Y-2Y', val: t10y2y.actual + '%', tend: t10y2y.tendencia, señal: invertida ? 'bajista' : 'alcista', desc: invertida ? 'Curva 10Y-2Y invertida — mercado anticipa bajadas de tipos' : 'Curva 10Y-2Y normal — expectativas de tipos moderadas' });
+      }
+      if (t5y5y) {
+        señales.push({ ind: 'Expectativas largo plazo (5Y5Y)', val: t5y5y.actual + '%', tend: t5y5y.tendencia, señal: t5y5y.actual > 3 ? 'bajista' : t5y5y.actual < 2 ? 'alcista' : 'neutro', desc: t5y5y.actual > 3 ? 'Expectativas inflación largo plazo elevadas — presión estructural tipos' : 'Expectativas inflación ancladas — favorece múltiplos tech' });
       }
 
       return { score: parseFloat(score.toFixed(1)), señales, estado: score >= 2 ? 'favorable' : score <= -2 ? 'restrictivo' : 'neutro' };
     };
 
-    const fredInterpretacion = interpretarFred(walcl, fedfunds, hySpread, nfci, t10y2y);
+    const fredInterpretacion = interpretarFred(walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y, sofrSpread);
 
     resultado.fred = {
-      walcl, fedfunds, hySpread, nfci, t10y2y,
+      walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y,
+      sofrSpread, estadoCurva,
       score: fredInterpretacion.score,
       estado: fredInterpretacion.estado,
       señales: fredInterpretacion.señales
