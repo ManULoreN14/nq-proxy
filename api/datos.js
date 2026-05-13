@@ -560,53 +560,47 @@ export default async function handler(req, res) {
     };
   } catch(e) { resultado.empresarial = null; }
 
-  // FINNHUB — Noticias financieras + sentiment (gratis, mejor calidad que NewsAPI)
+  // ALPHA VANTAGE — Noticias financieras + sentiment score
   try {
-    const FINNHUB_KEY = 'sandbox_c9q0t2aad3i9m5q2j9ag'; // free tier
-    const finnhubKey = resultado._finnhubKey || FINNHUB_KEY;
+    const AV_KEY = 'MBL9WFVPPXOK7ZU8';
+    // News & Sentiment API — filtra por Nasdaq, Fed, tech, geopolítica
+    const avUrl = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=technology,financial_markets,economy_fiscal&sort=LATEST&limit=10&apikey=${AV_KEY}`;
+    const avResp = await fetch(avUrl);
+    const avData = await avResp.json();
 
-    // Noticias de mercado generales
-    const newsResp = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`);
-    const newsData = await newsResp.json();
+    let sentimentScore = null, sentimentDesc = null;
+    const noticias = [];
 
-    // Sentiment del mercado US
-    const sentResp = await fetch(`https://finnhub.io/api/v1/news-sentiment?symbol=QQQ&token=${finnhubKey}`);
-    const sentData = await sentResp.json();
+    if (avData?.feed) {
+      // Calcular sentiment score promedio
+      const scores = avData.feed
+        .filter(n => n.overall_sentiment_score !== undefined)
+        .map(n => parseFloat(n.overall_sentiment_score));
+      
+      if (scores.length > 0) {
+        const avgScore = scores.reduce((a,b) => a+b, 0) / scores.length;
+        sentimentScore = parseFloat(((avgScore + 1) * 50).toFixed(1)); // normalizar a 0-100
+        sentimentDesc = avgScore > 0.25 ? 'Sentimiento muy alcista — posible complacencia' :
+                        avgScore > 0.05 ? 'Sentimiento alcista moderado' :
+                        avgScore < -0.25 ? 'Sentimiento muy bajista — posible capitulación' :
+                        avgScore < -0.05 ? 'Sentimiento bajista moderado' : 'Sentimiento neutro';
+      }
 
-    // Noticias relevantes filtradas (últimas 24h)
-    const ahora = Date.now() / 1000;
-    const noticias = Array.isArray(newsData) ? newsData
-      .filter(n => n.datetime > ahora - 86400) // últimas 24h
-      .filter(n => {
-        const t = (n.headline + ' ' + (n.summary||'')).toLowerCase();
-        return t.includes('nasdaq') || t.includes('fed') || t.includes('rate') ||
-               t.includes('inflation') || t.includes('nvidia') || t.includes('apple') ||
-               t.includes('microsoft') || t.includes('tariff') || t.includes('trade') ||
-               t.includes('geopolit') || t.includes('china') || t.includes('ukraine');
-      })
-      .slice(0, 8)
-      .map(n => ({
-        titulo: n.headline,
-        fuente: n.source,
-        fecha: new Date(n.datetime * 1000).toISOString().slice(0,10),
-        url: n.url,
-        resumen: n.summary?.slice(0, 120)
-      })) : [];
-
-    // Sentiment score QQQ
-    let sentimentScore = null;
-    let sentimentDesc = null;
-    if (sentData?.buzz) {
-      const score = sentData.sentiment?.bullishPercent || 0.5;
-      sentimentScore = parseFloat((score * 100).toFixed(1));
-      sentimentDesc = score > 0.65 ? 'Sentimiento muy alcista — posible complacencia' :
-                      score > 0.55 ? 'Sentimiento alcista moderado' :
-                      score < 0.35 ? 'Sentimiento muy bajista — posible capitulación' :
-                      score < 0.45 ? 'Sentimiento bajista moderado' : 'Sentimiento neutro';
+      // Extraer noticias relevantes
+      avData.feed.slice(0, 8).forEach(n => {
+        noticias.push({
+          titulo: n.title,
+          fuente: n.source,
+          fecha: n.time_published?.slice(0, 10),
+          resumen: n.summary?.slice(0, 150),
+          sentiment: n.overall_sentiment_label,
+          sentimentScore: n.overall_sentiment_score
+        });
+      });
     }
 
     if (noticias.length > 0 || sentimentScore !== null) {
-      resultado.finnhub = { noticias, sentimentScore, sentimentDesc };
+      resultado.finnhub = { noticias, sentimentScore, sentimentDesc, fuente: 'alphavantage' };
     }
   } catch(e) { resultado.finnhub = null; }
 
@@ -614,7 +608,7 @@ export default async function handler(req, res) {
   try {
     // NewsAPI — 100 peticiones/día gratis
     // Busca noticias relevantes para el Nasdaq: Fed, geopolítica, tech, macro
-    const NEWS_KEY = 'c8f5e5e5e5e5e5e5e5e5e5e5e5e5e5e5'; // placeholder — se configura desde la app
+    const NEWS_KEY = '08b850a8842a47568e83e4433a6c3e7d'; // NewsAPI real key
     const newsApiKey = resultado._newsApiKey || NEWS_KEY;
     
     const queries = [
