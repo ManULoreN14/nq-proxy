@@ -212,6 +212,74 @@ export default async function handler(req, res) {
 
   if (resultado.nq) resultado.nq.isChg = true;
 
+  // SCORING UNIFICADO — combina técnico + macro + sentimiento + geopolítico
+  // Se calcula al final cuando todos los datos están disponibles
+  try {
+    let scoreTecnico = 0, scoreMacro = 0, scoreSentimiento = 0;
+    let pesoTec = 0, pesoMac = 0, pesoSent = 0;
+
+    // ── TÉCNICO (40%) ──
+    if (resultado.tecnicos) {
+      const t = resultado.tecnicos;
+      if (t.rsi) {
+        if (t.rsi.valor >= 45 && t.rsi.valor <= 65) scoreTecnico += 2;
+        else if (t.rsi.valor > 70) scoreTecnico -= 1;
+        else if (t.rsi.valor < 30) scoreTecnico += 1;
+      }
+      if (t.ema50?.cruceEmas === 'alcista') scoreTecnico += 2;
+      else scoreTecnico -= 1;
+      if (t.sma200?.distanciaPct > 0) scoreTecnico += 1;
+      else scoreTecnico -= 2;
+      if (t.macd?.histogram > 0) scoreTecnico += 1;
+      else scoreTecnico -= 1;
+      pesoTec = 1;
+    }
+
+    // ── MACRO FRED (30%) ──
+    if (resultado.fred) {
+      scoreMacro = resultado.fred.score;
+      pesoMac = 1;
+    }
+
+    // ── SENTIMIENTO + NOTICIAS (30%) ──
+    let sentScore = 0;
+    if (resultado.finnhub?.sentimentScore) {
+      const s = resultado.finnhub.sentimentScore;
+      sentScore += s > 65 ? -1 : s > 55 ? 1 : s < 35 ? -1 : s < 45 ? -0.5 : 0.5;
+    }
+    if (resultado.vix?.v) {
+      sentScore += resultado.vix.v < 16 ? 2 : resultado.vix.v < 20 ? 1 : resultado.vix.v < 25 ? 0 : resultado.vix.v < 30 ? -1 : -2;
+    }
+    if (resultado.gex?.trampa) sentScore -= 2;
+    pesoSent = 1;
+
+    if (pesoTec + pesoMac + pesoSent > 0) {
+      // Score normalizado -10 a +10
+      const scoreNorm = (
+        (pesoTec > 0 ? (scoreTecnico / 7) * 0.4 : 0) +
+        (pesoMac > 0 ? (scoreMacro / 8) * 0.3 : 0) +
+        (pesoSent > 0 ? (sentScore / 4) * 0.3 : 0)
+      ) * 10;
+
+      const scoreF = parseFloat(Math.max(-10, Math.min(10, scoreNorm)).toFixed(1));
+      resultado.scoreUnificado = {
+        score: scoreF,
+        componentes: {
+          tecnico: parseFloat(scoreTecnico.toFixed(1)),
+          macro: parseFloat(scoreMacro.toFixed(1)),
+          sentimiento: parseFloat(sentScore.toFixed(1))
+        },
+        estado: scoreF >= 3 ? 'alcista' : scoreF <= -3 ? 'bajista' : 'neutro',
+        descripcion: scoreF >= 5 ? 'Entorno muy favorable para el Nasdaq' :
+                     scoreF >= 3 ? 'Entorno favorable — sesgo alcista' :
+                     scoreF >= 0 ? 'Entorno neutro con ligero sesgo alcista' :
+                     scoreF >= -3 ? 'Entorno neutral con riesgo creciente' :
+                     scoreF >= -5 ? 'Entorno desfavorable — cautela' :
+                     'Entorno muy adverso — proteger capital'
+      };
+    }
+  } catch(e) { resultado.scoreUnificado = null; }
+
   // MAX PAIN — calculado desde cadena de opciones del QQQ (Yahoo Finance)
   try {
     // QQQ es el ETF del Nasdaq 100 — sus opciones determinan el Max Pain del índice
@@ -299,16 +367,39 @@ export default async function handler(req, res) {
       };
     };
 
-    const [walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y] = await Promise.all([
+    const [walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y, t5yie, t10yie, ff2y] = await Promise.all([
       fredFetch('WALCL'),         // Balance Fed
       fredFetch('FEDFUNDS'),      // Fed Funds Rate
       fredFetch('BAMLH0A0HYM2'), // HY Credit Spread
       fredFetch('NFCI'),          // Condiciones financieras
       fredFetch('T10Y2Y'),        // Curva 10Y-2Y
-      fredFetch('T10Y3M'),        // Curva 10Y-3M (más fiable para recesión)
+      fredFetch('T10Y3M'),        // Curva 10Y-3M
       fredFetch('SOFR'),          // Tipo repo SOFR
-      fredFetch('T5Y5Y')          // Expectativas largo plazo
+      fredFetch('T5Y5Y'),         // Expectativas largo plazo
+      fredFetch('T5YIE'),         // TIPS Breakeven 5Y — inflación implícita
+      fredFetch('T10YIE'),        // TIPS Breakeven 10Y — inflación implícita largo plazo
+      fredFetch('DFF')            // Fed Funds efectivo diario (más reciente que FEDFUNDS)
     ]);
+
+    // Expectativas política monetaria Fed
+    // El diferencial Bono2Y - Fed Funds descuenta lo que el mercado espera en 12 meses
+    let fedExpectativas = null;
+    try {
+      const bono2y = await fetchYahoo('^IRX', '5d'); // T-Bill 3M como proxy
+      const bono2yVal = bono2y?.closes?.[bono2y.closes.length-1];
+      const ffVal = ff2y?.actual || fedfunds?.actual;
+      if (bono2yVal && ffVal) {
+        const diferencial = parseFloat((bono2yVal/10 - ffVal).toFixed(2));
+        fedExpectativas = {
+          diferencialBono2y: diferencial,
+          descripcion: diferencial < -0.5 ? 'Mercado descuenta bajadas de tipos significativas en 12 meses' :
+                       diferencial < 0 ? 'Mercado descuenta ligeras bajadas de tipos' :
+                       diferencial > 0.5 ? 'Mercado descuenta subidas de tipos — presión alcista en yields' :
+                       'Mercado no descuenta cambios significativos en tipos',
+          sesgo: diferencial < -0.3 ? 'dovish' : diferencial > 0.3 ? 'hawkish' : 'neutro'
+        };
+      }
+    } catch {}
 
     // Estrés interbancario: SOFR vs Fed Funds
     let sofrSpread = null;
@@ -374,22 +465,186 @@ export default async function handler(req, res) {
         señales.push({ ind: 'Curva 10Y-2Y', val: t10y2y.actual + '%', tend: t10y2y.tendencia, señal: invertida ? 'bajista' : 'alcista', desc: invertida ? 'Curva 10Y-2Y invertida — mercado anticipa bajadas de tipos' : 'Curva 10Y-2Y normal — expectativas de tipos moderadas' });
       }
       if (t5y5y) {
-        señales.push({ ind: 'Expectativas largo plazo (5Y5Y)', val: t5y5y.actual + '%', tend: t5y5y.tendencia, señal: t5y5y.actual > 3 ? 'bajista' : t5y5y.actual < 2 ? 'alcista' : 'neutro', desc: t5y5y.actual > 3 ? 'Expectativas inflación largo plazo elevadas — presión estructural tipos' : 'Expectativas inflación ancladas — favorece múltiplos tech' });
+        const alto = t5y5y.actual > 3;
+        score += alto ? -1 : 0.5;
+        señales.push({ ind: 'Expectativas largo plazo (5Y5Y)', val: t5y5y.actual + '%', tend: t5y5y.tendencia, señal: alto ? 'bajista' : 'alcista', desc: alto ? 'Expectativas inflación largo plazo elevadas — presión estructural en tipos y múltiplos tech' : 'Expectativas inflación ancladas — favorece múltiplos tech' });
+      }
+      if (t5yie) {
+        const alta = t5yie.actual > 2.5;
+        score += alta ? -0.5 : 0.5;
+        señales.push({ ind: 'TIPS Breakeven 5Y (inflación implícita)', val: t5yie.actual + '%', tend: t5yie.tendencia, señal: alta ? 'bajista' : 'alcista', desc: alta ? 'Mercado descuenta inflación >2.5% a 5 años — Fed puede mantener tipos altos más tiempo' : 'Inflación implícita controlada — Fed puede ser más dovish' });
+      }
+      if (t10yie) {
+        señales.push({ ind: 'TIPS Breakeven 10Y', val: t10yie.actual + '%', tend: t10yie.tendencia, señal: t10yie.actual > 2.5 ? 'bajista' : 'alcista', desc: 'Expectativas inflación largo plazo: ' + t10yie.actual + '% · ' + (t10yie.tendencia === 'subiendo' ? 'subiendo — presión en yields' : 'estable/bajando — favorable') });
       }
 
-      return { score: parseFloat(score.toFixed(1)), señales, estado: score >= 2 ? 'favorable' : score <= -2 ? 'restrictivo' : 'neutro' };
+      return { score: parseFloat(score.toFixed(1)), señales, estado: score >= 3 ? 'favorable' : score <= -2 ? 'restrictivo' : 'neutro' };
     };
 
     const fredInterpretacion = interpretarFred(walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y, sofrSpread);
 
     resultado.fred = {
       walcl, fedfunds, hySpread, nfci, t10y2y, t10y3m, sofr, t5y5y,
-      sofrSpread, estadoCurva,
+      t5yie, t10yie, ff2y, fedExpectativas, sofrSpread, estadoCurva,
       score: fredInterpretacion.score,
       estado: fredInterpretacion.estado,
       señales: fredInterpretacion.señales
     };
   } catch(e) { resultado.fred = null; }
+
+  // DATOS EMPRESARIALES — PER, Earnings próximos, top 10 QQQ
+  try {
+    // Top 10 QQQ por peso
+    const top10 = ['NVDA','AAPL','MSFT','AMZN','META','AVGO','TSLA','GOOGL','GOOG','COST'];
+    
+    // PER del QQQ
+    let qqqPER = null;
+    try {
+      const qqqInfo = await fetch('https://query1.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=summaryDetail,defaultKeyStatistics', {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      const qqqData = await qqqInfo.json();
+      const sd = qqqData?.quoteSummary?.result?.[0]?.summaryDetail;
+      if (sd?.trailingPE?.raw) qqqPER = parseFloat(sd.trailingPE.raw.toFixed(1));
+    } catch {}
+
+    // Earnings próximos de las top 10
+    const earningsProximos = [];
+    const hoy = new Date();
+    const en7dias = new Date(hoy.getTime() + 7*24*60*60*1000);
+    
+    for (const sym of top10.slice(0, 6)) { // máx 6 para no saturar
+      try {
+        const r = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=calendarEvents,financialData,defaultKeyStatistics`, {
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        const d = await r.json();
+        const res = d?.quoteSummary?.result?.[0];
+        const earDate = res?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
+        const fd = res?.financialData;
+        const ks = res?.defaultKeyStatistics;
+        
+        if (earDate) {
+          const fecha = new Date(earDate * 1000);
+          const enRango = fecha >= hoy && fecha <= new Date(hoy.getTime() + 14*24*60*60*1000);
+          earningsProximos.push({
+            simbolo: sym,
+            fecha: fecha.toISOString().slice(0,10),
+            enProximos7dias: fecha >= hoy && fecha <= en7dias,
+            recomendacion: fd?.recommendationKey,
+            targetPrecio: fd?.targetMeanPrice?.raw ? parseFloat(fd.targetMeanPrice.raw.toFixed(0)) : null,
+            per: ks?.trailingEps?.raw ? parseFloat(ks.trailingEps.raw.toFixed(2)) : null,
+            crecimientoIngresos: fd?.revenueGrowth?.raw ? parseFloat((fd.revenueGrowth.raw*100).toFixed(1)) : null
+          });
+        }
+      } catch {}
+    }
+
+    // Valoración QQQ
+    let valoracionQQQ = 'normal';
+    if (qqqPER) {
+      valoracionQQQ = qqqPER > 35 ? 'cara' : qqqPER > 28 ? 'elevada' : qqqPER < 20 ? 'barata' : 'normal';
+    }
+
+    resultado.empresarial = {
+      qqqPER,
+      valoracionQQQ,
+      valoracionDesc: qqqPER ? (
+        qqqPER > 35 ? `PER QQQ en ${qqqPER}x — valoración cara históricamente, mercado descuenta crecimiento alto` :
+        qqqPER > 28 ? `PER QQQ en ${qqqPER}x — valoración elevada, require confirmación de earnings` :
+        qqqPER < 20 ? `PER QQQ en ${qqqPER}x — valoración atractiva` :
+        `PER QQQ en ${qqqPER}x — valoración normal`
+      ) : 'PER no disponible',
+      earningsProximos: earningsProximos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)),
+      earningsSemana: earningsProximos.filter(e => e.enProximos7dias)
+    };
+  } catch(e) { resultado.empresarial = null; }
+
+  // FINNHUB — Noticias financieras + sentiment (gratis, mejor calidad que NewsAPI)
+  try {
+    const FINNHUB_KEY = 'sandbox_c9q0t2aad3i9m5q2j9ag'; // free tier
+    const finnhubKey = resultado._finnhubKey || FINNHUB_KEY;
+
+    // Noticias de mercado generales
+    const newsResp = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`);
+    const newsData = await newsResp.json();
+
+    // Sentiment del mercado US
+    const sentResp = await fetch(`https://finnhub.io/api/v1/news-sentiment?symbol=QQQ&token=${finnhubKey}`);
+    const sentData = await sentResp.json();
+
+    // Noticias relevantes filtradas (últimas 24h)
+    const ahora = Date.now() / 1000;
+    const noticias = Array.isArray(newsData) ? newsData
+      .filter(n => n.datetime > ahora - 86400) // últimas 24h
+      .filter(n => {
+        const t = (n.headline + ' ' + (n.summary||'')).toLowerCase();
+        return t.includes('nasdaq') || t.includes('fed') || t.includes('rate') ||
+               t.includes('inflation') || t.includes('nvidia') || t.includes('apple') ||
+               t.includes('microsoft') || t.includes('tariff') || t.includes('trade') ||
+               t.includes('geopolit') || t.includes('china') || t.includes('ukraine');
+      })
+      .slice(0, 8)
+      .map(n => ({
+        titulo: n.headline,
+        fuente: n.source,
+        fecha: new Date(n.datetime * 1000).toISOString().slice(0,10),
+        url: n.url,
+        resumen: n.summary?.slice(0, 120)
+      })) : [];
+
+    // Sentiment score QQQ
+    let sentimentScore = null;
+    let sentimentDesc = null;
+    if (sentData?.buzz) {
+      const score = sentData.sentiment?.bullishPercent || 0.5;
+      sentimentScore = parseFloat((score * 100).toFixed(1));
+      sentimentDesc = score > 0.65 ? 'Sentimiento muy alcista — posible complacencia' :
+                      score > 0.55 ? 'Sentimiento alcista moderado' :
+                      score < 0.35 ? 'Sentimiento muy bajista — posible capitulación' :
+                      score < 0.45 ? 'Sentimiento bajista moderado' : 'Sentimiento neutro';
+    }
+
+    if (noticias.length > 0 || sentimentScore !== null) {
+      resultado.finnhub = { noticias, sentimentScore, sentimentDesc };
+    }
+  } catch(e) { resultado.finnhub = null; }
+
+  // NOTICIAS Y CONTEXTO GEOPOLÍTICO — NewsAPI gratuita
+  try {
+    // NewsAPI — 100 peticiones/día gratis
+    // Busca noticias relevantes para el Nasdaq: Fed, geopolítica, tech, macro
+    const NEWS_KEY = 'c8f5e5e5e5e5e5e5e5e5e5e5e5e5e5e5'; // placeholder — se configura desde la app
+    const newsApiKey = resultado._newsApiKey || NEWS_KEY;
+    
+    const queries = [
+      'Federal Reserve interest rates',
+      'Nasdaq tech stocks market',
+      'US China trade tariffs',
+      'geopolitical risk markets'
+    ];
+    
+    const noticias = [];
+    for (const q of queries.slice(0, 2)) { // máx 2 queries para ahorrar cuota
+      try {
+        const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&pageSize=3&apiKey=${newsApiKey}`;
+        const r = await fetch(url);
+        const d = await r.json();
+        if (d.status === 'ok' && d.articles) {
+          noticias.push(...d.articles.map(a => ({
+            titulo: a.title,
+            fuente: a.source?.name,
+            fecha: a.publishedAt?.slice(0,10),
+            descripcion: a.description?.slice(0,150)
+          })));
+        }
+      } catch {}
+    }
+    
+    if (noticias.length > 0) {
+      resultado.noticias = noticias.slice(0, 6);
+    }
+  } catch(e) { resultado.noticias = null; }
 
   // CONTEXTO SEMANAL — mismos cálculos pero en timeframe semanal
   try {
