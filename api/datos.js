@@ -6,14 +6,24 @@ export default async function handler(req, res) {
 
   // ── Helpers de cálculo técnico ──────────────────────────────
   function calcRSI(closes, period = 14) {
-    if (closes.length < period + 1) return null;
-    let gains = 0, losses = 0;
-    for (let i = closes.length - period; i < closes.length; i++) {
+    // RSI de Wilder (smoothed) — igual que TradingView
+    if (closes.length < period * 2) return null;
+    // Primera media: simple sobre primeros 'period' cambios
+    let avgGain = 0, avgLoss = 0;
+    for (let i = 1; i <= period; i++) {
       const diff = closes[i] - closes[i - 1];
-      if (diff >= 0) gains += diff; else losses -= diff;
+      if (diff >= 0) avgGain += diff; else avgLoss -= diff;
     }
-    const avgGain = gains / period;
-    const avgLoss = losses / period;
+    avgGain /= period;
+    avgLoss /= period;
+    // Suavizado exponencial de Wilder para el resto
+    for (let i = period + 1; i < closes.length; i++) {
+      const diff = closes[i] - closes[i - 1];
+      const gain = diff >= 0 ? diff : 0;
+      const loss = diff < 0 ? -diff : 0;
+      avgGain = (avgGain * (period - 1) + gain) / period;
+      avgLoss = (avgLoss * (period - 1) + loss) / period;
+    }
     if (avgLoss === 0) return 100;
     const rs = avgGain / avgLoss;
     return parseFloat((100 - 100 / (1 + rs)).toFixed(2));
@@ -90,32 +100,69 @@ export default async function handler(req, res) {
     const result = data?.chart?.result?.[0];
     if (!result) return null;
     const quote = result.indicators?.quote?.[0];
-    return {
-      closes: (quote?.close ?? []).filter(v => v !== null),
-      highs:  (quote?.high  ?? []).filter(v => v !== null),
-      lows:   (quote?.low   ?? []).filter(v => v !== null),
-      volumes:(quote?.volume ?? []).filter(v => v !== null),
-    };
+    const rawClose  = quote?.close  ?? [];
+    const rawHigh   = quote?.high   ?? [];
+    const rawLow    = quote?.low    ?? [];
+    const rawVolume = quote?.volume ?? [];
+
+    // CRÍTICO: alinear por índice común — nunca filtrar arrays individualmente
+    // Si cualquier campo es null en un día, excluir ese día de TODOS los arrays
+    const closes = [], highs = [], lows = [], volumes = [];
+    for (let i = 0; i < rawClose.length; i++) {
+      if (rawClose[i] != null && rawHigh[i] != null && rawLow[i] != null) {
+        closes.push(rawClose[i]);
+        highs.push(rawHigh[i]);
+        lows.push(rawLow[i]);
+        volumes.push(rawVolume[i] ?? 0);
+      }
+    }
+    return { closes, highs, lows, volumes };
   }
 
   const resultado = {};
 
-  // ── Datos básicos (VIX, VXN, NQ, US10Y, DXY) ────────────────
-  const basicSymbols = { vix: '^VIX', vxn: '^VXN', nq: 'NQ=F', us10: '^TNX', dxy: 'DX-Y.NYB' };
-  await Promise.all(Object.entries(basicSymbols).map(async ([key, sym]) => {
+  // ── Fetch paralelo de todos los datos independientes ────────
+  // Lanzar todas las peticiones a la vez para minimizar latencia
+  const [
+    rawVix, rawVxn, rawNq, rawUs10, rawDxy,
+    rawNdx, rawNdx6mo, rawNdxW, rawNdxFib
+  ] = await Promise.allSettled([
+    fetchYahoo('^VIX',    '5d'),
+    fetchYahoo('^VXN',    '5d'),
+    fetchYahoo('NQ=F',    '5d'),
+    fetchYahoo('^TNX',    '5d'),
+    fetchYahoo('DX-Y.NYB','5d'),
+    fetchYahoo('^NDX',    '1y'),
+    fetchYahoo('^NDX',    '6mo'),
+    fetchYahoo('^NDX',    '2y'),
+    fetchYahoo('^NDX',    '1y')   // para fibonacci/liquidez (reutiliza rawNdx)
+  ]);
+
+  const getVal = (settled) => settled.status === 'fulfilled' ? settled.value : null;
+
+  // Datos básicos desde fetch paralelo
+  const basicMap = [
+    ['vix', getVal(rawVix)],
+    ['vxn', getVal(rawVxn)],
+    ['nq',  getVal(rawNq)],
+    ['us10',getVal(rawUs10)],
+    ['dxy', getVal(rawDxy)]
+  ];
+  for (const [key, d] of basicMap) {
     try {
-      const d = await fetchYahoo(sym, '5d');
-      if (!d || d.closes.length < 2) return;
+      if (!d || d.closes.length < 2) { resultado[key] = null; continue; }
       const last = d.closes[d.closes.length - 1];
       const prev = d.closes[d.closes.length - 2];
-      const chg = ((last - prev) / prev * 100);
-      resultado[key] = { v: parseFloat(last.toFixed(2)), chg: parseFloat(chg.toFixed(2)) };
+      resultado[key] = {
+        v: parseFloat(last.toFixed(2)),
+        chg: parseFloat(((last - prev) / prev * 100).toFixed(2))
+      };
     } catch { resultado[key] = null; }
-  }));
+  }
 
   // ── Indicadores técnicos del NDX ────────────────────────────
   try {
-    const ndx = await fetchYahoo('^NDX', '1y');
+    const ndx = getVal(rawNdx);
     if (ndx && ndx.closes.length >= 50) {
       const closes = ndx.closes;
       const precio = closes[closes.length - 1];
@@ -212,6 +259,116 @@ export default async function handler(req, res) {
 
   if (resultado.nq) resultado.nq.isChg = true;
 
+  // ── Lanzar en paralelo: FRED + MaxPain + AV + NewsAPI + GDELT + Empresarial ──
+  // Todas son independientes entre sí — no hay razón para ejecutarlas en serie
+  await Promise.allSettled([
+    (async () => {
+      // MAX PAIN
+      try {
+        const expUrl = 'https://query1.finance.yahoo.com/v7/finance/options/QQQ';
+        const expResp = await fetch(expUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const expData = await expResp.json();
+        const expirations = expData?.optionChain?.result?.[0]?.expirationDates || [];
+        if (expirations.length > 0) {
+          const nextExp = expirations[0];
+          const optUrl = `https://query1.finance.yahoo.com/v7/finance/options/QQQ?date=${nextExp}`;
+          const optResp = await fetch(optUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+          const optData = await optResp.json();
+          const chain = optData?.optionChain?.result?.[0];
+          if (chain) {
+            const calls = chain.options?.[0]?.calls || [];
+            const puts  = chain.options?.[0]?.puts  || [];
+            const precio = chain.quote?.regularMarketPrice;
+            const strikes = [...new Set([...calls.map(c=>c.strike),...puts.map(p=>p.strike)])].sort((a,b)=>a-b);
+            let minDolor = Infinity, maxPain = precio;
+            for (const strike of strikes) {
+              let dolor = 0;
+              for (const call of calls) if (call.strike < strike) dolor += (strike - call.strike) * (call.openInterest||0);
+              for (const put  of puts)  if (put.strike  > strike) dolor += (put.strike  - strike) * (put.openInterest||0);
+              if (dolor < minDolor) { minDolor = dolor; maxPain = strike; }
+            }
+            const distPct = parseFloat(((maxPain - precio) / precio * 100).toFixed(2));
+            resultado.maxpain = {
+              valor: maxPain, precio: parseFloat(precio.toFixed(2)), distPct,
+              expiracion: new Date(nextExp * 1000).toISOString().slice(0,10),
+              señal: distPct > 3 ? 'acumulacion' : distPct < -3 ? 'distribucion' : 'neutro',
+              descripcion: distPct > 3 ? 'Precio bajo Max Pain — dealers incentivados a subir' : distPct < -3 ? 'Precio sobre Max Pain — dealers incentivados a bajar' : 'Precio cerca del Max Pain — dealers neutrales'
+            };
+          }
+        }
+      } catch(e) { resultado.maxpain = null; }
+    })(),
+
+    (async () => {
+      // ALPHA VANTAGE
+      try {
+        const AV_KEY = 'MBL9WFVPPXOK7ZU8';
+        const avUrl = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=technology,financial_markets,economy_fiscal&sort=LATEST&limit=10&apikey=${AV_KEY}`;
+        const avResp = await fetch(avUrl);
+        const avData = await avResp.json();
+        let sentimentScore = null, sentimentDesc = null;
+        const noticias = [];
+        if (avData?.feed) {
+          const scores = avData.feed.filter(n=>n.overall_sentiment_score!==undefined).map(n=>parseFloat(n.overall_sentiment_score));
+          if (scores.length > 0) {
+            const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+            sentimentScore = parseFloat(((avg+1)*50).toFixed(1));
+            sentimentDesc = avg>0.25?'Sentimiento muy alcista — posible complacencia':avg>0.05?'Sentimiento alcista moderado':avg<-0.25?'Sentimiento muy bajista — posible capitulación':avg<-0.05?'Sentimiento bajista moderado':'Sentimiento neutro';
+          }
+          avData.feed.slice(0,8).forEach(n => noticias.push({ titulo:n.title, fuente:n.source, fecha:n.time_published?.slice(0,10), resumen:n.summary?.slice(0,150), sentiment:n.overall_sentiment_label, sentimentScore:n.overall_sentiment_score }));
+        }
+        if (noticias.length > 0 || sentimentScore !== null) resultado.finnhub = { noticias, sentimentScore, sentimentDesc, fuente:'alphavantage' };
+      } catch(e) { resultado.finnhub = null; }
+    })(),
+
+    (async () => {
+      // NEWSAPI
+      try {
+        const NEWS_KEY = '08b850a8842a47568e83e4433a6c3e7d';
+        const noticias = [];
+        for (const q of ['Federal Reserve interest rates', 'Nasdaq tech stocks']) {
+          try {
+            const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&pageSize=3&apiKey=${NEWS_KEY}`;
+            const r = await fetch(url);
+            const d = await r.json();
+            if (d.status==='ok' && d.articles) noticias.push(...d.articles.map(a=>({ titulo:a.title, fuente:a.source?.name, fecha:a.publishedAt?.slice(0,10), descripcion:a.description?.slice(0,150) })));
+          } catch {}
+        }
+        if (noticias.length > 0) resultado.noticias = noticias.slice(0,6);
+      } catch(e) { resultado.noticias = null; }
+    })(),
+
+    (async () => {
+      // EMPRESARIAL
+      try {
+        const top10 = ['NVDA','AAPL','MSFT','AMZN','META','AVGO'];
+        let qqqPER = null;
+        try {
+          const qi = await fetch('https://query1.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=summaryDetail', { headers:{'User-Agent':'Mozilla/5.0'} });
+          const qd = await qi.json();
+          const pe = qd?.quoteSummary?.result?.[0]?.summaryDetail?.trailingPE?.raw;
+          if (pe) qqqPER = parseFloat(pe.toFixed(1));
+        } catch {}
+        const earningsProximos = [];
+        const hoy = new Date(), en7d = new Date(hoy.getTime()+7*86400000);
+        await Promise.allSettled(top10.map(async sym => {
+          try {
+            const r = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=calendarEvents,financialData`, { headers:{'User-Agent':'Mozilla/5.0'} });
+            const d = await r.json();
+            const res = d?.quoteSummary?.result?.[0];
+            const earDate = res?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
+            if (earDate) {
+              const fecha = new Date(earDate*1000);
+              earningsProximos.push({ simbolo:sym, fecha:fecha.toISOString().slice(0,10), enProximos7dias:fecha>=hoy&&fecha<=en7d, recomendacion:res?.financialData?.recommendationKey, crecimientoIngresos:res?.financialData?.revenueGrowth?.raw?parseFloat((res.financialData.revenueGrowth.raw*100).toFixed(1)):null });
+            }
+          } catch {}
+        }));
+        const val = qqqPER>35?'cara':qqqPER>28?'elevada':qqqPER<20?'barata':'normal';
+        resultado.empresarial = { qqqPER, valoracionQQQ:val, valoracionDesc:qqqPER?`PER QQQ en ${qqqPER}x — valoración ${val}`:'PER no disponible', earningsProximos:earningsProximos.sort((a,b)=>new Date(a.fecha)-new Date(b.fecha)), earningsSemana:earningsProximos.filter(e=>e.enProximos7dias) };
+      } catch(e) { resultado.empresarial = null; }
+    })()
+  ]);
+
   // SCORING UNIFICADO — combina técnico + macro + sentimiento + geopolítico
   // Se calcula al final cuando todos los datos están disponibles
   try {
@@ -280,75 +437,7 @@ export default async function handler(req, res) {
     }
   } catch(e) { resultado.scoreUnificado = null; }
 
-  // MAX PAIN — calculado desde cadena de opciones del QQQ (Yahoo Finance)
-  try {
-    // QQQ es el ETF del Nasdaq 100 — sus opciones determinan el Max Pain del índice
-    const expUrl = 'https://query1.finance.yahoo.com/v7/finance/options/QQQ';
-    const expResp = await fetch(expUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const expData = await expResp.json();
-    const expirations = expData?.optionChain?.result?.[0]?.expirationDates || [];
 
-    if (expirations.length > 0) {
-      // Usar la expiración más próxima (weekly)
-      const nextExp = expirations[0];
-      const optUrl = `https://query1.finance.yahoo.com/v7/finance/options/QQQ?date=${nextExp}`;
-      const optResp = await fetch(optUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-      const optData = await optResp.json();
-      const chain = optData?.optionChain?.result?.[0];
-
-      if (chain) {
-        const calls = chain.options?.[0]?.calls || [];
-        const puts  = chain.options?.[0]?.puts  || [];
-        const precio = chain.quote?.regularMarketPrice;
-
-        // Calcular Max Pain matemáticamente
-        // Para cada strike, calcular el dolor total (suma de valor intrínseco de todas las opciones)
-        const strikes = [...new Set([
-          ...calls.map(c => c.strike),
-          ...puts.map(p => p.strike)
-        ])].sort((a,b) => a-b);
-
-        let minDolor = Infinity;
-        let maxPain = precio;
-
-        for (const strike of strikes) {
-          let dolor = 0;
-          // Dolor de calls: suma de (strike_call - strike_test) * OI para calls ITM
-          for (const call of calls) {
-            if (call.strike < strike) {
-              dolor += (strike - call.strike) * (call.openInterest || 0);
-            }
-          }
-          // Dolor de puts: suma de (strike_test - strike_put) * OI para puts ITM
-          for (const put of puts) {
-            if (put.strike > strike) {
-              dolor += (put.strike - strike) * (put.openInterest || 0);
-            }
-          }
-          if (dolor < minDolor) {
-            minDolor = dolor;
-            maxPain = strike;
-          }
-        }
-
-        const distPct = parseFloat(((maxPain - precio) / precio * 100).toFixed(2));
-        const expDate = new Date(nextExp * 1000).toISOString().slice(0,10);
-
-        resultado.maxpain = {
-          valor: maxPain,
-          precio: parseFloat(precio.toFixed(2)),
-          distPct,
-          expiracion: expDate,
-          señal: distPct > 3 ? 'acumulacion' : distPct < -3 ? 'distribucion' : 'neutro',
-          descripcion: distPct > 3
-            ? 'Precio bajo Max Pain — dealers incentivados a subir (acumulación)'
-            : distPct < -3
-            ? 'Precio sobre Max Pain — dealers incentivados a bajar (distribución)'
-            : 'Precio cerca del Max Pain — dealers neutrales'
-        };
-      }
-    }
-  } catch(e) { resultado.maxpain = null; }
 
   // DATOS MACRO FRED — Federal Reserve Economic Data
   try {
@@ -492,117 +581,9 @@ export default async function handler(req, res) {
     };
   } catch(e) { resultado.fred = null; }
 
-  // DATOS EMPRESARIALES — PER, Earnings próximos, top 10 QQQ
-  try {
-    // Top 10 QQQ por peso
-    const top10 = ['NVDA','AAPL','MSFT','AMZN','META','AVGO','TSLA','GOOGL','GOOG','COST'];
-    
-    // PER del QQQ
-    let qqqPER = null;
-    try {
-      const qqqInfo = await fetch('https://query1.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=summaryDetail,defaultKeyStatistics', {
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      });
-      const qqqData = await qqqInfo.json();
-      const sd = qqqData?.quoteSummary?.result?.[0]?.summaryDetail;
-      if (sd?.trailingPE?.raw) qqqPER = parseFloat(sd.trailingPE.raw.toFixed(1));
-    } catch {}
 
-    // Earnings próximos de las top 10
-    const earningsProximos = [];
-    const hoy = new Date();
-    const en7dias = new Date(hoy.getTime() + 7*24*60*60*1000);
-    
-    for (const sym of top10.slice(0, 6)) { // máx 6 para no saturar
-      try {
-        const r = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=calendarEvents,financialData,defaultKeyStatistics`, {
-          headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        const d = await r.json();
-        const res = d?.quoteSummary?.result?.[0];
-        const earDate = res?.calendarEvents?.earnings?.earningsDate?.[0]?.raw;
-        const fd = res?.financialData;
-        const ks = res?.defaultKeyStatistics;
-        
-        if (earDate) {
-          const fecha = new Date(earDate * 1000);
-          const enRango = fecha >= hoy && fecha <= new Date(hoy.getTime() + 14*24*60*60*1000);
-          earningsProximos.push({
-            simbolo: sym,
-            fecha: fecha.toISOString().slice(0,10),
-            enProximos7dias: fecha >= hoy && fecha <= en7dias,
-            recomendacion: fd?.recommendationKey,
-            targetPrecio: fd?.targetMeanPrice?.raw ? parseFloat(fd.targetMeanPrice.raw.toFixed(0)) : null,
-            per: ks?.trailingEps?.raw ? parseFloat(ks.trailingEps.raw.toFixed(2)) : null,
-            crecimientoIngresos: fd?.revenueGrowth?.raw ? parseFloat((fd.revenueGrowth.raw*100).toFixed(1)) : null
-          });
-        }
-      } catch {}
-    }
 
-    // Valoración QQQ
-    let valoracionQQQ = 'normal';
-    if (qqqPER) {
-      valoracionQQQ = qqqPER > 35 ? 'cara' : qqqPER > 28 ? 'elevada' : qqqPER < 20 ? 'barata' : 'normal';
-    }
 
-    resultado.empresarial = {
-      qqqPER,
-      valoracionQQQ,
-      valoracionDesc: qqqPER ? (
-        qqqPER > 35 ? `PER QQQ en ${qqqPER}x — valoración cara históricamente, mercado descuenta crecimiento alto` :
-        qqqPER > 28 ? `PER QQQ en ${qqqPER}x — valoración elevada, require confirmación de earnings` :
-        qqqPER < 20 ? `PER QQQ en ${qqqPER}x — valoración atractiva` :
-        `PER QQQ en ${qqqPER}x — valoración normal`
-      ) : 'PER no disponible',
-      earningsProximos: earningsProximos.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)),
-      earningsSemana: earningsProximos.filter(e => e.enProximos7dias)
-    };
-  } catch(e) { resultado.empresarial = null; }
-
-  // ALPHA VANTAGE — Noticias financieras + sentiment score
-  try {
-    const AV_KEY = 'MBL9WFVPPXOK7ZU8';
-    // News & Sentiment API — filtra por Nasdaq, Fed, tech, geopolítica
-    const avUrl = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=technology,financial_markets,economy_fiscal&sort=LATEST&limit=10&apikey=${AV_KEY}`;
-    const avResp = await fetch(avUrl);
-    const avData = await avResp.json();
-
-    let sentimentScore = null, sentimentDesc = null;
-    const noticias = [];
-
-    if (avData?.feed) {
-      // Calcular sentiment score promedio
-      const scores = avData.feed
-        .filter(n => n.overall_sentiment_score !== undefined)
-        .map(n => parseFloat(n.overall_sentiment_score));
-      
-      if (scores.length > 0) {
-        const avgScore = scores.reduce((a,b) => a+b, 0) / scores.length;
-        sentimentScore = parseFloat(((avgScore + 1) * 50).toFixed(1)); // normalizar a 0-100
-        sentimentDesc = avgScore > 0.25 ? 'Sentimiento muy alcista — posible complacencia' :
-                        avgScore > 0.05 ? 'Sentimiento alcista moderado' :
-                        avgScore < -0.25 ? 'Sentimiento muy bajista — posible capitulación' :
-                        avgScore < -0.05 ? 'Sentimiento bajista moderado' : 'Sentimiento neutro';
-      }
-
-      // Extraer noticias relevantes
-      avData.feed.slice(0, 8).forEach(n => {
-        noticias.push({
-          titulo: n.title,
-          fuente: n.source,
-          fecha: n.time_published?.slice(0, 10),
-          resumen: n.summary?.slice(0, 150),
-          sentiment: n.overall_sentiment_label,
-          sentimentScore: n.overall_sentiment_score
-        });
-      });
-    }
-
-    if (noticias.length > 0 || sentimentScore !== null) {
-      resultado.finnhub = { noticias, sentimentScore, sentimentDesc, fuente: 'alphavantage' };
-    }
-  } catch(e) { resultado.finnhub = null; }
 
   // GDELT — Volumen y tono de noticias globales (sin API key, 100% gratuito)
   try {
@@ -676,45 +657,11 @@ export default async function handler(req, res) {
     }
   } catch(e) { resultado.gdelt = null; }
 
-  // NOTICIAS Y CONTEXTO GEOPOLÍTICO — NewsAPI gratuita
-  try {
-    // NewsAPI — 100 peticiones/día gratis
-    // Busca noticias relevantes para el Nasdaq: Fed, geopolítica, tech, macro
-    const NEWS_KEY = '08b850a8842a47568e83e4433a6c3e7d'; // NewsAPI real key
-    const newsApiKey = resultado._newsApiKey || NEWS_KEY;
-    
-    const queries = [
-      'Federal Reserve interest rates',
-      'Nasdaq tech stocks market',
-      'US China trade tariffs',
-      'geopolitical risk markets'
-    ];
-    
-    const noticias = [];
-    for (const q of queries.slice(0, 2)) { // máx 2 queries para ahorrar cuota
-      try {
-        const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&pageSize=3&apiKey=${newsApiKey}`;
-        const r = await fetch(url);
-        const d = await r.json();
-        if (d.status === 'ok' && d.articles) {
-          noticias.push(...d.articles.map(a => ({
-            titulo: a.title,
-            fuente: a.source?.name,
-            fecha: a.publishedAt?.slice(0,10),
-            descripcion: a.description?.slice(0,150)
-          })));
-        }
-      } catch {}
-    }
-    
-    if (noticias.length > 0) {
-      resultado.noticias = noticias.slice(0, 6);
-    }
-  } catch(e) { resultado.noticias = null; }
+
 
   // CONTEXTO SEMANAL — mismos cálculos pero en timeframe semanal
   try {
-    const ndxW = await fetchYahoo('^NDX', '2y');
+    const ndxW = getVal(rawNdxW);
     if (ndxW && ndxW.closes.length >= 10) {
       // Convertir datos diarios a semanales (agrupar por semana)
       const toWeekly = (arr) => {
@@ -812,7 +759,7 @@ export default async function handler(req, res) {
 
   // DETECTORES DE GIRO — 4 indicadores automáticos
   try {
-    const ndxGiro = await fetchYahoo('^NDX', '6mo');
+    const ndxGiro = getVal(rawNdx6mo);
     if (ndxGiro && ndxGiro.closes.length >= 20) {
       const closes = ndxGiro.closes;
       const highs  = ndxGiro.highs;
@@ -1058,7 +1005,7 @@ export default async function handler(req, res) {
 
   // Máximo y mínimo 90 días del NDX para Fibonacci + Zonas de liquidez
   try {
-    const ndxFib = await fetchYahoo('^NDX', '1y');
+    const ndxFib = getVal(rawNdx); // reutilizar el mismo fetch de 1y
     if (ndxFib && ndxFib.closes.length > 0) {
       const highs = ndxFib.highs.filter(v=>v);
       const lows  = ndxFib.lows.filter(v=>v);
