@@ -604,6 +604,78 @@ export default async function handler(req, res) {
     }
   } catch(e) { resultado.finnhub = null; }
 
+  // GDELT — Volumen y tono de noticias globales (sin API key, 100% gratuito)
+  try {
+    const gdeltTopics = [
+      { tema: 'semiconductors', label: 'Semiconductores' },
+      { tema: 'Federal Reserve interest rates', label: 'Fed / Tipos' },
+      { tema: 'artificial intelligence', label: 'IA / Tech' },
+      { tema: 'trade tariffs China', label: 'Aranceles / China' },
+      { tema: 'inflation economy', label: 'Inflación' }
+    ];
+
+    const gdeltResultados = [];
+
+    for (const topic of gdeltTopics) {
+      try {
+        // TimelineVol — volumen de noticias últimas 24h
+        const volUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(topic.tema)}&mode=timelinevol&format=json&timespan=24h&smoothing=0`;
+        const volResp = await fetch(volUrl);
+        const volData = await volResp.json();
+
+        // ToneChart — sentimiento
+        const toneUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(topic.tema)}&mode=tonechart&format=json&timespan=24h`;
+        const toneResp = await fetch(toneUrl);
+        const toneData = await toneResp.json();
+
+        // Extraer datos
+        let volActual = 0, volAnterior = 0, tonoPromedio = 0;
+
+        if (volData?.timeline?.[0]?.data?.length > 0) {
+          const pts = volData.timeline[0].data;
+          const n = pts.length;
+          volActual = pts[n-1]?.value || 0;
+          volAnterior = n > 4 ? pts.slice(-5,-1).reduce((a,b) => a + (b.value||0), 0) / 4 : volActual;
+        }
+
+        if (toneData?.timeline?.[0]?.data?.length > 0) {
+          const pts = toneData.timeline[0].data;
+          tonoPromedio = pts.slice(-6).reduce((a,b) => a + (b.value||0), 0) / Math.min(6, pts.length);
+        }
+
+        const volCambio = volAnterior > 0 ? ((volActual - volAnterior) / volAnterior * 100) : 0;
+
+        gdeltResultados.push({
+          tema: topic.label,
+          volumen: parseFloat(volActual.toFixed(2)),
+          volCambioPct: parseFloat(volCambio.toFixed(1)),
+          tono: parseFloat(tonoPromedio.toFixed(2)),
+          señal: tonoPromedio < -2 ? 'negativo' : tonoPromedio > 2 ? 'positivo' : 'neutro',
+          alertaVol: Math.abs(volCambio) > 50, // pico de noticias = volatilidad
+          desc: (Math.abs(volCambio) > 50 ? '⚡ Pico de noticias +' + volCambio.toFixed(0) + '% ' : '') +
+                (tonoPromedio < -2 ? '🔴 Tono negativo (' + tonoPromedio.toFixed(1) + ')' :
+                 tonoPromedio > 2 ? '🟢 Tono positivo (' + tonoPromedio.toFixed(1) + ')' :
+                 '→ Tono neutro (' + tonoPromedio.toFixed(1) + ')')
+        });
+      } catch {}
+    }
+
+    if (gdeltResultados.length > 0) {
+      // Score GDELT: tono negativo en semis/Fed = bajista
+      const gdeltScore = gdeltResultados.reduce((acc, r) => {
+        const pesoTema = r.tema.includes('Semi') ? 2 : r.tema.includes('Fed') ? 1.5 : 1;
+        return acc + (r.señal === 'positivo' ? pesoTema : r.señal === 'negativo' ? -pesoTema : 0);
+      }, 0);
+
+      resultado.gdelt = {
+        temas: gdeltResultados,
+        score: parseFloat(gdeltScore.toFixed(1)),
+        alertaVolatilidad: gdeltResultados.some(r => r.alertaVol),
+        estado: gdeltScore > 2 ? 'positivo' : gdeltScore < -2 ? 'negativo' : 'neutro'
+      };
+    }
+  } catch(e) { resultado.gdelt = null; }
+
   // NOTICIAS Y CONTEXTO GEOPOLÍTICO — NewsAPI gratuita
   try {
     // NewsAPI — 100 peticiones/día gratis
