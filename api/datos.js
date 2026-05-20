@@ -369,6 +369,96 @@ export default async function handler(req, res) {
     })()
   ]);
 
+  // RADAR 2-5 DÍAS — datos automáticos
+  try {
+    const radarData = {};
+
+    // 1. VIX TERM STRUCTURE
+    try {
+      const vixSpot = resultado.vix?.v;
+      const vix3mData = await fetchYahoo('^VIX3M', '5d');
+      if (vixSpot && vix3mData?.closes?.length > 0) {
+        const vix3m = vix3mData.closes[vix3mData.closes.length - 1];
+        const spread = parseFloat((vix3m - vixSpot).toFixed(2));
+        radarData.vixTermStructure = {
+          vixSpot, vix3m: parseFloat(vix3m.toFixed(2)), spread,
+          estructura: spread > 2 ? 'contango_fuerte' : spread > 0 ? 'contango' : spread > -2 ? 'backwardation' : 'backwardation_fuerte',
+          señal: spread > 0 ? 'alcista' : 'bajista',
+          descripcion: spread > 2 ? 'Contango fuerte — complacencia, corrección posible 3-7d' :
+                       spread > 0 ? 'Contango normal — sin estrés inmediato' :
+                       spread > -2 ? 'Backwardation leve — estrés corto plazo, rebote posible' :
+                       'Backwardation fuerte — pánico, rebote probable 2-5d'
+        };
+      }
+    } catch {}
+
+    // 2. ETF FLOWS QQQ — aproximación via volumen relativo
+    try {
+      const qqqVol = await fetchYahoo('QQQ', '20d');
+      if (qqqVol?.volumes?.length >= 10) {
+        const vols = qqqVol.volumes;
+        const cls  = qqqVol.closes;
+        const n    = vols.length;
+        const volReciente = vols.slice(-5).reduce((a,b)=>a+b,0)/5;
+        const volMedia    = vols.reduce((a,b)=>a+b,0)/n;
+        const retorno5d   = parseFloat(((cls[n-1]-cls[n-6])/cls[n-6]*100).toFixed(2));
+        const volRatio    = parseFloat((volReciente/volMedia).toFixed(2));
+        const flujo = retorno5d > 0 && volRatio > 1.1 ? 'entradas' : retorno5d < 0 && volRatio > 1.1 ? 'salidas' : 'neutro';
+        radarData.etfFlows = {
+          volRatio, retorno5d, flujoEstimado: flujo,
+          señal: flujo === 'entradas' ? 'alcista' : flujo === 'salidas' ? 'bajista' : 'neutro',
+          descripcion: flujo === 'entradas' ? `Vol ${((volRatio-1)*100).toFixed(0)}% sobre media con precio subiendo — flujo positivo` :
+                       flujo === 'salidas'  ? `Vol ${((volRatio-1)*100).toFixed(0)}% sobre media con precio bajando — posibles salidas` :
+                       'Volumen normal — sin señal de flujo claro'
+        };
+      }
+    } catch {}
+
+    // 3. OI STRIKES desde Max Pain ya calculado
+    if (resultado.maxpain) {
+      const mp = resultado.maxpain;
+      radarData.oiStrikes = {
+        maxPain: mp.valor, precio: mp.precio, distPct: mp.distPct, señal: mp.señal,
+        resistenciaEstimada: parseFloat((mp.valor * 1.015).toFixed(2)),
+        soporteEstimado:     parseFloat((mp.valor * 0.985).toFixed(2)),
+        descripcion: mp.distPct > 5  ? 'Precio muy sobre Max Pain — gravedad opciones presiona hacia abajo' :
+                     mp.distPct < -5 ? 'Precio muy bajo Max Pain — gravedad opciones impulsa hacia arriba' :
+                     'Precio cerca de Max Pain — zona de equilibrio'
+      };
+    }
+
+    // 4. MOMENTUM ROC 5d
+    try {
+      const ndxRoc = await fetchYahoo('^NDX', '10d');
+      if (ndxRoc?.closes?.length >= 6) {
+        const cls   = ndxRoc.closes;
+        const n     = cls.length;
+        const roc5d = parseFloat(((cls[n-1]-cls[n-6])/cls[n-6]*100).toFixed(2));
+        const roc3d = parseFloat(((cls[n-1]-cls[n-4])/cls[n-4]*100).toFixed(2));
+        radarData.momentum = {
+          roc5d, roc3d,
+          señal: roc5d > 4 ? 'sobreextendido_alcista' : roc5d < -4 ? 'sobreextendido_bajista' : roc5d > 1 ? 'alcista' : roc5d < -1 ? 'bajista' : 'neutro',
+          descripcion: Math.abs(roc5d) > 4 ? `${roc5d}% en 5d — sobreextensión, mean reversion probable` :
+                       `${roc5d}% en 5d — momentum ${roc5d > 0 ? 'positivo' : 'negativo'}`
+        };
+      }
+    } catch {}
+
+    // Score radar
+    let rs = 0;
+    if (radarData.vixTermStructure) rs += radarData.vixTermStructure.señal === 'alcista' ? 2 : -2;
+    if (radarData.etfFlows)         rs += radarData.etfFlows.señal === 'alcista' ? 2 : radarData.etfFlows.señal === 'bajista' ? -2 : 0;
+    if (radarData.oiStrikes)        rs += radarData.oiStrikes.distPct > 3 ? -1 : radarData.oiStrikes.distPct < -3 ? 1 : 0;
+    if (radarData.momentum)         rs += radarData.momentum.señal.includes('sobreextendido') ? (radarData.momentum.roc5d > 0 ? -2 : 2) : radarData.momentum.roc5d > 0 ? 1 : -1;
+
+    radarData.score    = parseFloat(rs.toFixed(1));
+    radarData.estado   = rs >= 3 ? 'alcista' : rs <= -3 ? 'bajista' : 'neutro';
+    radarData.descripcion = rs >= 3 ? 'Condiciones favorables para subida en 2-5 días' :
+                            rs <= -3 ? 'Riesgo elevado de corrección en 2-5 días' :
+                            'Sin señal clara para 2-5 días — cautela';
+    resultado.radar = radarData;
+  } catch(e) { resultado.radar = null; }
+
   // SCORING UNIFICADO — combina técnico + macro + sentimiento + geopolítico
   // Se calcula al final cuando todos los datos están disponibles
   try {
