@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "generado_utc": "2026-05-24T20:08:05.341547+00:00",
+    "generado_local": "2026-05-24 22:08",
+    "fecha": "2026-05-24",
+    "modulos_activos": [
+      "earnings",
+      "precio_base"
+    ],
+    "modulos_pendientes": [
+      "derivados",
+      "nlp_sentimiento",
+      "cot"
+    ],
+    "script": "actualizar_manengis.py"
+  },
+  "variables_crudas": {
+    "qqq_precio": 717.54,
+    "qqq_cambio_pct": 0.42,
+    "ndx_precio": 29481.64,
+    "ndx_cambio_pct": 0.42,
+    "vix": 16.7,
+    "vix_cambio": -0.06,
+    "rsi": 73.71,
+    "roc_5d": 1.22,
+    "max_pain": null,
+    "put_call_ratio": null,
+    "gex": null,
+    "oi_resistencia": null,
+    "oi_soporte": null,
+    "sentiment_score": null,
+    "titulares_analizados": 0,
+    "sentiment_breakdown": {
+      "positivos": 0,
+      "negativos": 0,
+      "neutros": 0
+    },
+    "cot_largos": null,
+    "cot_cortos": null,
+    "cot_neto": null,
+    "cot_semana_anterior": null
+  },
+  "earnings": {
+    "alerta_volatilidad": false,
+    "empresas_en_72h": [],
+    "calendario_completo": [
+      {
+        "ticker": "AAPL",
+        "nombre": "Apple",
+        "fecha_utc": "2026-04-30",
+        "hora_utc": "20:00",
+        "dias_restantes": -24.0,
+        "en_72h": false,
+        "confirmado": true,
+        "eps_estimado": 9.60383,
+        "eps_anterior": 8.25
+      },
+      {
+        "ticker": "MSFT",
+        "nombre": "Microsoft",
+        "fecha_utc": "2026-04-29",
+        "hora_utc": "20:00",
+        "dias_restantes": -25.0,
+        "en_72h": false,
+        "confirmado": true,
+        "eps_estimado": 19.33773,
+        "eps_anterior": 16.78
+      },
+      {
+        "ticker": "NVDA",
+        "nombre": "NVIDIA",
+        "fecha_utc": "2026-05-20",
+        "hora_utc": "20:00",
+        "dias_restantes": -4.0,
+        "en_72h": false,
+        "confirmado": true,
+        "eps_estimado": 12.64573,
+        "eps_anterior": 6.52
+      },
+      {
+        "ticker": "GOOGL",
+        "nombre": "Alphabet",
+        "fecha_utc": "2026-04-29",
+        "hora_utc": "20:00",
+        "dias_restantes": -25.0,
+        "en_72h": false,
+        "confirmado": true,
+        "eps_estimado": 14.45135,
+        "eps_anterior": 13.1
+      },
+      {
+        "ticker": "AMZN",
+        "nombre": "Amazon",
+        "fecha_utc": "2026-04-29",
+        "hora_utc": "20:00",
+        "dias_restantes": -25.0,
+        "en_72h": false,
+        "confirmado": true,
+        "eps_estimado": 9.849,
+        "eps_anterior": 8.42
+      },
+      {
+        "ticker": "META",
+        "nombre": "Meta",
+        "fecha_utc": "2026-04-29",
+        "hora_utc": "20:00",
+        "dias_restantes": -25.0,
+        "en_72h": false,
+        "confirmado": true,
+        "eps_estimado": 36.00697,
+        "eps_anterior": 27.52
+      },
+      {
+        "ticker": "TSLA",
+        "nombre": "Tesla",
+        "fecha_utc": "2026-04-22",
+        "hora_utc": "20:00",
+        "dias_restantes": -32.0,
+        "en_72h": false,
+        "confirmado": true,
+        "eps_estimado": 2.50969,
+        "eps_anterior": 1.11
+      }
+    ],
+    "timestamp_check": "2026-05-24T20:07:55.404388+00:00"
+  },
+  "precio_base": {
+    "qqq_precio": 717.54,
+    "qqq_cambio": 0.42,
+    "ndx_precio": 29481.64,
+    "ndx_cambio": 0.42,
+    "vix": 16.7,
+    "vix_cambio": -0.06,
+    "rsi_14": 73.71,
+    "roc_5d": 1.22,
+    "timestamp": "2026-05-24T20:07:58.471353+00:00"
+  },
+  "derivados": {
+    "estado": "pendiente_fase_2",
+    "max_pain": null,
+    "put_call_ratio": null,
+    "gex_estimado": null,
+    "strikes": {
+      "resistencia_calls": null,
+      "soporte_puts": null,
+      "concentracion_oi": []
+    },
+    "vencimientos_analizados": []
+  },
+  "sentimiento": {
+    "estado": "pendiente_fase_3",
+    "score_global": null,
+    "modelo": null,
+    "titulares": [],
+    "categorias": {
+      "fed": null,
+      "inflacion": null,
+      "bigtech": null,
+      "macro": null
+    }
+  },
+  "cot": {
+    "estado": "pendiente_fase_4",
+    "fecha_reporte": null,
+    "non_commercial": {
+      "largos": null,
+      "cortos": null,
+      "neto": null,
+      "cambio_semanal": null
+    },
+    "señal": null
+  },
+  "señal_tactica": {
+    "score_global": null,
+    "sesgo": "sin_datos_suficientes",
+    "confianza": "baja",
+    "componentes": {
+      "earnings": "ok",
+      "derivados": "pendiente",
+      "sentimiento": "pendiente",
+      "cot": "pendiente"
+    },
+    "resumen": "Fase 1 activa — módulos de derivados, NLP y COT pendientes"
+  }
+}
