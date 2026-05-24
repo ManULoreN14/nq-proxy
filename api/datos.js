@@ -397,18 +397,18 @@ export default async function handler(req, res) {
       const qqqVol = await fetchYahoo('QQQ', '20d');
       if (qqqVol?.volumes?.length >= 10) {
         const vols = qqqVol.volumes;
-        const cls  = qqqVol.closes;
-        const n    = vols.length;
+        const cls = qqqVol.closes;
+        const n = vols.length;
         const volReciente = vols.slice(-5).reduce((a,b)=>a+b,0)/5;
-        const volMedia    = vols.reduce((a,b)=>a+b,0)/n;
-        const retorno5d   = parseFloat(((cls[n-1]-cls[n-6])/cls[n-6]*100).toFixed(2));
-        const volRatio    = parseFloat((volReciente/volMedia).toFixed(2));
+        const volMedia = vols.reduce((a,b)=>a+b,0)/n;
+        const retorno5d = parseFloat(((cls[n-1]-cls[n-6])/cls[n-6]*100).toFixed(2));
+        const volRatio = parseFloat((volReciente/volMedia).toFixed(2));
         const flujo = retorno5d > 0 && volRatio > 1.1 ? 'entradas' : retorno5d < 0 && volRatio > 1.1 ? 'salidas' : 'neutro';
         radarData.etfFlows = {
           volRatio, retorno5d, flujoEstimado: flujo,
           señal: flujo === 'entradas' ? 'alcista' : flujo === 'salidas' ? 'bajista' : 'neutro',
           descripcion: flujo === 'entradas' ? `Vol ${((volRatio-1)*100).toFixed(0)}% sobre media con precio subiendo — flujo positivo` :
-                       flujo === 'salidas'  ? `Vol ${((volRatio-1)*100).toFixed(0)}% sobre media con precio bajando — posibles salidas` :
+                       flujo === 'salidas' ? `Vol ${((volRatio-1)*100).toFixed(0)}% sobre media con precio bajando — posibles salidas` :
                        'Volumen normal — sin señal de flujo claro'
         };
       }
@@ -418,10 +418,11 @@ export default async function handler(req, res) {
     if (resultado.maxpain) {
       const mp = resultado.maxpain;
       radarData.oiStrikes = {
-        maxPain: mp.valor, precio: mp.precio, distPct: mp.distPct, señal: mp.señal,
+        maxPain: mp.valor, precio: mp.precio, distPct: mp.distPct,
+        señal: mp.señal,
         resistenciaEstimada: parseFloat((mp.valor * 1.015).toFixed(2)),
-        soporteEstimado:     parseFloat((mp.valor * 0.985).toFixed(2)),
-        descripcion: mp.distPct > 5  ? 'Precio muy sobre Max Pain — gravedad opciones presiona hacia abajo' :
+        soporteEstimado: parseFloat((mp.valor * 0.985).toFixed(2)),
+        descripcion: mp.distPct > 5 ? 'Precio muy sobre Max Pain — gravedad opciones presiona hacia abajo en vencimiento' :
                      mp.distPct < -5 ? 'Precio muy bajo Max Pain — gravedad opciones impulsa hacia arriba' :
                      'Precio cerca de Max Pain — zona de equilibrio'
       };
@@ -431,14 +432,14 @@ export default async function handler(req, res) {
     try {
       const ndxRoc = await fetchYahoo('^NDX', '10d');
       if (ndxRoc?.closes?.length >= 6) {
-        const cls   = ndxRoc.closes;
-        const n     = cls.length;
+        const cls = ndxRoc.closes;
+        const n = cls.length;
         const roc5d = parseFloat(((cls[n-1]-cls[n-6])/cls[n-6]*100).toFixed(2));
         const roc3d = parseFloat(((cls[n-1]-cls[n-4])/cls[n-4]*100).toFixed(2));
         radarData.momentum = {
           roc5d, roc3d,
           señal: roc5d > 4 ? 'sobreextendido_alcista' : roc5d < -4 ? 'sobreextendido_bajista' : roc5d > 1 ? 'alcista' : roc5d < -1 ? 'bajista' : 'neutro',
-          descripcion: Math.abs(roc5d) > 4 ? `${roc5d}% en 5d — sobreextensión, mean reversion probable` :
+          descripcion: Math.abs(roc5d) > 4 ? `${roc5d}% en 5d — sobreextensión, mean reversion probable 2-5d` :
                        `${roc5d}% en 5d — momentum ${roc5d > 0 ? 'positivo' : 'negativo'}`
         };
       }
@@ -447,12 +448,12 @@ export default async function handler(req, res) {
     // Score radar
     let rs = 0;
     if (radarData.vixTermStructure) rs += radarData.vixTermStructure.señal === 'alcista' ? 2 : -2;
-    if (radarData.etfFlows)         rs += radarData.etfFlows.señal === 'alcista' ? 2 : radarData.etfFlows.señal === 'bajista' ? -2 : 0;
-    if (radarData.oiStrikes)        rs += radarData.oiStrikes.distPct > 3 ? -1 : radarData.oiStrikes.distPct < -3 ? 1 : 0;
-    if (radarData.momentum)         rs += radarData.momentum.señal.includes('sobreextendido') ? (radarData.momentum.roc5d > 0 ? -2 : 2) : radarData.momentum.roc5d > 0 ? 1 : -1;
+    if (radarData.etfFlows) rs += radarData.etfFlows.señal === 'alcista' ? 2 : radarData.etfFlows.señal === 'bajista' ? -2 : 0;
+    if (radarData.oiStrikes) rs += radarData.oiStrikes.distPct > 3 ? -1 : radarData.oiStrikes.distPct < -3 ? 1 : 0;
+    if (radarData.momentum) rs += radarData.momentum.señal.includes('sobreextendido') ? (radarData.momentum.roc5d > 0 ? -2 : 2) : radarData.momentum.roc5d > 0 ? 1 : -1;
 
-    radarData.score    = parseFloat(rs.toFixed(1));
-    radarData.estado   = rs >= 3 ? 'alcista' : rs <= -3 ? 'bajista' : 'neutro';
+    radarData.score = parseFloat(rs.toFixed(1));
+    radarData.estado = rs >= 3 ? 'alcista' : rs <= -3 ? 'bajista' : 'neutro';
     radarData.descripcion = rs >= 3 ? 'Condiciones favorables para subida en 2-5 días' :
                             rs <= -3 ? 'Riesgo elevado de corrección en 2-5 días' :
                             'Sin señal clara para 2-5 días — cautela';
@@ -1197,272 +1198,6 @@ export default async function handler(req, res) {
       };
     }
   } catch(e) { console.error('Liquidez error:', e); }
-
-  // ── RADAR 2-5D: COT, OI por Strike, VIX Term Structure, ETF Flows ──────────
-  await Promise.allSettled([
-
-    // COT REPORT — CFTC CSV semanal (se actualiza cada viernes ~15:30 ET)
-    (async () => {
-      try {
-        // El CFTC publica el legacy short format como CSV
-        const cotUrl = 'https://www.cftc.gov/dea/futures/financial_lf.htm';
-        // Alternativa más fiable: CSV directo de datos desagregados
-        const csvUrl = 'https://www.cftc.gov/files/dea/history/fut_fin_xls_2025.zip';
-        // Usamos el endpoint legacy que devuelve la tabla como texto parseable
-        // Los datos están en: https://www.cftc.gov/dea/futures/financial_lf.htm
-        // Pero el formato más accesible es el API de datos.gov
-        const apiUrl = 'https://publicreporting.cftc.gov/api/odata/v1/HistoricalViewOiCSFutonly?$filter=Market_and_Exchange_Names%20eq%20%27NASDAQ%20MINI%20-%20CHICAGO%20MERCANTILE%20EXCHANGE%27&$orderby=Report_Date_as_YYYY_MM_DD%20desc&$top=2&$format=json';
-        const r = await fetch(apiUrl, { headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' } });
-        if (!r.ok) throw new Error('CFTC API ' + r.status);
-        const d = await r.json();
-        const rows = d?.value || [];
-        if (rows.length === 0) throw new Error('Sin datos COT');
-
-        const last = rows[0];
-        const prev = rows[1] || null;
-
-        const largos   = parseInt(last.NonComm_Positions_Long_All  || 0);
-        const cortos   = parseInt(last.NonComm_Positions_Short_All || 0);
-        const neto     = largos - cortos;
-        const netoPrev = prev ? parseInt(prev.NonComm_Positions_Long_All || 0) - parseInt(prev.NonComm_Positions_Short_All || 0) : null;
-        const pctLargo = largos + cortos > 0 ? parseFloat((largos / (largos + cortos) * 100).toFixed(1)) : null;
-        const fecha    = last.Report_Date_as_YYYY_MM_DD || '—';
-
-        let señal = 'neutro';
-        if (pctLargo !== null) {
-          if      (pctLargo > 75) señal = 'bajista';
-          else if (pctLargo > 65) señal = 'bajista_moderado';
-          else if (pctLargo < 25) señal = 'alcista';
-          else if (pctLargo < 35) señal = 'alcista_moderado';
-        }
-
-        resultado.cot = {
-          largos, cortos, neto,
-          netoPrev,
-          cambiaNeto: netoPrev !== null ? neto - netoPrev : null,
-          pctLargo,
-          fecha,
-          señal,
-          fuente: 'cftc_api'
-        };
-      } catch (e) {
-        resultado.cot = { error: e.message, fuente: 'error' };
-      }
-    })(),
-
-    // OI POR STRIKE — Yahoo Finance options chain (ya tenemos el fetch, lo ampliamos)
-    (async () => {
-      try {
-        const expUrl = 'https://query1.finance.yahoo.com/v7/finance/options/QQQ';
-        const expResp = await fetch(expUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        const expData = await expResp.json();
-        const expirations = expData?.optionChain?.result?.[0]?.expirationDates || [];
-        if (expirations.length === 0) throw new Error('Sin vencimientos');
-
-        const nextExp = expirations[0];
-        const optUrl  = `https://query1.finance.yahoo.com/v7/finance/options/QQQ?date=${nextExp}`;
-        const optResp = await fetch(optUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        const optData = await optResp.json();
-        const chain   = optData?.optionChain?.result?.[0];
-        if (!chain) throw new Error('Sin cadena de opciones');
-
-        const calls  = chain.options?.[0]?.calls || [];
-        const puts   = chain.options?.[0]?.puts  || [];
-        const precio = chain.quote?.regularMarketPrice;
-
-        // Top 5 strikes por OI en calls y puts (cerca del precio ±15%)
-        const filtrarCercanos = (arr, esCall) => arr
-          .filter(o => Math.abs(o.strike - precio) / precio < 0.15 && (o.openInterest || 0) > 0)
-          .sort((a, b) => (b.openInterest || 0) - (a.openInterest || 0))
-          .slice(0, 6)
-          .map(o => ({ strike: o.strike, oi: o.openInterest || 0, dist: parseFloat(((o.strike - precio)/precio*100).toFixed(2)) }));
-
-        const topCalls = filtrarCercanos(calls, true);
-        const topPuts  = filtrarCercanos(puts, false);
-
-        // Strike con máximo OI calls (resistencia principal)
-        const maxOICalls = topCalls[0] || null;
-        // Strike con máximo OI puts (soporte principal)
-        const maxOIPuts  = topPuts[0]  || null;
-
-        // Segundo mayor strike de resistencia (pared secundaria)
-        const segundaResist = topCalls.find(c => c.strike > (maxOICalls?.strike || 0)) || topCalls[1] || null;
-
-        resultado.oiStrikes = {
-          precio: parseFloat(precio.toFixed(2)),
-          expiracion: new Date(nextExp * 1000).toISOString().slice(0, 10),
-          resistenciaPrincipal: maxOICalls,
-          soportePrincipal: maxOIPuts,
-          resistenciaSecundaria: segundaResist,
-          topCalls: topCalls.slice(0, 4),
-          topPuts:  topPuts.slice(0,  4),
-          rangoSemana: maxOICalls && maxOIPuts ? {
-            techo: maxOICalls.strike,
-            suelo: maxOIPuts.strike,
-            amplitudPct: parseFloat(((maxOICalls.strike - maxOIPuts.strike) / precio * 100).toFixed(2))
-          } : null,
-          fuente: 'yahoo_options'
-        };
-      } catch(e) {
-        resultado.oiStrikes = { error: e.message, fuente: 'error' };
-      }
-    })(),
-
-    // VIX TERM STRUCTURE — VIX spot ya lo tenemos; futuros VX vía Yahoo
-    // Los contratos más cercanos son /VX=F, pero Yahoo los expone como UX1=F, UX2=F (CBOE)
-    (async () => {
-      try {
-        // Intentar con los símbolos de futuros VIX en Yahoo Finance
-        // VX*0 = front month, VX*1 = second month en algunos brokers
-        // Yahoo usa: ^VIX (spot), VXM25=F (mayo 2025), etc. — cambian cada mes
-        // Alternativa más estable: usar VXX como proxy del VX1 y VIXM como proxy del VX2
-        const [rVix, rVxx] = await Promise.allSettled([
-          fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=3d',  { headers: {'User-Agent':'Mozilla/5.0'} }),
-          fetch('https://query1.finance.yahoo.com/v8/finance/chart/VXX?interval=1d&range=3d',     { headers: {'User-Agent':'Mozilla/5.0'} })
-        ]);
-
-        const parseClose = async (settled) => {
-          if (settled.status !== 'fulfilled') return null;
-          const d = await settled.value.json();
-          const closes = d?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
-          const last = closes.filter(v => v != null).pop();
-          return last ? parseFloat(last.toFixed(2)) : null;
-        };
-
-        const vixSpot = await parseClose(rVix);
-
-        // Intentar futuros VX directos (Yahoo: /VX=F para front month)
-        let vx1 = null, vx2 = null;
-        try {
-          const [rVx1, rVx2] = await Promise.allSettled([
-            fetch('https://query1.finance.yahoo.com/v8/finance/chart/%2FVX%3DF?interval=1d&range=3d', { headers:{'User-Agent':'Mozilla/5.0'} }),
-            fetch('https://query1.finance.yahoo.com/v8/finance/chart/VXM25%3DF?interval=1d&range=3d', { headers:{'User-Agent':'Mozilla/5.0'} })
-          ]);
-          vx1 = await parseClose(rVx1);
-          vx2 = await parseClose(rVx2);
-        } catch {}
-
-        // Si no hay futuros, usar VXX como proxy aproximado de VX1
-        if (!vx1) {
-          const vxx = await parseClose(rVxx);
-          // VXX cotiza en puntos distintos — usarlo como indicador de dirección únicamente
-          vx1 = vxx;
-        }
-
-        if (!vixSpot) throw new Error('Sin VIX spot');
-
-        const spread1     = vx1 ? parseFloat((vx1 - vixSpot).toFixed(2)) : null;
-        const spread1Pct  = vx1 ? parseFloat(((vx1 - vixSpot) / vixSpot * 100).toFixed(1)) : null;
-        const spread2     = (vx1 && vx2) ? parseFloat((vx2 - vx1).toFixed(2)) : null;
-        const backwardation = spread1 !== null ? spread1 < 0 : null;
-
-        let señal = 'neutro';
-        if (backwardation)            señal = 'alcista';       // pánico → rebote
-        else if (spread1Pct > 20)     señal = 'bajista';       // complacencia extrema
-        else if (spread1Pct > 10)     señal = 'neutro';
-        else if (spread1Pct !== null) señal = 'neutro';
-
-        resultado.vixTermStructure = {
-          spot: vixSpot,
-          vx1:  vx1,
-          vx2:  vx2,
-          spread1,
-          spread1Pct,
-          spread2,
-          backwardation,
-          señal,
-          fuente: vx1 ? 'yahoo_vx_futures' : 'solo_spot'
-        };
-      } catch(e) {
-        resultado.vixTermStructure = { error: e.message, fuente: 'error' };
-      }
-    })(),
-
-    // ETF FLOWS QQQ — Calculados via variación de Shares Outstanding
-    // Yahoo Finance expone sharesOutstanding en quoteSummary; cada share × NAV = AUM
-    // Variación diaria de AUM ≈ flujo neto del ETF
-    (async () => {
-      try {
-        // Obtener histórico de precios y volumen del QQQ para los últimos 10 días
-        // El flujo estimado = (shares_today - shares_yesterday) × precio_promedio
-        // Alternativa fiable: comparar el cambio en AUM via summaryDetail
-        const summaryUrl = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=defaultKeyStatistics,summaryDetail,price';
-        const sr = await fetch(summaryUrl, { headers: {'User-Agent':'Mozilla/5.0'} });
-        const sd = await sr.json();
-        const ks = sd?.quoteSummary?.result?.[0];
-
-        const sharesActual    = ks?.defaultKeyStatistics?.sharesOutstanding?.raw || null;
-        const precioActual    = ks?.price?.regularMarketPrice?.raw || null;
-        const aumActual       = sharesActual && precioActual ? parseFloat((sharesActual * precioActual / 1e9).toFixed(2)) : null; // en B$
-
-        // Histórico de 10 días para detectar tendencia de flujos
-        const histUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/QQQ?interval=1d&range=15d';
-        const hr = await fetch(histUrl, { headers: {'User-Agent':'Mozilla/5.0'} });
-        const hd = await hr.json();
-        const hResult = hd?.chart?.result?.[0];
-        const hCloses  = hResult?.indicators?.quote?.[0]?.close   || [];
-        const hVolumes = hResult?.indicators?.quote?.[0]?.volume  || [];
-        const hTs      = hResult?.timestamp || [];
-
-        // Proxy de flujo: días donde precio sube con volumen alto = entrada
-        // días donde precio baja con volumen alto = salida (aproximación)
-        const dias = [];
-        for (let i = 1; i < hCloses.length; i++) {
-          if (hCloses[i] == null || hCloses[i-1] == null) continue;
-          const chg  = hCloses[i] - hCloses[i-1];
-          const vol  = hVolumes[i] || 0;
-          const avgVol = hVolumes.slice(Math.max(0,i-5),i).filter(v=>v).reduce((a,b)=>a+b,0) / 5 || vol;
-          // Flujo estimado en M$ (vol × precio × factor dirección)
-          const flujoEstimado = parseFloat((chg > 0 ? 1 : -1) * vol * hCloses[i] / 1e6 * (vol / avgVol > 1.2 ? 1 : 0.6)).toFixed(0);
-          dias.push({
-            fecha: new Date(hTs[i] * 1000).toISOString().slice(0,10),
-            flujoEstimado: parseFloat(flujoEstimado),
-            precio: parseFloat(hCloses[i].toFixed(2)),
-            cambio: parseFloat(((hCloses[i] - hCloses[i-1]) / hCloses[i-1] * 100).toFixed(2))
-          });
-        }
-
-        const ultimos5 = dias.slice(-5);
-        const neto5d = parseFloat(ultimos5.reduce((s,d) => s + d.flujoEstimado, 0).toFixed(0));
-        const diasNeg = ultimos5.filter(d => d.flujoEstimado < 0).length;
-        const diasPos = ultimos5.filter(d => d.flujoEstimado > 0).length;
-
-        // Días consecutivos negativos desde hoy hacia atrás
-        let diasConsecNeg = 0;
-        for (let i = ultimos5.length-1; i >= 0; i--) {
-          if (ultimos5[i].flujoEstimado < 0) diasConsecNeg++;
-          else break;
-        }
-        let diasConsecPos = 0;
-        for (let i = ultimos5.length-1; i >= 0; i--) {
-          if (ultimos5[i].flujoEstimado > 0) diasConsecPos++;
-          else break;
-        }
-
-        let señal = 'neutro';
-        if (diasConsecNeg >= 3 && neto5d < 0) señal = 'bajista';
-        else if (diasConsecPos >= 3 && neto5d > 0) señal = 'alcista';
-        else if (neto5d < -400) señal = 'bajista_moderado';
-        else if (neto5d > 400)  señal = 'alcista_moderado';
-
-        resultado.etfFlows = {
-          aumActual,
-          dias: ultimos5,
-          neto5d,
-          diasConsecNeg,
-          diasConsecPos,
-          diasNeg,
-          diasPos,
-          señal,
-          nota: 'Flujo estimado via variación precio×volumen — no son flows oficiales ETF.com',
-          fuente: 'yahoo_estimado'
-        };
-      } catch(e) {
-        resultado.etfFlows = { error: e.message, fuente: 'error' };
-      }
-    })()
-
-  ]); // fin Promise.allSettled radar
 
   // Cierres históricos del NDX para backtesting automático
   // Si se pasa ?fechas=2026-05-04,2026-05-03 devuelve los cierres de esos días
