@@ -98,11 +98,15 @@ export default async function handler(req) {
   const t0 = Date.now();
 
   try {
-    // ── Fetch paralelo de QQQ, VIX (^VIX), NDX (^NDX) ───────────────────────
+    // ── Fetch paralelo de QQQ, VIX, NDX ────────────────────────────────────────
+    // Fix 2.1: los símbolos de índices Yahoo usan "^" (caret). NO pre-codificar
+    // en base64/URL — fetchYahooChart ya aplica encodeURIComponent una sola vez.
+    // Pasar "%5EVIX" causaba doble encoding (%255EVIX) → Yahoo devolvía error
+    // silencioso que Promise.allSettled capturaba como rejected → vix=null.
     const [qqqData, vixData, ndxData] = await Promise.allSettled([
       fetchYahooChart("QQQ",  "5d", "1h"),
-      fetchYahooChart("%5EVIX", "5d", "1d"),
-      fetchYahooChart("%5ENDX", "5d", "1d"),
+      fetchYahooChart("^VIX", "5d", "1d"),  // Fix 2.1: sin pre-encoding ^
+      fetchYahooChart("^NDX", "5d", "1d"),  // Fix 2.1: sin pre-encoding ^
     ]);
 
     // ── QQQ ──────────────────────────────────────────────────────────────────
