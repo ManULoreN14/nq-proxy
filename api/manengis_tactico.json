@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generado": "2026-05-25T05:31:13.374521+00:00",
+  "generado": "2026-05-25T16:23:33.550619+00:00",
   "fuente": "manengis-python-local",
   "variables_crudas": {
     "precio_qqq": 717.54,
@@ -16,7 +16,9 @@
     "gex_flip": null,
     "call_oi_total": 359158,
     "put_oi_total": 695960,
-    "sentiment_score": -1.9,
+    "sentiment_score": 1.7,
+    "gdelt_tono": null,
+    "gdelt_articulos": null,
     "sentiment_model": "FinBERT",
     "cot_lev_net": null,
     "cot_am_net": null,
@@ -26,19 +28,19 @@
     "risk_score": 6.0
   },
   "sentimiento": {
-    "score": -1.9,
+    "score": 1.7,
     "model": "FinBERT",
-    "titulares": 45,
-    "positivos": 11,
-    "negativos": 13,
-    "neutros": 21,
+    "titulares": 30,
+    "positivos": 9,
+    "negativos": 10,
+    "neutros": 11,
     "descripcion": "Neutral",
     "titulares_muestra": [
-      "S&P 500 Clocks Best Weekly Rally Since 2023, Dow Hits Fresh Record As US-Iran Peace Hope Boosts Risk Sentiment - UBER, GILD, RDDT, FJET, AMD In Focus",
-      "Stocks Settle Higher on Iran Peace Hopes and Tech Strength",
-      "ETF Zoo: Why Rebalancing Killed the ARK Star",
-      "QYLD’s 12% Yield Looks Generous, But Its 10 Year Total Return Tells a Harder Story",
-      "Exchange-Traded Funds Rise as US Equities Advance After Midday"
+      "TQQQ’s 3x Promise Quietly Cost Holders 81 Percent in 2022 While the Nasdaq Fell Just 33 Percent",
+      "S&P 500 Other Than AI Infrastructure Is Growing at 0%. Lance Roberts Warns What Happens if the AI Boom Stumbles.",
+      "QQQI’s 14 Percent Yield Was 98 Percent Return of Capital in a Recent Distribution, And That’s the Real Story",
+      "The Math That Should Terrify Index Investors: AI Chips Account for Nearly All S&P 500 Gains",
+      "S&P 500 Clocks Best Weekly Rally Since 2023, Dow Hits Fresh Record As US-Iran Peace Hope Boosts Risk Sentiment - UBER, GILD, RDDT, FJET, AMD In Focus"
     ]
   },
   "earnings": {
