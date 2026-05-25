@@ -1,186 +1,129 @@
 {
-  "metadata": {
-    "version": "2.0",
-    "generado_utc": "2026-05-25T05:14:00.704875+00:00",
-    "generado_local": "2026-05-25 07:14",
-    "fecha": "2026-05-25",
-    "modulos_activos": [
-      "earnings",
-      "precio_base"
-    ],
-    "modulos_pendientes": [
-      "derivados",
-      "nlp_sentimiento",
-      "cot"
-    ],
-    "script": "actualizar_manengis.py"
-  },
+  "version": "2.0",
+  "generado": "2026-05-25T05:31:13.374521+00:00",
+  "fuente": "manengis-python-local",
   "variables_crudas": {
-    "qqq_precio": 717.54,
-    "qqq_cambio_pct": 0.42,
-    "ndx_precio": 29481.64,
-    "ndx_cambio_pct": 0.42,
-    "vix": 16.7,
-    "vix_cambio": -0.06,
-    "rsi": 73.71,
-    "roc_5d": 1.22,
-    "max_pain": null,
-    "put_call_ratio": null,
-    "gex": null,
-    "oi_resistencia": null,
-    "oi_soporte": null,
-    "sentiment_score": null,
-    "titulares_analizados": 0,
-    "sentiment_breakdown": {
-      "positivos": 0,
-      "negativos": 0,
-      "neutros": 0
-    },
-    "cot_largos": null,
-    "cot_cortos": null,
-    "cot_neto": null,
-    "cot_semana_anterior": null
+    "precio_qqq": 717.54,
+    "rsi": 71.47,
+    "ema20": 693.63,
+    "ema50": 654.17,
+    "atr14": 11.44,
+    "roc5d": 1.21,
+    "max_pain": 700.0,
+    "max_pain_dist_pct": -2.44,
+    "put_call_ratio": 1.938,
+    "gex_neto_m": 0.0,
+    "gex_flip": null,
+    "call_oi_total": 359158,
+    "put_oi_total": 695960,
+    "sentiment_score": -1.9,
+    "sentiment_model": "FinBERT",
+    "cot_lev_net": null,
+    "cot_am_net": null,
+    "cot_sesgo": null,
+    "earnings_alerta": false,
+    "earnings_tickers": [],
+    "risk_score": 6.0
+  },
+  "sentimiento": {
+    "score": -1.9,
+    "model": "FinBERT",
+    "titulares": 45,
+    "positivos": 11,
+    "negativos": 13,
+    "neutros": 21,
+    "descripcion": "Neutral",
+    "titulares_muestra": [
+      "S&P 500 Clocks Best Weekly Rally Since 2023, Dow Hits Fresh Record As US-Iran Peace Hope Boosts Risk Sentiment - UBER, GILD, RDDT, FJET, AMD In Focus",
+      "Stocks Settle Higher on Iran Peace Hopes and Tech Strength",
+      "ETF Zoo: Why Rebalancing Killed the ARK Star",
+      "QYLD’s 12% Yield Looks Generous, But Its 10 Year Total Return Tells a Harder Story",
+      "Exchange-Traded Funds Rise as US Equities Advance After Midday"
+    ]
   },
   "earnings": {
     "alerta_volatilidad": false,
-    "empresas_en_72h": [],
-    "calendario_completo": [
-      {
-        "ticker": "AAPL",
-        "nombre": "Apple",
-        "fecha_utc": "2026-04-30",
-        "hora_utc": "20:00",
-        "dias_restantes": -24.4,
-        "en_72h": false,
-        "confirmado": true,
-        "eps_estimado": 9.60383,
-        "eps_anterior": 8.25
-      },
-      {
-        "ticker": "MSFT",
-        "nombre": "Microsoft",
-        "fecha_utc": "2026-04-29",
-        "hora_utc": "20:00",
-        "dias_restantes": -25.4,
-        "en_72h": false,
-        "confirmado": true,
-        "eps_estimado": 19.33773,
-        "eps_anterior": 16.78
-      },
-      {
-        "ticker": "NVDA",
-        "nombre": "NVIDIA",
-        "fecha_utc": "2026-05-20",
-        "hora_utc": "20:00",
-        "dias_restantes": -4.4,
-        "en_72h": false,
-        "confirmado": true,
-        "eps_estimado": 12.64573,
-        "eps_anterior": 6.52
-      },
-      {
-        "ticker": "GOOGL",
-        "nombre": "Alphabet",
-        "fecha_utc": "2026-04-29",
-        "hora_utc": "20:00",
-        "dias_restantes": -25.4,
-        "en_72h": false,
-        "confirmado": true,
-        "eps_estimado": 14.45135,
-        "eps_anterior": 13.1
-      },
-      {
-        "ticker": "AMZN",
-        "nombre": "Amazon",
-        "fecha_utc": "2026-04-29",
-        "hora_utc": "20:00",
-        "dias_restantes": -25.4,
-        "en_72h": false,
-        "confirmado": true,
-        "eps_estimado": 9.85939,
-        "eps_anterior": 8.42
-      },
-      {
-        "ticker": "META",
-        "nombre": "Meta",
-        "fecha_utc": "2026-04-29",
-        "hora_utc": "20:00",
-        "dias_restantes": -25.4,
-        "en_72h": false,
-        "confirmado": true,
-        "eps_estimado": 36.00697,
-        "eps_anterior": 27.52
-      },
-      {
-        "ticker": "TSLA",
-        "nombre": "Tesla",
-        "fecha_utc": "2026-04-22",
-        "hora_utc": "20:00",
-        "dias_restantes": -32.4,
-        "en_72h": false,
-        "confirmado": true,
-        "eps_estimado": 2.50969,
-        "eps_anterior": 1.11
-      }
-    ],
-    "timestamp_check": "2026-05-25T05:13:57.406777+00:00"
-  },
-  "precio_base": {
-    "qqq_precio": 717.54,
-    "qqq_cambio": 0.42,
-    "ndx_precio": 29481.64,
-    "ndx_cambio": 0.42,
-    "vix": 16.7,
-    "vix_cambio": -0.06,
-    "rsi_14": 73.71,
-    "roc_5d": 1.22,
-    "timestamp": "2026-05-25T05:14:00.153973+00:00"
+    "tickers_72h": [],
+    "proximos_earnings": [],
+    "ventana_horas": 72
   },
   "derivados": {
-    "estado": "pendiente_fase_2",
-    "max_pain": null,
-    "put_call_ratio": null,
-    "gex_estimado": null,
-    "strikes": {
-      "resistencia_calls": null,
-      "soporte_puts": null,
-      "concentracion_oi": []
-    },
-    "vencimientos_analizados": []
-  },
-  "sentimiento": {
-    "estado": "pendiente_fase_3",
-    "score_global": null,
-    "modelo": null,
-    "titulares": [],
-    "categorias": {
-      "fed": null,
-      "inflacion": null,
-      "bigtech": null,
-      "macro": null
-    }
+    "precio_qqq": 717.54,
+    "vencimientos": [
+      "2026-05-26",
+      "2026-05-27",
+      "2026-05-28",
+      "2026-05-29"
+    ],
+    "max_pain": 700.0,
+    "max_pain_dist_pct": -2.44,
+    "put_call_ratio": 1.938,
+    "call_oi_total": 359158,
+    "put_oi_total": 695960,
+    "gex_neto_m": 0.0,
+    "gex_flip": null,
+    "top_call_strikes": [
+      {
+        "strike": 700.0,
+        "oi": 19964.0
+      },
+      {
+        "strike": 705.0,
+        "oi": 16676.0
+      },
+      {
+        "strike": 720.0,
+        "oi": 15431.0
+      },
+      {
+        "strike": 710.0,
+        "oi": 13479.0
+      },
+      {
+        "strike": 730.0,
+        "oi": 13184.0
+      }
+    ],
+    "top_put_strikes": [
+      {
+        "strike": 680.0,
+        "oi": 43319.0
+      },
+      {
+        "strike": 695.0,
+        "oi": 36157.0
+      },
+      {
+        "strike": 700.0,
+        "oi": 27858.0
+      },
+      {
+        "strike": 650.0,
+        "oi": 25764.0
+      },
+      {
+        "strike": 685.0,
+        "oi": 25032.0
+      }
+    ],
+    "roc5d": 1.21,
+    "precio_hace5d": 708.93
   },
   "cot": {
-    "estado": "pendiente_fase_4",
-    "fecha_reporte": null,
-    "non_commercial": {
-      "largos": null,
-      "cortos": null,
-      "neto": null,
-      "cambio_semanal": null
-    },
-    "señal": null
+    "error": "HTTP Error 404: Not Found"
   },
-  "señal_tactica": {
-    "score_global": null,
-    "sesgo": "sin_datos_suficientes",
-    "confianza": "baja",
-    "componentes": {
-      "earnings": "ok",
-      "derivados": "pendiente",
-      "sentimiento": "pendiente",
-      "cot": "pendiente"
-    },
-    "resumen": "Fase 1 activa — módulos de derivados, NLP y COT pendientes"
+  "tecnicos": {
+    "rsi14": 71.47,
+    "ema20": 693.63,
+    "ema50": 654.17,
+    "atr14": 11.44,
+    "precio": 717.54
+  },
+  "risk_compuesto": {
+    "valor": 6.0,
+    "estado": "Riesgo Elevado",
+    "factores": [
+      "PCR alto=1.938 → cobertura/miedo"
+    ]
   }
 }
