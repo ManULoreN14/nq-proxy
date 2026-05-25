@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generado": "2026-05-25T16:23:33.550619+00:00",
+  "generado": "2026-05-25T17:35:26.172673+00:00",
   "fuente": "manengis-python-local",
   "variables_crudas": {
     "precio_qqq": 717.54,
@@ -17,8 +17,8 @@
     "call_oi_total": 359158,
     "put_oi_total": 695960,
     "sentiment_score": 1.7,
-    "gdelt_tono": null,
-    "gdelt_articulos": null,
+    "gdelt_tono": 0,
+    "gdelt_articulos": 5,
     "sentiment_model": "FinBERT",
     "cot_lev_net": null,
     "cot_am_net": null,
@@ -36,17 +36,56 @@
     "neutros": 11,
     "descripcion": "Neutral",
     "titulares_muestra": [
+      "The One Thing Jim Cramer Demands From Tech-Only Investors Before He’ll Bless the Strategy",
+      "Why This Invesco ETF Might Be the Most Underrated Index Fund Available Today",
       "TQQQ’s 3x Promise Quietly Cost Holders 81 Percent in 2022 While the Nasdaq Fell Just 33 Percent",
       "S&P 500 Other Than AI Infrastructure Is Growing at 0%. Lance Roberts Warns What Happens if the AI Boom Stumbles.",
-      "QQQI’s 14 Percent Yield Was 98 Percent Return of Capital in a Recent Distribution, And That’s the Real Story",
-      "The Math That Should Terrify Index Investors: AI Chips Account for Nearly All S&P 500 Gains",
-      "S&P 500 Clocks Best Weekly Rally Since 2023, Dow Hits Fresh Record As US-Iran Peace Hope Boosts Risk Sentiment - UBER, GILD, RDDT, FJET, AMD In Focus"
-    ]
+      "QQQI’s 14 Percent Yield Was 98 Percent Return of Capital in a Recent Distribution, And That’s the Real Story"
+    ],
+    "gdelt_tono": 0,
+    "gdelt_tono_norm": 0,
+    "gdelt_articulos": 5
   },
   "earnings": {
     "alerta_volatilidad": false,
     "tickers_72h": [],
-    "proximos_earnings": [],
+    "proximos_earnings": [
+      {
+        "ticker": "NVDA",
+        "fecha": "2026-05-20 00:00 UTC",
+        "horas": -137.6
+      },
+      {
+        "ticker": "TSLA",
+        "fecha": "2026-07-22 00:00 UTC",
+        "horas": 1374.4
+      },
+      {
+        "ticker": "GOOGL",
+        "fecha": "2026-07-23 00:00 UTC",
+        "horas": 1398.4
+      },
+      {
+        "ticker": "MSFT",
+        "fecha": "2026-07-29 00:00 UTC",
+        "horas": 1542.4
+      },
+      {
+        "ticker": "META",
+        "fecha": "2026-07-29 00:00 UTC",
+        "horas": 1542.4
+      },
+      {
+        "ticker": "AAPL",
+        "fecha": "2026-07-30 00:00 UTC",
+        "horas": 1566.4
+      },
+      {
+        "ticker": "AMZN",
+        "fecha": "2026-07-30 00:00 UTC",
+        "horas": 1566.4
+      }
+    ],
     "ventana_horas": 72
   },
   "derivados": {
@@ -125,7 +164,7 @@
     "valor": 6.0,
     "estado": "Riesgo Elevado",
     "factores": [
-      "PCR alto=1.938 → cobertura/miedo"
+      "PCR alto=1.938 -> cobertura/miedo"
     ]
   }
 }
