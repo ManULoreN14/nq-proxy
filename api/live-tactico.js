@@ -1,16 +1,14 @@
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  live-tactico.js — Serverless Function (Vercel)                  ║
-// ║  Ruta: nq-proxy/api/live-tactico.js                              ║
+// ║  live-tactico.js — Serverless Function (Vercel Node.js)         ║
+// ║  Ruta: nq-proxy/api/live-tactico.js                             ║
 // ║                                                                  ║
-// ║  Propósito: Fallback intradiario ligero para "Modo Viaje".       ║
-// ║  Solo extrae: precio QQQ/NDX, VIX, RSI intradiario.             ║
-// ║  NO consulta opciones ni NLP (evita timeout de 5s de Vercel).   ║
+// ║  Propósito: Fallback intradiario ligero para "Modo Viaje".      ║
+// ║  Solo extrae: precio QQQ/NDX, VIX, RSI intradiario.            ║
+// ║  NO consulta opciones ni NLP (evita timeout de Vercel).        ║
+// ║                                                                  ║
+// ║  NOTA: Convertido a Node.js runtime (elimina export config      ║
+// ║  edge) para compatibilidad con datos.js / ia.js / manengis.js   ║
 // ╚══════════════════════════════════════════════════════════════════╝
-
-export const config = {
-  runtime: "edge",           // Edge Runtime = arranque en ~50ms
-  maxDuration: 10,           // máx 10 segundos (plan Vercel gratuito = 5s; ajustar)
-};
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -35,7 +33,8 @@ function calcRSI(closes, period = 14) {
 
 /**
  * Llama a Yahoo Finance chart API v8 (sin API key, endpoint público).
- * Retorna { precio, closes[], highs[], lows[], timestamps[] }
+ * Fix 2.1: pasar símbolo sin pre-codificar (^VIX no %5EVIX) para
+ * evitar doble encoding por encodeURIComponent.
  */
 async function fetchYahooChart(symbol, range = "5d", interval = "1h") {
   const url =
@@ -63,16 +62,15 @@ async function fetchYahooChart(symbol, range = "5d", interval = "1h") {
 
   return {
     symbol,
-    precio:      parseFloat((meta.regularMarketPrice || closes.at(-1) || 0).toFixed(2)),
-    precioAnt:   parseFloat((meta.chartPreviousClose || meta.previousClose || 0).toFixed(2)),
+    precio:    parseFloat((meta.regularMarketPrice || closes.at(-1) || 0).toFixed(2)),
+    precioAnt: parseFloat((meta.chartPreviousClose || meta.previousClose || 0).toFixed(2)),
     closes,
-    highs:       (quote.high || []).filter(Boolean),
-    lows:        (quote.low  || []).filter(Boolean),
-    timestamps:  result.timestamp || [],
+    highs:     (quote.high || []).filter(Boolean),
+    lows:      (quote.low  || []).filter(Boolean),
   };
 }
 
-/** Calcula ROC n días a partir de array de cierres diarios */
+/** Calcula ROC n días a partir de array de cierres */
 function calcROC(closes, n = 5) {
   if (closes.length < n + 1) return null;
   const curr = closes.at(-1);
@@ -80,138 +78,101 @@ function calcROC(closes, n = 5) {
   return parseFloat(((curr - prev) / prev * 100).toFixed(2));
 }
 
-// ── Handler principal ────────────────────────────────────────────────────────
+/** Sesgo simplificado basado en RSI + VIX + cambio de precio */
+function _sesgoIntradiario({ rsiQQQ, vix, cambioQQQ }) {
+  if (!rsiQQQ && !vix) return "sin_datos";
+  let puntos = 0;
+  if (rsiQQQ !== null) {
+    if (rsiQQQ > 70) puntos -= 1;
+    else if (rsiQQQ < 40) puntos += 1;
+    else if (rsiQQQ < 30) puntos += 2;
+  }
+  if (vix !== null) {
+    if (vix > 25) puntos += 1;
+    if (vix > 35) puntos += 1;
+    if (vix < 15) puntos -= 1;
+  }
+  if (cambioQQQ !== null) {
+    if (cambioQQQ > 1.5) puntos -= 1;
+    if (cambioQQQ < -1.5) puntos += 1;
+  }
+  if (puntos >= 2)  return "cauto";
+  if (puntos <= -2) return "euforia";
+  if (puntos === 1) return "neutral_cauto";
+  return "neutral";
+}
 
-export default async function handler(req) {
-  // CORS — permitir llamadas desde el frontend nqrisk
-  const headers = {
-    "Content-Type":                "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Cache-Control":               "s-maxage=60, stale-while-revalidate=30",
-  };
+// ── Handler Node.js (compatible con datos.js / ia.js / manengis.js) ─────────
+
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=30");
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers });
+    res.status(204).end();
+    return;
   }
 
   const t0 = Date.now();
 
   try {
-    // ── Fetch paralelo de QQQ, VIX, NDX ────────────────────────────────────────
-    // Fix 2.1: los símbolos de índices Yahoo usan "^" (caret). NO pre-codificar
-    // en base64/URL — fetchYahooChart ya aplica encodeURIComponent una sola vez.
-    // Pasar "%5EVIX" causaba doble encoding (%255EVIX) → Yahoo devolvía error
-    // silencioso que Promise.allSettled capturaba como rejected → vix=null.
+    // Fix 2.1: ^VIX y ^NDX sin pre-codificar
     const [qqqData, vixData, ndxData] = await Promise.allSettled([
       fetchYahooChart("QQQ",  "5d", "1h"),
-      fetchYahooChart("^VIX", "5d", "1d"),  // Fix 2.1: sin pre-encoding ^
-      fetchYahooChart("^NDX", "5d", "1d"),  // Fix 2.1: sin pre-encoding ^
+      fetchYahooChart("^VIX", "5d", "1d"),
+      fetchYahooChart("^NDX", "5d", "1d"),
     ]);
 
-    // ── QQQ ──────────────────────────────────────────────────────────────────
     let precioQQQ = null, rsiQQQ = null, cambioQQQ = null, rocQQQ = null;
-
     if (qqqData.status === "fulfilled") {
       const d = qqqData.value;
-      precioQQQ  = d.precio;
-      rsiQQQ     = calcRSI(d.closes);
-      rocQQQ     = calcROC(d.closes, 5);
-      if (d.precioAnt > 0) {
+      precioQQQ = d.precio;
+      rsiQQQ    = calcRSI(d.closes);
+      rocQQQ    = calcROC(d.closes, 5);
+      if (d.precioAnt > 0)
         cambioQQQ = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
-      }
     }
 
-    // ── VIX ──────────────────────────────────────────────────────────────────
     let vix = null, vixCambio = null;
-
     if (vixData.status === "fulfilled") {
       const d = vixData.value;
       vix = d.precio;
-      if (d.precioAnt > 0) {
+      if (d.precioAnt > 0)
         vixCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
-      }
     }
 
-    // ── NDX ──────────────────────────────────────────────────────────────────
     let precioNDX = null, rsiNDX = null;
-
     if (ndxData.status === "fulfilled") {
       const d = ndxData.value;
       precioNDX = d.precio;
       rsiNDX    = calcRSI(d.closes);
     }
 
-    // ── Sesgo intradiario simplificado ────────────────────────────────────────
-    const sesgo = _sesgoIntradiario({ rsiQQQ, vix, cambioQQQ });
-
-    // ── Respuesta ─────────────────────────────────────────────────────────────
-    const payload = {
-      tipo:         "live_intradiario",
-      timestamp:    new Date().toISOString(),
-      latencia_ms:  Date.now() - t0,
-
-      // ── Variables que el frontend sobreescribirá en pantalla ─────────────
+    res.status(200).json({
+      tipo:        "live_intradiario",
+      timestamp:   new Date().toISOString(),
+      latencia_ms: Date.now() - t0,
       live: {
-        precio_qqq:   precioQQQ,
-        cambio_qqq:   cambioQQQ,      // % vs. cierre anterior
-        rsi_qqq:      rsiQQQ,
-        roc5d:        rocQQQ,
-        precio_ndx:   precioNDX,
-        rsi_ndx:      rsiNDX,
-        vix:          vix,
-        vix_cambio:   vixCambio,
-        sesgo_live:   sesgo,
+        precio_qqq: precioQQQ,
+        cambio_qqq: cambioQQQ,
+        rsi_qqq:    rsiQQQ,
+        roc5d:      rocQQQ,
+        precio_ndx: precioNDX,
+        rsi_ndx:    rsiNDX,
+        vix:        vix,
+        vix_cambio: vixCambio,
+        sesgo_live: _sesgoIntradiario({ rsiQQQ, vix, cambioQQQ }),
       },
-
-      // ── Nota: estos campos NO se actualizan (se mantienen del JSON nocturno)
       nota: "max_pain / sentiment / cot mantenidos del JSON estático nocturno",
-    };
-
-    return new Response(JSON.stringify(payload, null, 2), {
-      status: 200,
-      headers,
     });
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({
-        tipo:      "live_intradiario",
-        error:     err.message,
-        timestamp: new Date().toISOString(),
-        live:      null,
-      }),
-      { status: 500, headers }
-    );
+    res.status(500).json({
+      tipo:      "live_intradiario",
+      error:     err.message,
+      timestamp: new Date().toISOString(),
+      live:      null,
+    });
   }
-}
-
-/** Sesgo simplificado basado en RSI + VIX + cambio de precio */
-function _sesgoIntradiario({ rsiQQQ, vix, cambioQQQ }) {
-  if (!rsiQQQ && !vix) return "sin_datos";
-
-  let puntos = 0;
-
-  if (rsiQQQ !== null) {
-    if (rsiQQQ > 70) puntos -= 1;
-    else if (rsiQQQ > 60) puntos += 0;
-    else if (rsiQQQ < 40) puntos += 1;
-    else if (rsiQQQ < 30) puntos += 2;
-  }
-
-  if (vix !== null) {
-    if (vix > 25) puntos += 1;
-    if (vix > 35) puntos += 1;
-    if (vix < 15) puntos -= 1;
-  }
-
-  if (cambioQQQ !== null) {
-    if (cambioQQQ > 1.5) puntos -= 1;
-    if (cambioQQQ < -1.5) puntos += 1;
-  }
-
-  if (puntos >= 2)  return "cauto";
-  if (puntos <= -2) return "euforia";
-  if (puntos === 1) return "neutral_cauto";
-  return "neutral";
 }
