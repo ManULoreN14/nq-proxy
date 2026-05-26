@@ -1,10 +1,10 @@
 {
   "version": 2,
   "functions": {
-    "api/datos.js":       { "runtime": "nodejs20.x", "maxDuration": 30 },
-    "api/ia.js":          { "runtime": "nodejs20.x", "maxDuration": 30 },
-    "api/live-tactico.js":{ "runtime": "nodejs20.x", "maxDuration": 30 },
-    "api/manengis.js":    { "runtime": "nodejs20.x", "maxDuration": 30 }
+    "api/datos.js":        { "maxDuration": 30 },
+    "api/ia.js":           { "maxDuration": 30 },
+    "api/live-tactico.js": { "maxDuration": 30 },
+    "api/manengis.js":     { "maxDuration": 30 }
   },
   "headers": [
     {
