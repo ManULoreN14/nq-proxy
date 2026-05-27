@@ -1,71 +1,71 @@
 {
   "version": "2.0",
-  "generado": "2026-05-27T14:05:33.284674+00:00",
+  "generado": "2026-05-27T18:34:28.095848+00:00",
   "fuente": "manengis-python-local",
   "variables_crudas": {
-    "precio_qqq": 729.91,
-    "vix": 17.02,
-    "rsi": 75.05,
-    "ema20": 700.27,
-    "ema50": 656.8,
-    "atr14": 11.15,
-    "roc5d": 4.05,
+    "precio_qqq": 729.65,
+    "vix": 16.57,
+    "rsi": 74.73,
+    "ema20": 700.24,
+    "ema50": 656.78,
+    "atr14": 11.25,
+    "roc5d": 4.0,
     "max_pain": 712.0,
-    "max_pain_dist_pct": -2.45,
+    "max_pain_dist_pct": -2.42,
     "put_call_ratio": 2.249,
     "gex_neto_m": 0.0,
     "gex_flip": null,
     "call_oi_total": 475385,
     "put_oi_total": 1069176,
-    "vix3m": 19.84,
-    "vix_ts_ratio": 0.8579,
+    "vix3m": 19.67,
+    "vix_ts_ratio": 0.8424,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
-    "skew_ratio": 1.475,
+    "skew_ratio": 1.637,
     "skew_estado": "miedo_cola_alto",
-    "skew_iv_put_otm": 0.3182,
-    "skew_iv_call_otm": 0.2158,
-    "sentiment_score": -18.5,
+    "skew_iv_put_otm": 0.3053,
+    "skew_iv_call_otm": 0.1865,
+    "sentiment_score": 4.3,
     "gdelt_tono": 0,
-    "gdelt_articulos": 0,
+    "gdelt_articulos": 17,
     "sentiment_model": "FinBERT",
     "cot_lev_net": -45371,
     "cot_am_net": 92301,
     "cot_sesgo": "bajista",
     "earnings_alerta": false,
     "earnings_tickers": [],
-    "breadth_pct_ema20": 57.1,
+    "breadth_pct_ema20": 71.4,
     "breadth_divergencia": false,
     "exposicion_sugerida_pct": 80,
     "exposicion_semaforo": "verde",
-    "dist_desde_max_pct": -0.05,
+    "dist_desde_max_pct": -0.09,
     "nivel_barrida": 558.28,
-    "dist_barrida_pct": 30.74,
+    "dist_barrida_pct": 30.7,
     "zona_barrida": false,
-    "fear_greed_score": 69.7,
-    "fear_greed_estado": "codicia",
+    "fear_greed_score": 78.2,
+    "fear_greed_estado": "euforia_extrema",
     "regimen_mercado": "tendencia_alcista",
-    "regimen_confianza": 80,
-    "risk_score": 5.2
+    "regimen_confianza": 100,
+    "risk_score": 6.0
   },
   "sentimiento": {
-    "score": -18.5,
+    "score": 4.3,
     "model": "FinBERT",
-    "titulares": 30,
-    "positivos": 4,
-    "negativos": 10,
-    "neutros": 16,
-    "descripcion": "Cautela",
+    "titulares": 65,
+    "positivos": 23,
+    "negativos": 17,
+    "neutros": 25,
+    "descripcion": "Neutral",
     "titulares_muestra": [
-      "Stock Market Today: Dow Rises As Oil Prices Extend Their Losses; Micron Continues To Surge (Live Coverage)",
-      "Prediction: Elon Musk Will Become the World’s First Trillionaire on June 12th",
-      "Valuation Alarms Are Sounding on Wall Street: 1 High-Yield Legal Monopoly Under $30 to Buy Hand Over Fist",
-      "GTS Securities Buys $47.8 Million Worth of This Brand-New Quality-Growth ETF",
-      "QYLD’s 12 Percent Yield Has Quietly Eroded NAV by 35 Percent Over a Decade While the Nasdaq Tripled"
+      "NASDAQ 100 index surpasses 30,000 for the first time",
+      "Oil rises again as markets digest fresh tension in the Gulf",
+      "Oil price hits $100 as Brent Crude rises over 4 per cent. Will rate go further up?",
+      "Rocket, satellite stocks surge as SpaceX IPO fuels euphoria",
+      "VEON’s Kyivstar Expands Renewable Energy Portfolio with Acquisition of Six Solar Power Plants"
     ],
     "gdelt_tono": 0,
     "gdelt_tono_norm": 0,
-    "gdelt_articulos": 0
+    "gdelt_articulos": 17
   },
   "earnings": {
     "alerta_volatilidad": false,
@@ -74,43 +74,43 @@
       {
         "ticker": "TSLA",
         "fecha": "2026-07-22 00:00 UTC",
-        "horas": 1329.9
+        "horas": 1325.4
       },
       {
         "ticker": "GOOGL",
         "fecha": "2026-07-23 00:00 UTC",
-        "horas": 1353.9
+        "horas": 1349.4
       },
       {
         "ticker": "MSFT",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1497.9
+        "horas": 1493.4
       },
       {
         "ticker": "META",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1497.9
+        "horas": 1493.4
       },
       {
         "ticker": "AAPL",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1521.9
+        "horas": 1517.4
       },
       {
         "ticker": "AMZN",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1521.9
+        "horas": 1517.4
       },
       {
         "ticker": "NVDA",
         "fecha": "2026-08-26 00:00 UTC",
-        "horas": 2169.9
+        "horas": 2165.4
       }
     ],
     "ventana_horas": 72
   },
   "derivados": {
-    "precio_qqq": 729.91,
+    "precio_qqq": 729.65,
     "vencimientos": [
       "2026-05-27",
       "2026-05-28",
@@ -118,7 +118,7 @@
       "2026-06-01"
     ],
     "max_pain": 712.0,
-    "max_pain_dist_pct": -2.45,
+    "max_pain_dist_pct": -2.42,
     "put_call_ratio": 2.249,
     "call_oi_total": 475385,
     "put_oi_total": 1069176,
@@ -168,7 +168,7 @@
         "oi": 1117.0
       }
     ],
-    "roc5d": 4.05,
+    "roc5d": 4.0,
     "precio_hace5d": 701.53
   },
   "cot": {
@@ -183,34 +183,33 @@
     "descripcion": "Fondos apalancados corto neto 45,371 contratos. Asset Managers largo neto 92,301."
   },
   "tecnicos": {
-    "rsi14": 75.05,
-    "ema20": 700.27,
-    "ema50": 656.8,
-    "atr14": 11.15,
-    "precio": 729.97
+    "rsi14": 74.73,
+    "ema20": 700.24,
+    "ema50": 656.78,
+    "atr14": 11.25,
+    "precio": 729.6
   },
   "risk_compuesto": {
-    "valor": 5.2,
-    "estado": "Neutral / Vigilar",
+    "valor": 6.0,
+    "estado": "Riesgo Elevado",
     "factores": [
-      "PCR alto=2.249 -> cobertura/miedo",
-      "RSI=75.05 sobrecompra"
+      "PCR alto=2.249 -> cobertura/miedo"
     ]
   },
   "velocidad": {
     "deltas": {
       "vix": {
         "1d": {
-          "abs": 0.43,
-          "pct": 2.59
+          "abs": -0.02,
+          "pct": -0.12
         },
         "2d": {
-          "abs": 0.43,
-          "pct": 2.59
+          "abs": -0.02,
+          "pct": -0.12
         },
         "5d": {
-          "abs": -0.42,
-          "pct": -2.41
+          "abs": -0.87,
+          "pct": -4.99
         }
       },
       "pcr": {
@@ -243,8 +242,8 @@
       },
       "rsi": {
         "1d": {
-          "abs": 3.58,
-          "pct": 5.01
+          "abs": 3.26,
+          "pct": 4.56
         },
         "2d": {
           "abs": null,
@@ -263,67 +262,67 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion de riesgo. VIX +0.43 vs ayer."
+    "descripcion": "Sin aceleracion de riesgo. VIX -0.02 vs ayer."
   },
   "breadth": {
     "tickers_validos": 7,
-    "sobre_ema20": 4,
-    "sobre_ema50": 6,
-    "pct_sobre_ema20": 57.1,
-    "pct_sobre_ema50": 85.7,
+    "sobre_ema20": 5,
+    "sobre_ema50": 7,
+    "pct_sobre_ema20": 71.4,
+    "pct_sobre_ema50": 100.0,
     "detalle": [
       {
         "ticker": "AAPL",
-        "precio": 312.12,
-        "ema20": 294.75,
-        "ema50": 277.7,
+        "precio": 310.64,
+        "ema20": 294.61,
+        "ema50": 277.64,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "MSFT",
-        "precio": 411.82,
-        "ema20": 414.17,
-        "ema50": 404.09,
+        "precio": 412.6,
+        "ema20": 414.25,
+        "ema50": 404.12,
         "sobre_ema20": false,
         "sobre_ema50": true
       },
       {
         "ticker": "NVDA",
-        "precio": 210.79,
-        "ema20": 214.28,
-        "ema50": 200.84,
+        "precio": 213.29,
+        "ema20": 214.52,
+        "ema50": 200.94,
         "sobre_ema20": false,
         "sobre_ema50": true
       },
       {
         "ticker": "GOOGL",
-        "precio": 391.7,
-        "ema20": 382.26,
-        "ema50": 349.53,
+        "precio": 392.28,
+        "ema20": 382.31,
+        "ema50": 349.55,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "AMZN",
-        "precio": 270.16,
-        "ema20": 263.9,
-        "ema50": 244.61,
+        "precio": 269.75,
+        "ema20": 263.86,
+        "ema50": 244.59,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "META",
-        "precio": 612.05,
-        "ema20": 616.23,
-        "ema50": 619.97,
-        "sobre_ema20": false,
-        "sobre_ema50": false
+        "precio": 630.32,
+        "ema20": 617.97,
+        "ema50": 620.68,
+        "sobre_ema20": true,
+        "sobre_ema50": true
       },
       {
         "ticker": "TSLA",
-        "precio": 439.66,
-        "ema20": 415.88,
+        "precio": 439.8,
+        "ema20": 415.89,
         "ema50": 400.15,
         "sobre_ema20": true,
         "sobre_ema50": true
@@ -343,7 +342,7 @@
     "estado": "Exposicion plena / constructiva",
     "accion": "Mantener",
     "tramo_caida": "ruido",
-    "dist_desde_max_pct": -0.05,
+    "dist_desde_max_pct": -0.09,
     "max_referencia": 730.28,
     "fuente_max": "yfinance (60 sesiones)",
     "motivos": [],
@@ -357,79 +356,79 @@
     },
     "barrida_estructural": {
       "nivel_barrida": 558.28,
-      "dist_barrida_pct": 30.74,
+      "dist_barrida_pct": 30.7,
       "zona_barrida": false,
       "sesiones_ventana": 90,
-      "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.74% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
+      "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.7% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
     }
   },
   "vix_term_structure": {
-    "vix": 17.02,
-    "vix3m": 19.84,
-    "ratio": 0.8579,
+    "vix": 16.57,
+    "vix3m": 19.67,
+    "ratio": 0.8424,
     "backwardation": false,
-    "spread": -2.82,
+    "spread": -3.1,
     "estado": "contango_normal",
-    "descripcion": "VIX (17.02) / VIX3M (19.84) = 0.8579: contango normal, mercado tranquilo — vol a corto plazo mas barata que a largo."
+    "descripcion": "VIX (16.57) / VIX3M (19.67) = 0.8424: contango normal, mercado tranquilo — vol a corto plazo mas barata que a largo."
   },
   "skew": {
     "vencimiento": "2026-05-29",
-    "iv_put_otm": 0.3182,
-    "iv_call_otm": 0.2158,
-    "skew": 0.1024,
-    "skew_ratio": 1.475,
+    "iv_put_otm": 0.3053,
+    "iv_call_otm": 0.1865,
+    "skew": 0.1188,
+    "skew_ratio": 1.637,
     "estado": "miedo_cola_alto",
     "n_puts": 59,
     "n_calls": 12,
-    "descripcion": "Skew ALTO en 2026-05-29: puts OTM a 31.8% IV vs calls OTM a 21.6% (ratio 1.475). Institucionales pagan prima fuerte por proteccion a la baja: miedo de cola."
+    "descripcion": "Skew ALTO en 2026-05-29: puts OTM a 30.5% IV vs calls OTM a 18.6% (ratio 1.637). Institucionales pagan prima fuerte por proteccion a la baja: miedo de cola."
   },
   "barrida_estructural": {
     "nivel_barrida": 558.28,
-    "dist_barrida_pct": 30.74,
+    "dist_barrida_pct": 30.7,
     "zona_barrida": false,
     "sesiones_ventana": 90,
-    "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.74% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
+    "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.7% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
   },
   "fear_greed": {
-    "score": 69.7,
-    "estado": "codicia",
+    "score": 78.2,
+    "estado": "euforia_extrema",
     "componentes": {
       "rsi": {
-        "valor": 75.05,
-        "contribucion": 12.5
+        "valor": 74.73,
+        "contribucion": 12.4
       },
       "dist_ema50_pct": {
-        "valor": 11.13,
-        "contribucion": 16.7
+        "valor": 11.1,
+        "contribucion": 16.6
       },
       "vix": {
-        "valor": 17.02,
-        "contribucion": 3.9
+        "valor": 16.57,
+        "contribucion": 5.7
       },
       "vix_ts_ratio": {
-        "valor": 0.8579,
-        "contribucion": 0.5
+        "valor": 0.8424,
+        "contribucion": 10
       },
       "breadth_pct_ema20": {
-        "valor": 57.1,
-        "contribucion": 1.4
+        "valor": 71.4,
+        "contribucion": 4.3
       }
     },
-    "descripcion": "Codicia (69.7/100): momentum positivo, amplitud sana. Constructivo pero vigilar extension."
+    "descripcion": "Euforia extrema (78.2/100): mercado en modo FOMO. Señal contraria de techo potencial."
   },
   "regimen": {
     "regimen": "tendencia_alcista",
-    "confianza": 80,
+    "confianza": 100,
     "señales": {
       "precio_sobre_ema20": true,
       "precio_sobre_ema50": true,
       "ema20_sobre_ema50": true,
-      "rsi": 75.05,
+      "rsi": 74.73,
       "rsi_zona": "alcista",
-      "atr_relativo_pct": 1.53,
-      "breadth_pct_ema20": 57.1
+      "atr_relativo_pct": 1.54,
+      "breadth_pct_ema20": 71.4
     },
-    "descripcion": "Tendencia alcista (80% confianza): precio sobre ambas EMAs, RSI 75.05 y breadth 57.1% en zona constructiva."
+    "descripcion": "Tendencia alcista (100% confianza): precio sobre ambas EMAs, RSI 74.73 y breadth 71.4% en zona constructiva."
   },
   "historico_30d": [
     {
@@ -544,13 +543,13 @@
     },
     {
       "fecha": "2026-05-27",
-      "risk_score": 5.2,
-      "fear_greed_score": 69.7,
+      "risk_score": 6.0,
+      "fear_greed_score": 78.2,
       "regimen_mercado": "tendencia_alcista",
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
-      "precio_qqq": 729.91,
-      "vix": 17.02
+      "precio_qqq": 729.65,
+      "vix": 16.57
     }
   ]
-} 
+}
