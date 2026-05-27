@@ -1,0 +1,343 @@
+{
+  "version": "2.0",
+  "generado": "2026-05-26T03:59:38.136212+00:00",
+  "fuente": "manengis-python-local",
+  "variables_crudas": {
+    "precio_qqq": 717.54,
+    "vix": 16.59,
+    "rsi": 71.47,
+    "ema20": 693.63,
+    "ema50": 654.17,
+    "atr14": 11.44,
+    "roc5d": 1.21,
+    "max_pain": 700.0,
+    "max_pain_dist_pct": -2.44,
+    "put_call_ratio": 1.938,
+    "gex_neto_m": 0.0,
+    "gex_flip": null,
+    "call_oi_total": 359158,
+    "put_oi_total": 695960,
+    "sentiment_score": 7.7,
+    "gdelt_tono": 0,
+    "gdelt_articulos": 0,
+    "sentiment_model": "FinBERT",
+    "cot_lev_net": -45371,
+    "cot_am_net": 92301,
+    "cot_sesgo": "bajista",
+    "earnings_alerta": false,
+    "earnings_tickers": [],
+    "breadth_pct_ema20": 85.7,
+    "breadth_divergencia": false,
+    "exposicion_sugerida_pct": 80,
+    "exposicion_semaforo": "verde",
+    "dist_desde_max_pct": -0.31,
+    "risk_score": 6.0
+  },
+  "sentimiento": {
+    "score": 7.7,
+    "model": "FinBERT",
+    "titulares": 30,
+    "positivos": 10,
+    "negativos": 8,
+    "neutros": 12,
+    "descripcion": "Neutral",
+    "titulares_muestra": [
+      "S&P 500, Nasdaq, Dow Futures Rise On Hopes Of Hormuz Reopening As Trump Teases ‘Great Deal’ With Iran: BB, INFQ, NVTS, ASTS In Focus",
+      "The One Thing Jim Cramer Demands From Tech-Only Investors Before He’ll Bless the Strategy",
+      "Why This Invesco ETF Might Be the Most Underrated Index Fund Available Today",
+      "TQQQ’s 3x Promise Quietly Cost Holders 81 Percent in 2022 While the Nasdaq Fell Just 33 Percent",
+      "S&P 500 Other Than AI Infrastructure Is Growing at 0%. Lance Roberts Warns What Happens if the AI Boom Stumbles."
+    ],
+    "gdelt_tono": 0,
+    "gdelt_tono_norm": 0,
+    "gdelt_articulos": 0
+  },
+  "earnings": {
+    "alerta_volatilidad": false,
+    "tickers_72h": [],
+    "proximos_earnings": [
+      {
+        "ticker": "NVDA",
+        "fecha": "2026-05-20 00:00 UTC",
+        "horas": -148.0
+      },
+      {
+        "ticker": "TSLA",
+        "fecha": "2026-07-22 00:00 UTC",
+        "horas": 1364.0
+      },
+      {
+        "ticker": "GOOGL",
+        "fecha": "2026-07-23 00:00 UTC",
+        "horas": 1388.0
+      },
+      {
+        "ticker": "MSFT",
+        "fecha": "2026-07-29 00:00 UTC",
+        "horas": 1532.0
+      },
+      {
+        "ticker": "META",
+        "fecha": "2026-07-29 00:00 UTC",
+        "horas": 1532.0
+      },
+      {
+        "ticker": "AAPL",
+        "fecha": "2026-07-30 00:00 UTC",
+        "horas": 1556.0
+      },
+      {
+        "ticker": "AMZN",
+        "fecha": "2026-07-30 00:00 UTC",
+        "horas": 1556.0
+      }
+    ],
+    "ventana_horas": 72
+  },
+  "derivados": {
+    "precio_qqq": 717.54,
+    "vencimientos": [
+      "2026-05-26",
+      "2026-05-27",
+      "2026-05-28",
+      "2026-05-29"
+    ],
+    "max_pain": 700.0,
+    "max_pain_dist_pct": -2.44,
+    "put_call_ratio": 1.938,
+    "call_oi_total": 359158,
+    "put_oi_total": 695960,
+    "gex_neto_m": 0.0,
+    "gex_flip": null,
+    "top_call_strikes": [
+      {
+        "strike": 700.0,
+        "oi": 17824.0
+      },
+      {
+        "strike": 705.0,
+        "oi": 13510.0
+      },
+      {
+        "strike": 695.0,
+        "oi": 11436.0
+      },
+      {
+        "strike": 685.0,
+        "oi": 10590.0
+      },
+      {
+        "strike": 710.0,
+        "oi": 10531.0
+      }
+    ],
+    "top_put_strikes": [
+      {
+        "strike": 680.0,
+        "oi": 32807.0
+      },
+      {
+        "strike": 695.0,
+        "oi": 30962.0
+      },
+      {
+        "strike": 650.0,
+        "oi": 23717.0
+      },
+      {
+        "strike": 700.0,
+        "oi": 20828.0
+      },
+      {
+        "strike": 620.0,
+        "oi": 18916.0
+      }
+    ],
+    "roc5d": 1.21,
+    "precio_hace5d": 708.93
+  },
+  "cot": {
+    "fecha_reporte": "2026-05-19",
+    "leveraged_long": 55696,
+    "leveraged_short": 101067,
+    "leveraged_net": -45371,
+    "asset_manager_long": 120129,
+    "asset_manager_short": 27828,
+    "asset_manager_net": 92301,
+    "sesgo": "bajista",
+    "descripcion": "Fondos apalancados corto neto 45,371 contratos. Asset Managers largo neto 92,301."
+  },
+  "tecnicos": {
+    "rsi14": 71.47,
+    "ema20": 693.63,
+    "ema50": 654.17,
+    "atr14": 11.44,
+    "precio": 717.54
+  },
+  "risk_compuesto": {
+    "valor": 6.0,
+    "estado": "Riesgo Elevado",
+    "factores": [
+      "PCR alto=1.938 -> cobertura/miedo"
+    ]
+  },
+  "velocidad": {
+    "deltas": {
+      "vix": {
+        "1d": {
+          "abs": 0.0,
+          "pct": 0.0
+        },
+        "2d": {
+          "abs": -0.11,
+          "pct": -0.66
+        },
+        "5d": {
+          "abs": -1.47,
+          "pct": -8.14
+        }
+      },
+      "pcr": {
+        "1d": {
+          "abs": null,
+          "pct": null
+        },
+        "2d": {
+          "abs": null,
+          "pct": null
+        },
+        "5d": {
+          "abs": null,
+          "pct": null
+        }
+      },
+      "gex_neto_m": {
+        "1d": {
+          "abs": null,
+          "pct": null
+        },
+        "2d": {
+          "abs": null,
+          "pct": null
+        },
+        "5d": {
+          "abs": null,
+          "pct": null
+        }
+      },
+      "rsi": {
+        "1d": {
+          "abs": null,
+          "pct": null
+        },
+        "2d": {
+          "abs": null,
+          "pct": null
+        },
+        "5d": {
+          "abs": null,
+          "pct": null
+        }
+      }
+    },
+    "eventos": [],
+    "flags": {
+      "vix_acelerando": false,
+      "gex_flip_negativo": false,
+      "pcr_sobre_media": false,
+      "aceleracion_riesgo": false
+    },
+    "descripcion": "Sin aceleracion de riesgo. VIX +0.0 vs ayer."
+  },
+  "breadth": {
+    "tickers_validos": 7,
+    "sobre_ema20": 6,
+    "sobre_ema50": 6,
+    "pct_sobre_ema20": 85.7,
+    "pct_sobre_ema50": 85.7,
+    "detalle": [
+      {
+        "ticker": "AAPL",
+        "precio": 308.82,
+        "ema20": 291.33,
+        "ema50": 276.74,
+        "sobre_ema20": true,
+        "sobre_ema50": true
+      },
+      {
+        "ticker": "MSFT",
+        "precio": 418.57,
+        "ema20": 414.17,
+        "ema50": 404.01,
+        "sobre_ema20": true,
+        "sobre_ema50": true
+      },
+      {
+        "ticker": "NVDA",
+        "precio": 215.33,
+        "ema20": 214.64,
+        "ema50": 201.01,
+        "sobre_ema20": true,
+        "sobre_ema50": true
+      },
+      {
+        "ticker": "GOOGL",
+        "precio": 382.97,
+        "ema20": 380.44,
+        "ema50": 349.42,
+        "sobre_ema20": true,
+        "sobre_ema50": true
+      },
+      {
+        "ticker": "AMZN",
+        "precio": 266.32,
+        "ema20": 263.01,
+        "ema50": 243.85,
+        "sobre_ema20": true,
+        "sobre_ema50": true
+      },
+      {
+        "ticker": "META",
+        "precio": 610.26,
+        "ema20": 617.01,
+        "ema50": 620.71,
+        "sobre_ema20": false,
+        "sobre_ema50": false
+      },
+      {
+        "ticker": "TSLA",
+        "precio": 426.01,
+        "ema20": 411.24,
+        "ema50": 399.61,
+        "sobre_ema20": true,
+        "sobre_ema50": true
+      }
+    ],
+    "divergencia": {
+      "divergencia_detectada": false,
+      "severidad": "ninguna",
+      "dist_desde_max_pct": -0.31,
+      "descripcion": "Sin divergencia: breadth acompana al indice."
+    }
+  },
+  "plan_exposicion": {
+    "exposicion_sugerida_pct": 80,
+    "exposicion_base_pct": 80,
+    "semaforo": "verde",
+    "estado": "Exposicion plena / constructiva",
+    "accion": "Mantener",
+    "tramo_caida": "ruido",
+    "dist_desde_max_pct": -0.31,
+    "max_referencia": 719.79,
+    "fuente_max": "yfinance (60 sesiones)",
+    "motivos": [],
+    "descripcion": "Exposicion sugerida 80% (base 80%). Mantener. Motivos: Sin senales de ajuste: mantener base.",
+    "nota": "Gestion de exposicion por tramos, NO una orden de compraventa. El sistema mide cuanto riesgo asumir, no predice techos ni suelos.",
+    "umbrales": {
+      "ruido_pct": -3.0,
+      "vigilar_pct": -5.0,
+      "recorte_pct": -10.0,
+      "tramo_pct": 20
+    }
+  }
+}
