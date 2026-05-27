@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "_nota": "NUNCA añadir campo runtime en functions — Vercel detecta Node.js automaticamente. Añadirlo causa Build Failed.",
   "functions": {
     "api/datos.js":        { "maxDuration": 30 },
     "api/ia.js":           { "maxDuration": 30 },
