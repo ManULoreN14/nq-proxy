@@ -118,10 +118,12 @@ export default async function handler(req, res) {
 
   try {
     // Fix 2.1: ^VIX y ^NDX sin pre-codificar
-    const [qqqData, vixData, ndxData] = await Promise.allSettled([
-      fetchYahooChart("QQQ",  "5d", "1h"),
-      fetchYahooChart("^VIX", "5d", "1d"),
-      fetchYahooChart("^NDX", "5d", "1d"),
+    const [qqqData, vixData, ndxData, us10Data, dxyData] = await Promise.allSettled([
+      fetchYahooChart("QQQ",      "5d", "1h"),
+      fetchYahooChart("^VIX",     "5d", "1d"),
+      fetchYahooChart("^NDX",     "5d", "1d"),
+      fetchYahooChart("^TNX",     "5d", "1d"),
+      fetchYahooChart("DX-Y.NYB", "5d", "1d"),
     ]);
 
     let precioQQQ = null, rsiQQQ = null, cambioQQQ = null, rocQQQ = null;
@@ -149,6 +151,24 @@ export default async function handler(req, res) {
       rsiNDX    = calcRSI(d.closes);
     }
 
+    // US10Y
+    let us10y = null, us10yCambio = null;
+    if (us10Data.status === "fulfilled") {
+      const d = us10Data.value;
+      us10y = d.precio;
+      if (d.precioAnt > 0)
+        us10yCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
+    }
+
+    // DXY
+    let dxy = null, dxyCambio = null;
+    if (dxyData.status === "fulfilled") {
+      const d = dxyData.value;
+      dxy = d.precio;
+      if (d.precioAnt > 0)
+        dxyCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
+    }
+
     res.status(200).json({
       tipo:        "live_intradiario",
       timestamp:   new Date().toISOString(),
@@ -162,6 +182,10 @@ export default async function handler(req, res) {
         rsi_ndx:    rsiNDX,
         vix:        vix,
         vix_cambio: vixCambio,
+        us10y:      us10y,
+        us10y_cambio: us10yCambio,
+        dxy:        dxy,
+        dxy_cambio: dxyCambio,
         sesgo_live: _sesgoIntradiario({ rsiQQQ, vix, cambioQQQ }),
       },
       nota: "max_pain / sentiment / cot mantenidos del JSON estático nocturno",
