@@ -1,34 +1,34 @@
 {
   "version": "2.0",
-  "generado": "2026-05-28T13:55:38.195571+00:00",
+  "generado": "2026-05-28T14:04:12.343232+00:00",
   "fuente": "manengis-python-local",
   "modo": "full",
   "variables_crudas": {
-    "precio_qqq": 727.56,
-    "vix": 16.43,
-    "rsi": 72.89,
+    "precio_qqq": 727.64,
+    "vix": 16.31,
+    "rsi": 72.88,
     "ema20": 702.85,
     "ema50": 658.63,
     "atr14": 10.91,
-    "roc5d": 2.02,
+    "roc5d": 2.03,
     "max_pain": 712.0,
-    "max_pain_dist_pct": -2.14,
+    "max_pain_dist_pct": -2.15,
     "put_call_ratio": 1.958,
     "gex_neto_m": 0.0,
     "gex_flip": null,
     "call_oi_total": 476050,
     "put_oi_total": 932172,
-    "vix3m": 19.56,
-    "vix_ts_ratio": 0.84,
+    "vix3m": 19.47,
+    "vix_ts_ratio": 0.8377,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
-    "skew_ratio": 1.393,
+    "skew_ratio": 1.482,
     "skew_estado": "miedo_cola_alto",
-    "skew_iv_put_otm": 0.1612,
-    "skew_iv_call_otm": 0.1157,
-    "sentiment_score": 11.3,
+    "skew_iv_put_otm": 0.3009,
+    "skew_iv_call_otm": 0.203,
+    "sentiment_score": 6.6,
     "gdelt_tono": 0,
-    "gdelt_articulos": 2,
+    "gdelt_articulos": 0,
     "sentiment_model": "FinBERT",
     "cot_lev_net": -45371,
     "cot_am_net": 92301,
@@ -39,11 +39,11 @@
     "breadth_divergencia": false,
     "exposicion_sugerida_pct": 80,
     "exposicion_semaforo": "verde",
-    "dist_desde_max_pct": -0.37,
+    "dist_desde_max_pct": -0.36,
     "nivel_barrida": 558.28,
-    "dist_barrida_pct": 30.32,
+    "dist_barrida_pct": 30.34,
     "zona_barrida": false,
-    "fear_greed_score": 79.1,
+    "fear_greed_score": 79.4,
     "fear_greed_estado": "euforia_extrema",
     "regimen_mercado": "tendencia_alcista",
     "regimen_confianza": 100,
@@ -54,29 +54,29 @@
     "us30y": 5.03,
     "spread_2_10": 0.48,
     "spread_3m_10": 0.8,
-    "cpi_yoy": 332.407,
-    "core_pce": 129.63,
+    "cpi_yoy": 3.95,
+    "core_pce": 3.48,
     "balance_fed": 6713643.0,
     "curva_invertida": false
   },
   "sentimiento": {
-    "score": 11.3,
+    "score": 6.6,
     "model": "FinBERT",
-    "titulares": 45,
-    "positivos": 15,
-    "negativos": 8,
-    "neutros": 22,
-    "descripcion": "Sesgo positivo",
+    "titulares": 43,
+    "positivos": 13,
+    "negativos": 9,
+    "neutros": 21,
+    "descripcion": "Neutral",
     "titulares_muestra": [
+      "US Stocks Drift as Traders Weigh Latest Iran Peace Deal Reports",
       "SpaceX set for largest IPO ever, prompting index treatment discussions",
       "S&P 500 sets all-time high, welcomes another company to $1 trillion market cap club",
       "As America Pursues Mineral Independence, A US$2.9 Billion EXIM Loan Signals the Next Phase for Domestic Critical Mineral Projects",
-      "PDD Q1 Earnings Call Highlights",
-      "Supermicro and Verda Deliver Sustainable, Full-Stack AI Cloud Infrastructure for Next-Generation AI Workloads"
+      "PDD Q1 Earnings Call Highlights"
     ],
     "gdelt_tono": 0,
     "gdelt_tono_norm": 0,
-    "gdelt_articulos": 2
+    "gdelt_articulos": 0
   },
   "earnings": {
     "alerta_volatilidad": false,
@@ -85,43 +85,43 @@
       {
         "ticker": "TSLA",
         "fecha": "2026-07-22 00:00 UTC",
-        "horas": 1306.1
+        "horas": 1305.9
       },
       {
         "ticker": "GOOGL",
         "fecha": "2026-07-23 00:00 UTC",
-        "horas": 1330.1
+        "horas": 1329.9
       },
       {
         "ticker": "MSFT",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1474.1
+        "horas": 1473.9
       },
       {
         "ticker": "META",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1474.1
+        "horas": 1473.9
       },
       {
         "ticker": "AAPL",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1498.1
+        "horas": 1497.9
       },
       {
         "ticker": "AMZN",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1498.1
+        "horas": 1497.9
       },
       {
         "ticker": "NVDA",
         "fecha": "2026-08-26 00:00 UTC",
-        "horas": 2146.1
+        "horas": 2145.9
       }
     ],
     "ventana_horas": 72
   },
   "derivados": {
-    "precio_qqq": 727.56,
+    "precio_qqq": 727.64,
     "vencimientos": [
       "2026-05-28",
       "2026-05-29",
@@ -129,7 +129,7 @@
       "2026-06-02"
     ],
     "max_pain": 712.0,
-    "max_pain_dist_pct": -2.14,
+    "max_pain_dist_pct": -2.15,
     "put_call_ratio": 1.958,
     "call_oi_total": 476050,
     "put_oi_total": 932172,
@@ -179,7 +179,7 @@
         "oi": 923.0
       }
     ],
-    "roc5d": 2.02,
+    "roc5d": 2.03,
     "precio_hace5d": 713.15
   },
   "cot": {
@@ -194,11 +194,11 @@
     "descripcion": "Fondos apalancados corto neto 45,371 contratos. Asset Managers largo neto 92,301."
   },
   "tecnicos": {
-    "rsi14": 72.89,
+    "rsi14": 72.88,
     "ema20": 702.85,
     "ema50": 658.63,
     "atr14": 10.91,
-    "precio": 727.65
+    "precio": 727.64
   },
   "risk_compuesto": {
     "valor": 6.0,
@@ -211,16 +211,16 @@
     "deltas": {
       "vix": {
         "1d": {
-          "abs": -0.07,
-          "pct": -0.42
+          "abs": -0.19,
+          "pct": -1.15
         },
         "2d": {
-          "abs": -0.16,
-          "pct": -0.96
+          "abs": -0.28,
+          "pct": -1.69
         },
         "5d": {
-          "abs": -0.33,
-          "pct": -1.97
+          "abs": -0.45,
+          "pct": -2.68
         }
       },
       "pcr": {
@@ -253,12 +253,12 @@
       },
       "rsi": {
         "1d": {
-          "abs": -1.59,
-          "pct": -2.13
+          "abs": -1.6,
+          "pct": -2.15
         },
         "2d": {
-          "abs": 1.42,
-          "pct": 1.99
+          "abs": 1.41,
+          "pct": 1.97
         },
         "5d": {
           "abs": null,
@@ -273,7 +273,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion de riesgo. VIX -0.07 vs ayer."
+    "descripcion": "Sin aceleracion de riesgo. VIX -0.19 vs ayer."
   },
   "breadth": {
     "tickers_validos": 7,
@@ -284,57 +284,57 @@
     "detalle": [
       {
         "ticker": "AAPL",
-        "precio": 310.83,
-        "ema20": 296.17,
+        "precio": 310.68,
+        "ema20": 296.16,
         "ema50": 278.57,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "MSFT",
-        "precio": 422.85,
-        "ema20": 415.1,
-        "ema50": 404.75,
+        "precio": 426.55,
+        "ema20": 415.45,
+        "ema50": 404.9,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "NVDA",
-        "precio": 212.43,
-        "ema20": 214.27,
-        "ema50": 201.14,
+        "precio": 213.1,
+        "ema20": 214.34,
+        "ema50": 201.16,
         "sobre_ema20": false,
         "sobre_ema50": true
       },
       {
         "ticker": "GOOGL",
-        "precio": 387.29,
-        "ema20": 382.5,
-        "ema50": 350.28,
+        "precio": 386.7,
+        "ema20": 382.45,
+        "ema50": 350.26,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "AMZN",
-        "precio": 268.67,
-        "ema20": 264.51,
-        "ema50": 245.43,
+        "precio": 268.07,
+        "ema20": 264.45,
+        "ema50": 245.4,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "META",
-        "precio": 637.03,
-        "ema20": 620.26,
-        "ema50": 621.58,
+        "precio": 639.58,
+        "ema20": 620.51,
+        "ema50": 621.68,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "TSLA",
-        "precio": 437.55,
-        "ema20": 418.02,
-        "ema50": 400.66,
+        "precio": 438.3,
+        "ema20": 418.09,
+        "ema50": 400.69,
         "sobre_ema20": true,
         "sobre_ema50": true
       }
@@ -342,7 +342,7 @@
     "divergencia": {
       "divergencia_detectada": false,
       "severidad": "ninguna",
-      "dist_desde_max_pct": -0.23,
+      "dist_desde_max_pct": -0.22,
       "descripcion": "Sin divergencia: breadth acompana al indice."
     }
   },
@@ -353,7 +353,7 @@
     "estado": "Exposicion plena / constructiva",
     "accion": "Mantener",
     "tramo_caida": "ruido",
-    "dist_desde_max_pct": -0.37,
+    "dist_desde_max_pct": -0.36,
     "max_referencia": 730.28,
     "fuente_max": "yfinance (60 sesiones)",
     "motivos": [],
@@ -367,57 +367,57 @@
     },
     "barrida_estructural": {
       "nivel_barrida": 558.28,
-      "dist_barrida_pct": 30.32,
+      "dist_barrida_pct": 30.34,
       "zona_barrida": false,
       "sesiones_ventana": 90,
-      "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.32% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
+      "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.34% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
     }
   },
   "vix_term_structure": {
-    "vix": 16.43,
-    "vix3m": 19.56,
-    "ratio": 0.84,
+    "vix": 16.31,
+    "vix3m": 19.47,
+    "ratio": 0.8377,
     "backwardation": false,
-    "spread": -3.13,
+    "spread": -3.16,
     "estado": "contango_normal",
-    "descripcion": "VIX (16.43) / VIX3M (19.56) = 0.84: contango normal, mercado tranquilo — vol a corto plazo mas barata que a largo."
+    "descripcion": "VIX (16.31) / VIX3M (19.47) = 0.8377: contango normal, mercado tranquilo — vol a corto plazo mas barata que a largo."
   },
   "skew": {
     "vencimiento": "2026-05-29",
-    "iv_put_otm": 0.1612,
-    "iv_call_otm": 0.1157,
-    "skew": 0.0455,
-    "skew_ratio": 1.393,
+    "iv_put_otm": 0.3009,
+    "iv_call_otm": 0.203,
+    "skew": 0.0979,
+    "skew_ratio": 1.482,
     "estado": "miedo_cola_alto",
     "n_puts": 59,
     "n_calls": 14,
-    "descripcion": "Skew ALTO en 2026-05-29: puts OTM a 16.1% IV vs calls OTM a 11.6% (ratio 1.393). Institucionales pagan prima fuerte por proteccion a la baja: miedo de cola."
+    "descripcion": "Skew ALTO en 2026-05-29: puts OTM a 30.1% IV vs calls OTM a 20.3% (ratio 1.482). Institucionales pagan prima fuerte por proteccion a la baja: miedo de cola."
   },
   "barrida_estructural": {
     "nivel_barrida": 558.28,
-    "dist_barrida_pct": 30.32,
+    "dist_barrida_pct": 30.34,
     "zona_barrida": false,
     "sesiones_ventana": 90,
-    "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.32% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
+    "descripcion": "Nivel de barrida estructural: 558.28 QQQ (min de 90 sesiones). Precio actual a 30.34% por encima. Zona de recompra estructural si precio se acerca a ese nivel."
   },
   "fear_greed": {
-    "score": 79.1,
+    "score": 79.4,
     "estado": "euforia_extrema",
     "componentes": {
       "rsi": {
-        "valor": 72.89,
+        "valor": 72.88,
         "contribucion": 11.4
       },
       "dist_ema50_pct": {
-        "valor": 10.47,
+        "valor": 10.48,
         "contribucion": 15.7
       },
       "vix": {
-        "valor": 16.43,
-        "contribucion": 6.3
+        "valor": 16.31,
+        "contribucion": 6.8
       },
       "vix_ts_ratio": {
-        "valor": 0.84,
+        "valor": 0.8377,
         "contribucion": 10
       },
       "breadth_pct_ema20": {
@@ -425,7 +425,7 @@
         "contribucion": 7.1
       }
     },
-    "descripcion": "Euforia extrema (79.1/100): mercado en modo FOMO. Señal contraria de techo potencial."
+    "descripcion": "Euforia extrema (79.4/100): mercado en modo FOMO. Señal contraria de techo potencial."
   },
   "regimen": {
     "regimen": "tendencia_alcista",
@@ -434,12 +434,12 @@
       "precio_sobre_ema20": true,
       "precio_sobre_ema50": true,
       "ema20_sobre_ema50": true,
-      "rsi": 72.89,
+      "rsi": 72.88,
       "rsi_zona": "alcista",
       "atr_relativo_pct": 1.5,
       "breadth_pct_ema20": 85.7
     },
-    "descripcion": "Tendencia alcista (100% confianza): precio sobre ambas EMAs, RSI 72.89 y breadth 85.7% en zona constructiva."
+    "descripcion": "Tendencia alcista (100% confianza): precio sobre ambas EMAs, RSI 72.88 y breadth 85.7% en zona constructiva."
   },
   "historico_30d": [
     {
@@ -565,17 +565,17 @@
     {
       "fecha": "2026-05-28",
       "risk_score": 6.0,
-      "fear_greed_score": 79.1,
+      "fear_greed_score": 79.4,
       "regimen_mercado": "tendencia_alcista",
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
-      "precio_qqq": 727.56,
-      "vix": 16.43
+      "precio_qqq": 727.64,
+      "vix": 16.31
     }
   ],
   "fred": {
-    "score": -2,
-    "estado": "restrictivo",
+    "score": -1,
+    "estado": "neutro",
     "señales": [
       {
         "ind": "Fed Funds Rate",
@@ -607,10 +607,10 @@
       },
       {
         "ind": "CPI Inflación YoY",
-        "val": "332.407%",
-        "tend": "subiendo",
-        "señal": "bajista_fuerte",
-        "desc": "Core PCE: 129.63% (objetivo Fed: 2%)"
+        "val": "3.95%",
+        "tend": "estable",
+        "señal": "bajista",
+        "desc": "Core PCE: 3.48% YoY (objetivo Fed: 2%)"
       },
       {
         "ind": "Balance Fed (QE/QT)",
@@ -663,12 +663,12 @@
       "valor": 0.8
     },
     "cpi_yoy": {
-      "valor": 332.407,
-      "anterior": 330.293
+      "valor": 3.95,
+      "anterior": null
     },
     "core_pce": {
-      "valor": 129.63,
-      "anterior": 129.321
+      "valor": 3.48,
+      "anterior": null
     },
     "balance_fed": {
       "valor": 6713643.0,
