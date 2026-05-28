@@ -170,13 +170,33 @@ export default async function handler(req, res) {
         dxyCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
     }
 
-    // NQ Futuros
+    // NQ Futuros — intentar NQ=F, si falla usar ^NDX como proxy
     let nqf = null, nqfCambio = null;
     if (nqfData.status === "fulfilled") {
       const d = nqfData.value;
       nqf = d.precio;
       if (d.precioAnt > 0)
         nqfCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
+    } else if (ndxData.status === "fulfilled") {
+      // Fallback: usar variación del NDX como proxy del futuro NQ
+      const d = ndxData.value;
+      nqf = d.precio;
+      if (d.precioAnt > 0)
+        nqfCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
+    }
+
+    // DXY — fallback: si falla DX-Y.NYB intentar EURUSD inverso
+    if (dxy === null) {
+      try {
+        const eurusdData = await fetchYahooChart("EURUSD=X", "5d", "1d");
+        if (eurusdData && eurusdData.precio > 0) {
+          // DXY sube cuando EURUSD baja (correlación inversa aproximada)
+          dxy = parseFloat((1 / eurusdData.precio * 100).toFixed(2));
+          dxyCambio = eurusdData.precioAnt > 0
+            ? parseFloat(((eurusdData.precioAnt - eurusdData.precio) / eurusdData.precioAnt * 100).toFixed(2))
+            : null;
+        }
+      } catch(e) { /* sin datos DXY */ }
     }
 
     res.status(200).json({
