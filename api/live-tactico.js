@@ -124,7 +124,7 @@ export default async function handler(req, res) {
       fetchYahooChart("^NDX",     "5d", "1d"),
       fetchYahooChart("^TNX",     "5d", "1d"),
       fetchYahooChart("DX-Y.NYB", "5d", "1d"),
-      fetchYahooChart("NQ=F",     "5d", "1d"),
+      fetchYahooChart("^NDX",     "5d", "1d"),   // NDX = proxy fiel de NQ futuros
     ]);
 
     let precioQQQ = null, rsiQQQ = null, cambioQQQ = null, rocQQQ = null;
@@ -174,12 +174,6 @@ export default async function handler(req, res) {
     let nqf = null, nqfCambio = null;
     if (nqfData.status === "fulfilled") {
       const d = nqfData.value;
-      nqf = d.precio;
-      if (d.precioAnt > 0)
-        nqfCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
-    } else if (ndxData.status === "fulfilled") {
-      // Fallback: usar variación del NDX como proxy del futuro NQ
-      const d = ndxData.value;
       nqf = d.precio;
       if (d.precioAnt > 0)
         nqfCambio = parseFloat(((d.precio - d.precioAnt) / d.precioAnt * 100).toFixed(2));
