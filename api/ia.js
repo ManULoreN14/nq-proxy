@@ -9,7 +9,24 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
-    const { messages, max_tokens } = req.body;
+    const { messages, max_tokens, model: requestedModel } = req.body;
+
+    // Selección dinámica de modelo:
+    // — Si el cliente pide un modelo concreto, respetarlo
+    // — Si el mensaje contiene imágenes → Sonnet (capacidad visual, ~8s)
+    // — Solo texto → Haiku (muy rápido, ~2s, cabe en los 10s de Vercel free)
+    const tieneImagen = Array.isArray(messages) && messages.some(m =>
+      Array.isArray(m.content) && m.content.some(c => c.type === 'image')
+    );
+
+    const model = requestedModel ||
+      (tieneImagen ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001');
+
+    // max_tokens: límite según modelo para no exceder el timeout
+    // Haiku: hasta 2000 tokens de sobra en <3s
+    // Sonnet con imagen: 1500 máx para intentar caber en 10s
+    const maxTok = max_tokens || (tieneImagen ? 1500 : 2000);
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -18,8 +35,8 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: max_tokens || 2000,
+        model,
+        max_tokens: maxTok,
         messages
       })
     });
