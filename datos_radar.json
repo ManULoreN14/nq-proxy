@@ -1,0 +1,51 @@
+{
+  "generado": "2026-05-31T08:00:00",
+  "fuente": "sample_manual",
+  "version": "1.0",
+  "precio": {
+    "qqq": 735.6,
+    "ndx": 19250.0,
+    "cambio_pct": 0.45
+  },
+  "scores": {
+    "horizontes": {
+      "d2": { "score": 0.4,  "estado": "alcista_mod", "conf": 62 },
+      "d5": { "score": 0.3,  "estado": "alcista_mod", "conf": 58 },
+      "w1": { "score": 0.1,  "estado": "neutro",      "conf": 51 },
+      "w2": { "score": -0.1, "estado": "neutro",      "conf": 49 },
+      "w3": { "score": -0.2, "estado": "bajista_mod", "conf": 54 },
+      "w4": { "score": -0.3, "estado": "bajista_mod", "conf": 57 }
+    },
+    "componentes": {
+      "tecnico":      { "score": 0.6,  "peso": 0.30, "label": "Técnico" },
+      "cot":          { "score": -0.4, "peso": 0.20, "label": "COT" },
+      "volatilidad":  { "score": 0.5,  "peso": 0.20, "label": "Volatilidad" },
+      "macro":        { "score": 0.2,  "peso": 0.15, "label": "Macro FRED" },
+      "sentimiento":  { "score": 0.1,  "peso": 0.15, "label": "Sentimiento" }
+    }
+  },
+  "amplitud_mercado": {
+    "factor_exposicion_recomendado": 0.72,
+    "pct_sobre_ema20": 58,
+    "pct_sobre_ema50": 61,
+    "descripcion": "Amplitud moderada. Mayoría de componentes por encima de medias."
+  },
+  "liquidez": {
+    "atr14": 11.3,
+    "rangosPorHorizonte": {
+      "d2": { "sup": 19100, "res": 19420 },
+      "d5": { "sup": 18950, "res": 19550 },
+      "w1": { "sup": 18700, "res": 19700 },
+      "w2": { "sup": 18400, "res": 19900 },
+      "w3": { "sup": 18100, "res": 20100 },
+      "w4": { "sup": 17800, "res": 20400 }
+    }
+  },
+  "meta": {
+    "nota": "Archivo de muestra generado manualmente. Sustituir por salida real de radar_builder.py cuando esté disponible.",
+    "risk_score_manengis": 4.9,
+    "vix": 15.74,
+    "vix_ts": "contango_normal",
+    "cot_sesgo": "bajista"
+  }
+}
