@@ -1,0 +1,366 @@
+{
+  "ts": "2026-06-03T15:04:21.468151Z",
+  "timestamp": "2026-06-03",
+  "fuente": "nasdaq_options_module v2.0",
+  "mercado_abierto": true,
+  "r_free_usado": 0.045,
+  "vxn": {
+    "valor": 23.96,
+    "vix": 16.09,
+    "ratio_vxn_vix": 1.489,
+    "senal": "elevado",
+    "desc": "VXN=23.96 — volatilidad Nasdaq elevada | VXN/VIX=1.489 → Nasdaq teme más que el mercado"
+  },
+  "vvix": {
+    "valor": 89.83,
+    "media_30d": 93.68,
+    "z_score": -1.04,
+    "senal": "normal",
+    "desc": "VVIX=89.83 — vol-of-vol normal"
+  },
+  "skew": {
+    "valor": 143.24,
+    "senal": "elevado",
+    "desc": "SKEW=143.24 — cobertura activa (CBOE)",
+    "fuente": "cboe_skew_index"
+  },
+  "dix": {
+    "valor": 0.4199,
+    "fecha": "20260602",
+    "vol_total": 251672085,
+    "vol_short": 105666078,
+    "senal": "distribucion",
+    "desc": "DIX proxy=0.420 — menor actividad dark pool",
+    "fuente": "finra_shortvol_cnms",
+    "url": "https://www.finra.org/finra-data/browse-catalog/short-sale-volume-data"
+  },
+  "smile_qqq": {
+    "ratio_iv_put25_call25": 1.152,
+    "iv_put25": 0.2257,
+    "iv_call25": 0.1959,
+    "strike_put25": 719.0,
+    "strike_call25": 775.0,
+    "vencimiento": "2026-06-30",
+    "senal": "normal",
+    "desc": "IV put25/call25=1.152 — skew normal",
+    "fuente": "black_scholes_qqq_chain"
+  },
+  "fred": {
+    "net_liquidity": null,
+    "hy_spread": null,
+    "nfci": null
+  },
+  "qqq": {
+    "ticker": "QQQ",
+    "timestamp": "2026-06-03",
+    "greeks": {
+      "ticker": "QQQ",
+      "precio": 745.75,
+      "vencimientos": [
+        "2026-06-03",
+        "2026-06-04"
+      ],
+      "gex": 44604860.0,
+      "gex_b": 0.045,
+      "vex": 8351636539.0,
+      "vex_b": 8.352,
+      "cex_dia": -1873635.0,
+      "cex_m_dia": -1.87,
+      "gamma_flip_level": 557.44,
+      "dist_flip_pct": 33.78,
+      "call_walls": [
+        {
+          "strike": 745.0,
+          "gamma_oi": 843.0
+        },
+        {
+          "strike": 747.0,
+          "gamma_oi": 588.0
+        },
+        {
+          "strike": 746.0,
+          "gamma_oi": 551.0
+        }
+      ],
+      "put_walls": [
+        {
+          "strike": 745.0,
+          "gamma_oi": 957.0
+        },
+        {
+          "strike": 742.0,
+          "gamma_oi": 457.0
+        },
+        {
+          "strike": 744.0,
+          "gamma_oi": 448.0
+        }
+      ],
+      "strikes_validos": 439,
+      "div_yield": 0.0055,
+      "r_free": 0.045,
+      "fuente": "black_scholes_v2",
+      "gex_estado": "positivo",
+      "vex_estado": "soporte_vol_alta",
+      "cex_estado": "presion_temporal"
+    },
+    "dte0": {
+      "ticker": "QQQ",
+      "valor": 0.786,
+      "pct": 78.6,
+      "vol_0dte_calls": 603903,
+      "vol_0dte_puts": 746132,
+      "vol_total": 1717375,
+      "balance_pc": 1.236,
+      "balance_senal": "miedo_intradia",
+      "senal": "extremo",
+      "desc": "0DTE=78.6% — delta hedging forzado",
+      "fecha": "2026-06-03"
+    },
+    "pcr": {
+      "ticker": "QQQ",
+      "pcr_vol": 1.264,
+      "pcr_oi": 2.33,
+      "spy_pcr_vol": 0.998,
+      "spy_pcr_oi": 1.323,
+      "ratio_qqq_vs_spy": 1.27,
+      "sesgo": "QQQ/SPY ratio=1.27x — sin sesgo significativo",
+      "senal": "miedo_extremo_contrario_alcista"
+    }
+  },
+  "big_tech": {
+    "NVDA": {
+      "ticker": "NVDA",
+      "timestamp": "2026-06-03",
+      "greeks": {
+        "ticker": "NVDA",
+        "precio": 216.4,
+        "vencimientos": [
+          "2026-06-03",
+          "2026-06-05"
+        ],
+        "gex": 137462158.0,
+        "gex_b": 0.137,
+        "vex": 3294850285.0,
+        "vex_b": 3.295,
+        "cex_dia": -2236683.0,
+        "cex_m_dia": -2.24,
+        "gamma_flip_level": 124.29,
+        "dist_flip_pct": 74.11,
+        "call_walls": [
+          {
+            "strike": 217.5,
+            "gamma_oi": 4859.0
+          },
+          {
+            "strike": 215.0,
+            "gamma_oi": 2667.0
+          },
+          {
+            "strike": 220.0,
+            "gamma_oi": 2200.0
+          }
+        ],
+        "put_walls": [
+          {
+            "strike": 215.0,
+            "gamma_oi": 1913.0
+          },
+          {
+            "strike": 220.0,
+            "gamma_oi": 1449.0
+          },
+          {
+            "strike": 217.5,
+            "gamma_oi": 1415.0
+          }
+        ],
+        "strikes_validos": 230,
+        "div_yield": 0.0003,
+        "r_free": 0.045,
+        "fuente": "black_scholes_v2",
+        "gex_estado": "positivo",
+        "vex_estado": "soporte_vol_alta",
+        "cex_estado": "presion_temporal"
+      },
+      "dte0": {
+        "ticker": "NVDA",
+        "valor": 0.668,
+        "pct": 66.8,
+        "vol_0dte_calls": 441301,
+        "vol_0dte_puts": 221098,
+        "vol_total": 991989,
+        "balance_pc": 0.501,
+        "balance_senal": "momentum_alcista",
+        "senal": "extremo",
+        "desc": "0DTE=66.8% — delta hedging forzado",
+        "fecha": "2026-06-03"
+      },
+      "pcr": {
+        "ticker": "NVDA",
+        "pcr_vol": 0.468,
+        "pcr_oi": 0.689,
+        "senal": "euforia_contrario_bajista"
+      }
+    },
+    "MSFT": {
+      "ticker": "MSFT",
+      "timestamp": "2026-06-03",
+      "greeks": {
+        "ticker": "MSFT",
+        "precio": 426.73,
+        "vencimientos": [
+          "2026-06-03",
+          "2026-06-05"
+        ],
+        "gex": -1554281.0,
+        "gex_b": -0.002,
+        "vex": 1401240060.0,
+        "vex_b": 1.401,
+        "cex_dia": -605731.0,
+        "cex_m_dia": -0.61,
+        "gamma_flip_level": 300.08,
+        "dist_flip_pct": 42.2,
+        "call_walls": [
+          {
+            "strike": 435.0,
+            "gamma_oi": 316.0
+          },
+          {
+            "strike": 430.0,
+            "gamma_oi": 222.0
+          },
+          {
+            "strike": 440.0,
+            "gamma_oi": 115.0
+          }
+        ],
+        "put_walls": [
+          {
+            "strike": 425.0,
+            "gamma_oi": 379.0
+          },
+          {
+            "strike": 427.5,
+            "gamma_oi": 351.0
+          },
+          {
+            "strike": 430.0,
+            "gamma_oi": 123.0
+          }
+        ],
+        "strikes_validos": 184,
+        "div_yield": 0.0075,
+        "r_free": 0.045,
+        "fuente": "black_scholes_v2",
+        "gex_estado": "negativo",
+        "vex_estado": "soporte_vol_alta",
+        "cex_estado": "presion_temporal"
+      },
+      "dte0": {
+        "ticker": "MSFT",
+        "valor": 0.641,
+        "pct": 64.1,
+        "vol_0dte_calls": 74966,
+        "vol_0dte_puts": 38065,
+        "vol_total": 176279,
+        "balance_pc": 0.508,
+        "balance_senal": "momentum_alcista",
+        "senal": "extremo",
+        "desc": "0DTE=64.1% — delta hedging forzado",
+        "fecha": "2026-06-03"
+      },
+      "pcr": {
+        "ticker": "MSFT",
+        "pcr_vol": 0.464,
+        "pcr_oi": 0.419,
+        "senal": "euforia_contrario_bajista"
+      }
+    },
+    "AAPL": {
+      "ticker": "AAPL",
+      "timestamp": "2026-06-03",
+      "greeks": {
+        "ticker": "AAPL",
+        "precio": 311.3,
+        "vencimientos": [
+          "2026-06-03",
+          "2026-06-05"
+        ],
+        "gex": 123340649.0,
+        "gex_b": 0.123,
+        "vex": 3611824148.0,
+        "vex_b": 3.612,
+        "cex_dia": -1294841.0,
+        "cex_m_dia": -1.29,
+        "gamma_flip_level": 212.86,
+        "dist_flip_pct": 46.25,
+        "call_walls": [
+          {
+            "strike": 315.0,
+            "gamma_oi": 2196.0
+          },
+          {
+            "strike": 310.0,
+            "gamma_oi": 1159.0
+          },
+          {
+            "strike": 320.0,
+            "gamma_oi": 973.0
+          }
+        ],
+        "put_walls": [
+          {
+            "strike": 310.0,
+            "gamma_oi": 1951.0
+          },
+          {
+            "strike": 312.5,
+            "gamma_oi": 360.0
+          },
+          {
+            "strike": 307.5,
+            "gamma_oi": 213.0
+          }
+        ],
+        "strikes_validos": 169,
+        "div_yield": 0.005,
+        "r_free": 0.045,
+        "fuente": "black_scholes_v2",
+        "gex_estado": "positivo",
+        "vex_estado": "soporte_vol_alta",
+        "cex_estado": "presion_temporal"
+      },
+      "dte0": {
+        "ticker": "AAPL",
+        "valor": 0.635,
+        "pct": 63.5,
+        "vol_0dte_calls": 219373,
+        "vol_0dte_puts": 71167,
+        "vol_total": 457586,
+        "balance_pc": 0.324,
+        "balance_senal": "momentum_alcista",
+        "senal": "extremo",
+        "desc": "0DTE=63.5% — delta hedging forzado",
+        "fecha": "2026-06-03"
+      },
+      "pcr": {
+        "ticker": "AAPL",
+        "pcr_vol": 0.335,
+        "pcr_oi": 0.512,
+        "senal": "euforia_contrario_bajista"
+      }
+    }
+  },
+  "score_compuesto": {
+    "score": -0.148,
+    "regimen": "neutro",
+    "peso_total": 0.65,
+    "detalles": [
+      "GEX=0.045B → +0.01",
+      "dist_flip=33.78% → +1.00",
+      "VXN/VIX=1.489 → -1.00",
+      "DIX=0.4199 → -1.00"
+    ]
+  }
+}
