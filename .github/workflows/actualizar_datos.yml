@@ -9,12 +9,12 @@ jobs:
   actualizar:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout del repo
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configurar Python 3.11
         uses: actions/setup-python@v5
@@ -26,6 +26,8 @@ jobs:
         run: pip install yfinance requests pandas numpy -q
 
       - name: Ejecutar motor MANENGIS
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python motor_manengis.py
 
       - name: Verificar JSON generado
@@ -37,8 +39,10 @@ jobs:
           gen  = d.get('generado','?')
           qqq  = d.get('variables_crudas',{}).get('precio_qqq','?')
           vix  = d.get('variables_crudas',{}).get('vix','?')
+          ff   = d.get('fred',{}).get('fedfunds',{}).get('valor','?')
+          cot  = d.get('cot',{}).get('fecha_reporte','?')
           risk = d.get('risk_compuesto',{}).get('valor','?')
-          print(f'OK | generado={gen} | QQQ={qqq} | VIX={vix} | Risk={risk}')
+          print(f'OK | QQQ={qqq} VIX={vix} FF={ff}% COT={cot} Risk={risk}')
           "
 
       - name: Commit y push del JSON actualizado
@@ -48,4 +52,3 @@ jobs:
           git add manengis_tactico.json
           git diff --staged --quiet || git commit -m "auto: datos $(date -u +%Y-%m-%d\ %H:%M\ UTC)"
           git push
- 
