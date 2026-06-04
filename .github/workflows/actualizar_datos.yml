@@ -1,0 +1,57 @@
+name: Actualizar datos de mercado
+
+on:
+  # Lunes a Viernes a las 7:30 UTC = 9:30 Madrid (hora de apertura NY = 15:30)
+  schedule:
+    - cron: '30 7 * * 1-5'
+  # Permite lanzarlo manualmente desde GitHub → Actions → Run workflow
+  workflow_dispatch:
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout del repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependencias
+        run: |
+          pip install --upgrade pip
+          pip install yfinance requests pandas numpy
+
+      - name: Ejecutar motor MANENGIS
+        run: python motor_manengis.py
+        # Si falla, el paso se marca como error pero el workflow continúa
+        # para que puedas ver el log
+
+      - name: Verificar que el JSON se generó correctamente
+        run: |
+          python -c "
+          import json, sys
+          with open('manengis_tactico.json') as f:
+              d = json.load(f)
+          gen = d.get('generado','?')
+          qqq = d.get('variables_crudas',{}).get('precio_qqq','?')
+          vix = d.get('variables_crudas',{}).get('vix','?')
+          risk = d.get('risk_compuesto',{}).get('valor','?')
+          print(f'✅ JSON OK | generado={gen} | QQQ={qqq} | VIX={vix} | Risk={risk}')
+          "
+
+      - name: Commit y push del JSON actualizado
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manengis_tactico.json
+          # Solo hace commit si el archivo cambió
+          git diff --staged --quiet || git commit -m "auto: datos $(date -u +%Y-%m-%d\ %H:%M\ UTC)"
+          git push

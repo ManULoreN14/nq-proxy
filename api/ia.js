@@ -1,53 +1,83 @@
+/**
+ * api/ia.js  —  Proxy Vercel SOLO para la IA
+ * ============================================
+ * Único endpoint que necesita Vercel.
+ * Recibe el prompt del frontend y lo reenvía a Anthropic.
+ * Nunca hace peticiones externas de datos → nunca da timeout.
+ *
+ * Variables de entorno requeridas en Vercel:
+ *   ANTHROPIC_API_KEY = sk-ant-...
+ */
+
+export const config = { maxDuration: 30 };  // 30s suficiente para Claude
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
+  // CORS — permite peticiones desde cualquier origen (la app en Vercel/GitHub Pages)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido. Usa POST." });
   }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({
+      error: "ANTHROPIC_API_KEY no configurada en las variables de entorno de Vercel."
+    });
+  }
+
+  let body;
   try {
-    const { messages, max_tokens, model: requestedModel } = req.body;
+    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  } catch {
+    return res.status(400).json({ error: "Body no es JSON válido." });
+  }
 
-    // Selección dinámica de modelo:
-    // — Con imagen → Sonnet (visión), max 1500 tokens para caber en 10s Vercel free
-    // — Solo texto → Haiku (2-3s), max 3000 tokens — informe completo sin cortes
-    const tieneImagen = Array.isArray(messages) && messages.some(m =>
-      Array.isArray(m.content) && m.content.some(c => c.type === 'image')
-    );
+  const { messages, max_tokens = 1800, system } = body;
 
-    const model = requestedModel ||
-      (tieneImagen ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001');
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: "Falta el campo 'messages'." });
+  }
 
-    const maxTok = max_tokens || (tieneImagen ? 1500 : 3000);
+  // Construir payload para Anthropic
+  const payload = {
+    model:      "claude-sonnet-4-20250514",
+    max_tokens: Math.min(max_tokens, 4096),
+    messages,
+  };
+  if (system) payload.system = system;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
+  try {
+    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+      method:  "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        "Content-Type":      "application/json",
+        "x-api-key":         apiKey,
+        "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTok,
-        messages
-      })
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return res.status(response.status).json({
-        error: `Anthropic API error ${response.status}`,
-        detail: errText.slice(0, 500)
+    const data = await upstream.json();
+
+    if (!upstream.ok) {
+      console.error("Anthropic error:", upstream.status, data);
+      return res.status(upstream.status).json({
+        error:   data?.error?.message || "Error en Anthropic",
+        details: data,
       });
     }
 
-    const data = await response.json();
     return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+
+  } catch (err) {
+    console.error("Error de red:", err);
+    return res.status(500).json({ error: "Error de red al contactar Anthropic: " + err.message });
   }
 }

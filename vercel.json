@@ -1,25 +1,15 @@
 {
-  "version": 2,
   "functions": {
-    "api/datos.js":        { "maxDuration": 30 },
-    "api/ia.js":           { "maxDuration": 30 },
-    "api/live-tactico.js": { "maxDuration": 30 }
+    "api/ia.js": {
+      "maxDuration": 30
+    }
   },
   "headers": [
     {
-      "source": "/manengis_tactico.json",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-        { "key": "Access-Control-Allow-Origin",  "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
-      ]
-    },
-    {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin",  "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
       ]
     }

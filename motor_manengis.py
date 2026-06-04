@@ -1,0 +1,746 @@
+"""
+motor_manengis.py
+=================
+Motor principal del sistema NQ Unified.
+Genera manengis_tactico.json con datos reales del día.
+
+Ejecutado por:
+  - GitHub Actions (cron automático L-V 7:00 UTC)
+  - Localmente en Windows: python motor_manengis.py
+
+Dependencias:
+  pip install yfinance requests pandas numpy
+"""
+
+import json, datetime, os, sys
+import numpy as np
+from pathlib import Path
+
+try:
+    import yfinance as yf
+    import requests
+    import pandas as pd
+except ImportError:
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install",
+                           "yfinance", "requests", "pandas", "numpy", "-q"])
+    import yfinance as yf, requests, pandas as pd
+
+# ─── RUTAS ─────────────────────────────────────────────────────────────────
+SCRIPT_DIR  = Path(__file__).parent
+OUTPUT_FILE = SCRIPT_DIR / "manengis_tactico.json"
+
+# Tickers Mag7 para breadth
+MAG7 = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA"]
+
+# ══════════════════════════════════════════════════════════════════════════
+# HELPERS
+# ══════════════════════════════════════════════════════════════════════════
+
+def get_hist(sym, period="60d"):
+    try:
+        h = yf.Ticker(sym).history(period=period)
+        return h["Close"] if not h.empty else None
+    except Exception as e:
+        print(f"  ⚠ {sym}: {e}")
+        return None
+
+def last_val(s):
+    if s is None or s.empty: return None
+    v = s.iloc[-1]
+    return None if (isinstance(v, float) and np.isnan(v)) else round(float(v), 4)
+
+def calc_ema(s, n):
+    if s is None or len(s) < n: return None
+    v = s.ewm(span=n, adjust=False).mean().iloc[-1]
+    return round(float(v), 2) if not np.isnan(v) else None
+
+def calc_rsi(s, n=14):
+    if s is None or len(s) < n + 2: return None
+    delta = s.diff().dropna()
+    gain  = delta.clip(lower=0).rolling(n).mean()
+    loss  = (-delta.clip(upper=0)).rolling(n).mean()
+    rs    = gain / loss.replace(0, np.nan)
+    r     = 100 - (100 / (1 + rs))
+    v = r.dropna().iloc[-1]
+    return round(float(v), 2) if not np.isnan(v) else None
+
+def calc_atr(sym, n=14, period="60d"):
+    try:
+        h = yf.Ticker(sym).history(period=period)
+        if h.empty or len(h) < n: return None
+        hi = h["High"]; lo = h["Low"]; cl = h["Close"]
+        tr = pd.concat([hi - lo,
+                        (hi - cl.shift()).abs(),
+                        (lo - cl.shift()).abs()], axis=1).max(axis=1)
+        v = tr.rolling(n).mean().iloc[-1]
+        return round(float(v), 2) if not np.isnan(v) else None
+    except: return None
+
+def fred_series(sid):
+    """Descarga la última observación de una serie FRED (sin clave API)."""
+    url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"
+    try:
+        r = requests.get(url, timeout=12,
+                         headers={"User-Agent": "Mozilla/5.0"})
+        lines = [l.split(",") for l in r.text.strip().split("\n")[1:]
+                 if "." in l and len(l.split(",")) == 2]
+        if not lines: return None, None
+        curr = float(lines[-1][1])
+        prev = float(lines[-2][1]) if len(lines) >= 2 else curr
+        return round(curr, 4), round(prev, 4)
+    except Exception as e:
+        print(f"  ⚠ FRED {sid}: {e}")
+        return None, None
+
+def cot_nq():
+    """COT NQ (leveraged funds) desde API pública CFTC."""
+    url = (
+        "https://publicreporting.cftc.gov/api/odata/v1/HistoricalViewOiCSFutonly"
+        "?$filter=Market_and_Exchange_Names%20eq%20%27NASDAQ%20MINI%20-%20CHICAGO%20MERCANTILE%20EXCHANGE%27"
+        "&$orderby=Report_Date_as_YYYY_MM_DD%20desc&$top=2&$format=json"
+    )
+    try:
+        rows = requests.get(url, timeout=15).json().get("value", [])
+        if not rows: return None
+        c, p = rows[0], (rows[1] if len(rows) > 1 else rows[0])
+        ll = c.get("Lev_Money_Positions_Long_All", 0)
+        ls = c.get("Lev_Money_Positions_Short_All", 0)
+        al = c.get("Asset_Mgr_Positions_Long_All", 0)
+        as_ = c.get("Asset_Mgr_Positions_Short_All", 0)
+        pl = c.get("Lev_Money_Positions_Long_All", 0)
+        ps = c.get("Lev_Money_Positions_Short_All", 0)
+        neto = ll - ls
+        neto_prev = p.get("Lev_Money_Positions_Long_All", pl) - p.get("Lev_Money_Positions_Short_All", ps)
+        pct = round(ll / (ll + ls) * 100, 1) if (ll + ls) > 0 else 50
+        sesgo = "bajista" if pct > 65 else "alcista" if pct < 35 else "neutro"
+        return {
+            "fecha_reporte": c.get("Report_Date_as_YYYY_MM_DD", ""),
+            "leveraged_long":  int(ll), "leveraged_short": int(ls),
+            "leveraged_net":   int(neto), "leveraged_net_prev": int(neto_prev),
+            "asset_manager_long": int(al), "asset_manager_short": int(as_),
+            "asset_manager_net": int(al - as_),
+            "pct_largo": pct, "sesgo": sesgo,
+            "descripcion": (
+                f"Fondos apalancados {'corto' if neto < 0 else 'largo'} "
+                f"neto {abs(neto):,} contratos. "
+                f"Asset Managers largo neto {int(al - as_):,}."
+            )
+        }
+    except Exception as e:
+        print(f"  ⚠ COT NQ: {e}")
+        return {"error": str(e)}
+
+def cot_vix():
+    """COT VIX Futures (1170E1) desde API pública CFTC — lógica inversa al NQ."""
+    url = (
+        "https://publicreporting.cftc.gov/api/odata/v1/HistoricalViewOiCSFutonly"
+        "?$filter=CFTC_Contract_Market_Code%20eq%20%271170E1%27"
+        "&$orderby=Report_Date_as_YYYY_MM_DD%20desc&$top=2&$format=json"
+    )
+    try:
+        rows = requests.get(url, timeout=15).json().get("value", [])
+        if not rows: return None
+        c, p = rows[0], (rows[1] if len(rows) > 1 else rows[0])
+        nl = c.get("NonComm_Positions_Long_All", 0)
+        ns = c.get("NonComm_Positions_Short_All", 0)
+        nl_p = p.get("NonComm_Positions_Long_All", 0)
+        ns_p = p.get("NonComm_Positions_Short_All", 0)
+        neto = nl - ns
+        neto_prev = nl_p - ns_p
+        pct = round(nl / (nl + ns) * 100, 1) if (nl + ns) > 0 else 50
+        # Inverso: cortos en VIX = alcista para el mercado
+        señal = "alcista" if (neto < -20000 or pct < 48) else \
+                "bajista" if (neto > 20000 or pct > 52) else "neutro"
+        return {
+            "fecha_reporte": c.get("Report_Date_as_YYYY_MM_DD", ""),
+            "nc_long": int(nl), "nc_short": int(ns),
+            "neto": int(neto), "neto_prev": int(neto_prev),
+            "pct_largo": pct, "señal": señal,
+            "descripcion": (
+                f"Non-Commercial {'cortos' if neto < 0 else 'largos'} "
+                f"netos en VIX: {abs(neto):,} contratos → "
+                f"señal de mercado {señal.upper()}"
+            )
+        }
+    except Exception as e:
+        print(f"  ⚠ COT VIX: {e}")
+        return {"error": str(e)}
+
+def fear_greed():
+    """CNN Fear & Greed Index."""
+    try:
+        r = requests.get(
+            "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+            timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+        d = r.json()
+        score = round(float(d["fear_and_greed"]["score"]), 1)
+        rating = d["fear_and_greed"]["rating"]
+        estado = ("miedo_extremo" if score < 20 else
+                  "miedo"         if score < 40 else
+                  "neutro"        if score < 60 else
+                  "codicia"       if score < 80 else "euforia_extrema")
+        return {"score": score, "estado": estado, "rating": rating}
+    except Exception as e:
+        print(f"  ⚠ Fear&Greed: {e}")
+        return {"score": None, "estado": "sin_datos", "rating": None}
+
+def calcular_breadth(tickers, period="60d"):
+    """Breadth Mag7: % sobre EMA20 y EMA50."""
+    detalle = []
+    for sym in tickers:
+        try:
+            s = get_hist(sym, period)
+            if s is None or len(s) < 50: continue
+            precio = last_val(s)
+            e20 = calc_ema(s, 20)
+            e50 = calc_ema(s, 50)
+            detalle.append({
+                "ticker": sym, "precio": precio,
+                "ema20": e20, "ema50": e50,
+                "sobre_ema20": bool(precio > e20) if e20 else False,
+                "sobre_ema50": bool(precio > e50) if e50 else False,
+            })
+        except: pass
+    n  = len(detalle)
+    s20 = sum(1 for r in detalle if r["sobre_ema20"])
+    s50 = sum(1 for r in detalle if r["sobre_ema50"])
+    pct20 = round(s20 / n * 100, 1) if n else 0
+    pct50 = round(s50 / n * 100, 1) if n else 0
+    return {
+        "tickers_validos": n, "sobre_ema20": s20, "sobre_ema50": s50,
+        "pct_sobre_ema20": pct20, "pct_sobre_ema50": pct50,
+        "detalle": detalle,
+        "divergencia": pct50 < 60,
+    }
+
+def similitud_historica(rsi_v, vix_v, vix_ch3d, roc5d_v, breadth_v, dist_v):
+    """
+    Calcula similitud histórica usando datos del propio QQQ histórico.
+    kNN sobre 6 variables normalizadas.
+    """
+    try:
+        # Descarga histórico largo para los vecinos
+        qqq_l = yf.Ticker("QQQ").history(period="max")["Close"]
+        vix_l = yf.Ticker("^VIX").history(period="max")["Close"]
+
+        if qqq_l.empty or len(qqq_l) < 300:
+            raise ValueError("Histórico insuficiente")
+
+        # Alinear fechas
+        df = pd.DataFrame({"qqq": qqq_l, "vix": vix_l}).dropna()
+        df = df[df.index >= "2014-01-01"]
+
+        # Construir features históricas
+        df["rsi"]          = df["qqq"].transform(lambda s: s.ewm(span=14).mean())  # proxy rsi rápido
+        df["roc5d"]        = df["qqq"].pct_change(5) * 100
+        df["vix_ch3d"]     = df["vix"].pct_change(3) * 100
+        df["max60"]        = df["qqq"].rolling(60).max()
+        df["dist_max"]     = (df["qqq"] - df["max60"]) / df["max60"] * 100
+        df["breadth"]      = 70.0   # proxy (no tenemos histórico breadth Mag7)
+        df = df.dropna()
+
+        # Feature de hoy
+        hoy = np.array([
+            dist_v  or 0,
+            vix_v   or 15,
+            vix_ch3d or 0,
+            rsi_v   or 50,
+            roc5d_v or 0,
+            breadth_v or 70,
+        ], dtype=float)
+
+        # Pesos (igual que el motor original)
+        pesos = np.array([2.0, 1.5, 1.5, 1.0, 1.0, 1.2])
+
+        hist_feats = df[["dist_max","vix","vix_ch3d","rsi","roc5d","breadth"]].values
+
+        # Normalizar
+        std = hist_feats.std(axis=0)
+        std[std == 0] = 1
+        hist_n = hist_feats / std
+        hoy_n  = hoy / std
+
+        # Distancias euclídeas ponderadas
+        diffs = (hist_n - hoy_n) * pesos
+        dists = np.sqrt((diffs**2).sum(axis=1))
+        max_d = dists.max() or 1
+        sims  = 1 - dists / max_d
+
+        # Top 50 vecinos (excluir últimos 20 días para evitar lookahead)
+        idx_sorted = np.argsort(-sims)
+        k = 50
+        vecinos_sel = []
+        horizonte = 20
+
+        for i in idx_sorted:
+            if len(vecinos_sel) >= k: break
+            fecha_idx = df.index[i]
+            # No usar los últimos 'horizonte' días (no tenemos retorno futuro)
+            if (df.index[-1] - fecha_idx).days < horizonte + 5: continue
+            # Retorno futuro real
+            fut_end = min(i + horizonte, len(df) - 1)
+            ret_fut = (df["qqq"].iloc[fut_end] - df["qqq"].iloc[i]) / df["qqq"].iloc[i] * 100
+            caida   = min(0, float(df["qqq"].iloc[i:fut_end+1].min() / df["qqq"].iloc[i] * 100 - 100))
+            cat = ("ruido"    if caida > -3  else
+                   "leve"     if caida > -5  else
+                   "moderada" if caida > -10 else
+                   "fuerte"   if caida > -20 else "crash")
+            vecinos_sel.append({
+                "fecha": fecha_idx.strftime("%Y-%m-%d"),
+                "similitud": round(float(sims[i]), 4),
+                "categoria": cat,
+                "caida_max_20d": round(float(caida), 2),
+            })
+
+        # Distribución
+        total_v = len(vecinos_sel)
+        cats = ["ruido","leve","moderada","fuerte","crash"]
+        descs = {
+            "ruido":    "Sin caída significativa (<3%)",
+            "leve":     "Corrección leve (3-5%)",
+            "moderada": "Corrección moderada (5-10%)",
+            "fuerte":   "Corrección fuerte (10-20%)",
+            "crash":    "Crash o caída severa (>20%)",
+        }
+        dist = {}
+        for cat in cats:
+            n_cat = sum(1 for v in vecinos_sel if v["categoria"] == cat)
+            dist[cat] = {
+                "porcentaje": round(n_cat / total_v * 100, 1) if total_v else 0,
+                "n": n_cat, "descripcion": descs[cat]
+            }
+
+        mejor_sim = vecinos_sel[0]["similitud"] if vecinos_sel else 0
+        fiable = mejor_sim >= 0.3
+
+        # Interpretación
+        pct_ok = dist["ruido"]["porcentaje"] + dist["leve"]["porcentaje"]
+        if pct_ok >= 80:
+            interp = f"La mayoría ({pct_ok}%) de momentos similares se resolvió sin caídas significativas. Contexto históricamente benigno."
+        elif dist["fuerte"]["porcentaje"] + dist["crash"]["porcentaje"] >= 15:
+            pct_mal = dist["fuerte"]["porcentaje"] + dist["crash"]["porcentaje"]
+            interp = f"Riesgo elevado: {pct_mal}% de momentos similares precedió correcciones fuertes (>10%). Cautela."
+        else:
+            interp = "Contexto mixto. Correcciones moderadas posibles pero sin señal de crash."
+
+        return {
+            "version": "1.1",
+            "generado": datetime.datetime.utcnow().isoformat() + "Z",
+            "fecha_referencia": datetime.date.today().strftime("%Y-%m-%d"),
+            "fingerprint_hoy": {
+                "dist_pct": round(float(dist_v or 0), 2),
+                "rsi": rsi_v or 0, "vix": vix_v or 0,
+                "vix_change_3d_pct": round(float(vix_ch3d or 0), 2),
+                "roc5d": roc5d_v or 0, "breadth_pct": breadth_v or 0,
+            },
+            "config": {
+                "k_vecinos": k, "horizonte_dias": horizonte,
+                "n_dias_base": len(df),
+                "pesos": {"dist_pct": 2.0, "vix": 1.5, "vix_change_3d_pct": 1.5,
+                          "rsi": 1.0, "roc5d": 1.0, "breadth_pct": 1.2},
+                "similitud_minima_fiable": 0.3,
+            },
+            "distribucion": dist,
+            "fiable": fiable,
+            "mejor_similitud": mejor_sim,
+            "vecinos_top10": vecinos_sel[:10],
+            "interpretacion": interp,
+        }
+
+    except Exception as e:
+        print(f"  ⚠ Similitud: {e}")
+        # Fallback: conservar vecinos del JSON anterior si existe
+        if OUTPUT_FILE.exists():
+            try:
+                old = json.loads(OUTPUT_FILE.read_text())
+                sim = old.get("similitud_historica", {})
+                sim["generado"] = datetime.datetime.utcnow().isoformat() + "Z"
+                sim["fingerprint_hoy"] = {
+                    "dist_pct": round(float(dist_v or 0), 2),
+                    "rsi": rsi_v or 0, "vix": vix_v or 0,
+                    "vix_change_3d_pct": round(float(vix_ch3d or 0), 2),
+                    "roc5d": roc5d_v or 0, "breadth_pct": breadth_v or 0,
+                }
+                return sim
+            except: pass
+        return {"version": "1.1", "fiable": False,
+                "generado": datetime.datetime.utcnow().isoformat() + "Z",
+                "interpretacion": "Sin datos históricos."}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# MOTOR PRINCIPAL
+# ══════════════════════════════════════════════════════════════════════════
+
+def run():
+    now = datetime.datetime.utcnow()
+    today_str = datetime.date.today().strftime("%Y-%m-%d")
+    print(f"\n{'='*60}")
+    print(f"  MOTOR MANENGIS  —  {now.strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"{'='*60}\n")
+
+    # ── 1. PRECIOS ──────────────────────────────────────────────────────
+    print("📊 Precios...")
+    qqq = get_hist("QQQ",  "90d")
+    ndx = get_hist("^NDX", "30d")
+    vix = get_hist("^VIX", "30d")
+    v3m = get_hist("^VIX3M","10d")
+
+    p_qqq = last_val(qqq)
+    p_ndx = last_val(ndx)
+    p_vix = last_val(vix)
+    p_v3m = last_val(v3m)
+    print(f"  QQQ={p_qqq}  NDX={p_ndx}  VIX={p_vix}  VIX3M={p_v3m}")
+
+    # ── 2. TÉCNICOS ─────────────────────────────────────────────────────
+    print("📐 Técnicos...")
+    rsi_v  = calc_rsi(qqq)
+    ema20_v = calc_ema(qqq, 20)
+    ema50_v = calc_ema(qqq, 50)
+    atr_v   = calc_atr("QQQ")
+
+    roc5d_v = None
+    p_hace5 = None
+    if qqq is not None and len(qqq) >= 6:
+        p_hace5  = round(float(qqq.iloc[-6]), 2)
+        roc5d_v  = round((float(qqq.iloc[-1]) - p_hace5) / p_hace5 * 100, 2)
+
+    max60_v = None
+    dist_max = None
+    if qqq is not None and len(qqq) >= 10:
+        max60_v  = round(float(qqq.rolling(60).max().iloc[-1]), 2)
+        dist_max = round((p_qqq - max60_v) / max60_v * 100, 2) if p_qqq else None
+
+    # Min 90 sesiones para barrida estructural
+    min90_v = None
+    if qqq is not None and len(qqq) >= 10:
+        min90_v = round(float(qqq.min()), 2)
+
+    print(f"  RSI={rsi_v}  EMA20={ema20_v}  EMA50={ema50_v}  ROC5d={roc5d_v}%")
+
+    # ── 3. VIX TERM STRUCTURE ───────────────────────────────────────────
+    print("🌡 VIX Term Structure...")
+    vts_ratio = vts_spread = None
+    vts_back  = False
+    vts_est   = "sin_datos"
+    vts_desc  = "Sin datos"
+    if p_vix and p_v3m:
+        vts_ratio  = round(p_vix / p_v3m, 4)
+        vts_spread = round(p_v3m - p_vix, 2)
+        vts_back   = p_vix > p_v3m
+        if vts_back:
+            vts_est  = "backwardation"
+            vts_desc = (f"VIX ({p_vix}) > VIX3M ({p_v3m}): BACKWARDATION — "
+                        f"estrés agudo, posible rebote 2-5 días.")
+        elif vts_ratio < 0.85:
+            vts_est  = "contango_normal"
+            vts_desc = (f"VIX ({p_vix}) / VIX3M ({p_v3m}) = {vts_ratio}: "
+                        f"contango normal, mercado tranquilo.")
+        else:
+            vts_est  = "contango_tenso"
+            vts_desc = (f"VIX ({p_vix}) / VIX3M ({p_v3m}) = {vts_ratio}: "
+                        f"contango tenso, vigilar.")
+    vix_ch3d = None
+    if vix is not None and len(vix) >= 4:
+        v_now = float(vix.iloc[-1]); v_3d = float(vix.iloc[-4])
+        vix_ch3d = round((v_now - v_3d) / v_3d * 100, 2) if v_3d else None
+    print(f"  {vts_est} | spread={vts_spread} | ch3d={vix_ch3d}%")
+
+    # ── 4. COT ──────────────────────────────────────────────────────────
+    print("📋 COT NQ + VIX...")
+    cot_nq_d  = cot_nq()
+    cot_vix_d = cot_vix()
+    lev_net  = cot_nq_d.get("leveraged_net") if cot_nq_d else None
+    cot_sesgo = cot_nq_d.get("sesgo", "sin_datos") if cot_nq_d else "sin_datos"
+    print(f"  NQ: net={lev_net} sesgo={cot_sesgo} | VIX: {cot_vix_d.get('señal','?') if cot_vix_d else '?'}")
+
+    # ── 5. BREADTH ──────────────────────────────────────────────────────
+    print("🌐 Breadth Mag7...")
+    br = calcular_breadth(MAG7)
+    br_pct20 = br["pct_sobre_ema20"]
+    br_pct50 = br["pct_sobre_ema50"]
+    br_div   = br["divergencia"]
+    print(f"  EMA20={br_pct20}%  EMA50={br_pct50}%  div={br_div}")
+
+    # ── 6. FRED ─────────────────────────────────────────────────────────
+    print("🏦 FRED...")
+    ff_v,  ff_p   = fred_series("DFF")
+    u2_v,  u2_p   = fred_series("DGS2")
+    u10_v, u10_p  = fred_series("DGS10")
+    u30_v, u30_p  = fred_series("DGS30")
+    cpi_v, _      = fred_series("CPIAUCSL")
+    pce_v, _      = fred_series("PCEPILFE")
+    bal_v, bal_p  = fred_series("WALCL")
+    m2_v,  _      = fred_series("M2SL")
+    umc_v, umc_p  = fred_series("UMCSENT")
+    nfci_v, _     = fred_series("NFCI")
+
+    sp_2_10 = round(u10_v - u2_v, 4) if u10_v and u2_v else None
+    sp_3m_10 = None
+    try:
+        u3m_v, _ = fred_series("DGS3MO")
+        sp_3m_10 = round(u10_v - u3m_v, 4) if u10_v and u3m_v else None
+    except: pass
+    inv = sp_2_10 is not None and sp_2_10 < 0
+    print(f"  FF={ff_v}% | 10Y={u10_v}% | spread={sp_2_10} | NFCI={nfci_v}")
+
+    # ── 7. FEAR & GREED ─────────────────────────────────────────────────
+    print("😨 Fear & Greed...")
+    fg = fear_greed()
+    fg_score = fg["score"]
+    fg_est   = fg["estado"]
+    print(f"  F&G={fg_score} ({fg_est})")
+
+    # ── 8. SIMILITUD HISTÓRICA ──────────────────────────────────────────
+    print("🔍 Similitud histórica (kNN)...")
+    sim = similitud_historica(rsi_v, p_vix, vix_ch3d, roc5d_v, br_pct50, dist_max)
+    print(f"  fiable={sim.get('fiable')} | mejor_sim={sim.get('mejor_similitud')}")
+
+    # ── 9. RISK SCORE ───────────────────────────────────────────────────
+    factores = []
+    risk = 0.0
+    if rsi_v:
+        if rsi_v > 75: risk += 1.5; factores.append(f"RSI={rsi_v} sobrecompra extrema")
+        elif rsi_v > 70: risk += 1.0; factores.append(f"RSI={rsi_v} sobrecompra")
+    if p_vix:
+        if p_vix > 28: risk += 2.0; factores.append(f"VIX={p_vix} zona de pánico")
+        elif p_vix > 22: risk += 1.5; factores.append(f"VIX={p_vix} zona de alerta")
+        elif p_vix < 13: risk += 0.5; factores.append(f"VIX={p_vix} complacencia extrema")
+    if vts_back: risk += 2.0; factores.append("VIX Term Structure en backwardation")
+    if inv: risk += 1.0; factores.append("Curva de tipos invertida 10Y-2Y")
+    if fg_score and fg_score > 80: risk += 1.0; factores.append(f"Fear&Greed={fg_score} euforia extrema")
+    if cot_sesgo == "bajista": risk += 0.5; factores.append("COT: specs muy largos en NQ")
+    if br_div: risk += 0.5; factores.append("Breadth Mag7 débil vs precio")
+    if nfci_v and nfci_v > 0.1: risk += 0.5; factores.append(f"NFCI={nfci_v} condiciones financieras tensas")
+
+    risk_score = round(min(risk, 10.0), 1)
+    semaforo = ("verde"    if risk_score < 3.5 else
+                "amarillo" if risk_score < 5.5 else
+                "naranja"  if risk_score < 7.5 else "rojo")
+    regimen = ("tendencia_alcista" if semaforo in ("verde","amarillo") and (roc5d_v or 0) > 0
+               else "distribucion" if semaforo in ("rojo","naranja")
+               else "lateral")
+    exp_pct = (80 if semaforo == "verde" else
+               65 if semaforo == "amarillo" else
+               45 if semaforo == "naranja" else 20)
+    print(f"  Risk={risk_score} | {semaforo} | Exp={exp_pct}%")
+
+    # ── 10. HISTÓRICO 30D (upsert del día de hoy) ────────────────────────
+    hist30 = []
+    if OUTPUT_FILE.exists():
+        try:
+            old = json.loads(OUTPUT_FILE.read_text())
+            hist30 = old.get("historico_30d", [])
+        except: pass
+    # Purgar >30 días
+    cutoff = (datetime.date.today() - datetime.timedelta(days=35)).isoformat()
+    hist30 = [e for e in hist30 if e.get("fecha","") >= cutoff]
+    # Upsert hoy
+    entry = {
+        "fecha": today_str, "risk_score": risk_score,
+        "fear_greed_score": fg_score, "regimen_mercado": regimen,
+        "exposicion_semaforo": semaforo, "exposicion_pct": exp_pct,
+        "precio_qqq": p_qqq, "vix": p_vix,
+    }
+    hist30 = [e for e in hist30 if e.get("fecha") != today_str] + [entry]
+    hist30.sort(key=lambda e: e.get("fecha",""))
+
+    # ── 11. ENSAMBLAR JSON ───────────────────────────────────────────────
+    doc = {
+        "version":  "2.1",
+        "generado": now.isoformat() + "+00:00",
+        "fuente":   "motor_manengis.py / GitHub Actions",
+        "modo":     "full",
+
+        "variables_crudas": {
+            "precio_qqq": p_qqq, "precio_ndx": p_ndx,
+            "vix": p_vix, "rsi": rsi_v,
+            "ema20": ema20_v, "ema50": ema50_v, "atr14": atr_v,
+            "roc5d": roc5d_v,
+            "vix3m": p_v3m, "vix_ts_ratio": vts_ratio,
+            "vix_ts_backwardation": vts_back,
+            "vix_ts_estado": vts_est,
+            "cot_lev_net": lev_net, "cot_sesgo": cot_sesgo,
+            "breadth_pct_ema20": br_pct20,
+            "breadth_pct_ema50": br_pct50,
+            "breadth_divergencia": br_div,
+            "exposicion_sugerida_pct": exp_pct,
+            "exposicion_semaforo": semaforo,
+            "dist_desde_max_pct": dist_max,
+            "fear_greed_score": fg_score,
+            "fear_greed_estado": fg_est,
+            "regimen_mercado": regimen,
+            "regimen_confianza": 100,
+            "risk_score": risk_score,
+            "fedfunds": ff_v, "us2y": u2_v,
+            "us10y": u10_v, "us30y": u30_v,
+            "spread_2_10": sp_2_10,
+            "spread_3m_10": sp_3m_10,
+            "curva_invertida": inv,
+        },
+
+        "tecnicos": {
+            "precio": p_qqq, "rsi14": rsi_v,
+            "ema20": ema20_v, "ema50": ema50_v,
+            "atr14": atr_v, "roc5d": roc5d_v,
+        },
+
+        "vix_term_structure": {
+            "vix": p_vix, "vix3m": p_v3m,
+            "ratio": vts_ratio, "spread": vts_spread,
+            "backwardation": vts_back,
+            "estado": vts_est, "descripcion": vts_desc,
+        },
+
+        "cot": cot_nq_d or {"error": "No disponible"},
+        "cot_vix": cot_vix_d or {"error": "No disponible"},
+
+        "breadth": br,
+
+        "fear_greed": fg,
+
+        "risk_compuesto": {
+            "valor": risk_score,
+            "estado": ("Bajo riesgo"      if risk_score < 3.5 else
+                       "Neutral / Vigilar" if risk_score < 5.5 else
+                       "Riesgo elevado"    if risk_score < 7.5 else
+                       "Riesgo máximo"),
+            "factores": factores,
+        },
+
+        "regimen": {
+            "regimen": regimen, "confianza": 100,
+            "señales": {
+                "precio_sobre_ema20": bool(p_qqq > ema20_v) if ema20_v else None,
+                "precio_sobre_ema50": bool(p_qqq > ema50_v) if ema50_v else None,
+                "ema20_sobre_ema50":  bool(ema20_v > ema50_v) if (ema20_v and ema50_v) else None,
+                "rsi": rsi_v, "breadth_pct_ema20": br_pct20,
+            },
+        },
+
+        "plan_exposicion": {
+            "exposicion_sugerida_pct": exp_pct,
+            "exposicion_base_pct": exp_pct,
+            "semaforo": semaforo,
+            "estado": ("Exposicion plena / constructiva" if semaforo == "verde" else
+                       "Vigilar / reducir leve"           if semaforo == "amarillo" else
+                       "Reducir significativo"            if semaforo == "naranja" else
+                       "Modo defensivo / mínima exposición"),
+            "accion": ("Mantener" if semaforo in ("verde","amarillo") else "Reducir"),
+            "dist_desde_max_pct": dist_max,
+            "max_referencia": max60_v,
+            "fuente_max": "yfinance (60 sesiones)",
+            "motivos": factores,
+            "descripcion": (
+                f"Exposicion sugerida {exp_pct}%. "
+                f"{'Mantener.' if semaforo in ('verde','amarillo') else 'Reducir exposición.'} "
+                f"Factores: {', '.join(factores) if factores else 'Sin señales de ajuste.'}"
+            ),
+            "barrida_estructural": {
+                "nivel_barrida": min90_v,
+                "dist_barrida_pct": round((p_qqq - min90_v) / min90_v * 100, 2) if (p_qqq and min90_v) else None,
+                "zona_barrida": bool(dist_max is not None and dist_max < -15),
+                "sesiones_ventana": 90,
+            },
+        },
+
+        "velocidad": {
+            "flags": {
+                "vix_acelerando":     bool(vix_ch3d is not None and vix_ch3d > 20),
+                "gex_flip_negativo":  False,
+                "pcr_sobre_media":    False,
+                "aceleracion_riesgo": bool(risk_score >= 6),
+            },
+            "descripcion": (
+                f"{'⚠ Aceleración de riesgo detectada.' if risk_score >= 6 else 'Sin aceleracion de riesgo.'} "
+                f"VIX {'+' if (vix_ch3d or 0) >= 0 else ''}{vix_ch3d or 0}% (3 días)."
+            ),
+        },
+
+        "fred": {
+            "score": -1 if sp_2_10 and sp_2_10 > 0 else 1,
+            "estado": "normal" if not inv else "alerta_curva",
+            "curva_invertida": inv,
+            "curva_descripcion": (
+                f"2Y={u2_v}% 10Y={u10_v}% 30Y={u30_v}% | Spread 10Y-2Y={sp_2_10}"
+                if u10_v else "Sin datos FRED"
+            ),
+            "fedfunds":    {"valor": ff_v,  "anterior": ff_p,  "fecha": today_str},
+            "us2y":        {"valor": u2_v,  "anterior": u2_p},
+            "us10y":       {"valor": u10_v, "anterior": u10_p},
+            "us30y":       {"valor": u30_v, "anterior": u30_p},
+            "spread_2_10": {"valor": sp_2_10},
+            "spread_3m_10": {"valor": sp_3m_10},
+            "cpi_yoy":     {"valor": cpi_v},
+            "core_pce":    {"valor": pce_v},
+            "balance_fed": {"valor": bal_v, "anterior": bal_p},
+            "m2":          {"valor": m2_v},
+            "umcsent":     {"valor": umc_v, "anterior": umc_p},
+            "nfci":        {"valor": nfci_v},
+            "señales": [
+                {"ind": "Fed Funds Rate", "val": f"{ff_v}%",
+                 "tend": "estable", "señal": "neutro",
+                 "desc": f"Tipo de intervención Fed."},
+                {"ind": "Curva 10Y-2Y",
+                 "val": f"{'+' if (sp_2_10 or 0)>=0 else ''}{sp_2_10}%",
+                 "tend": "estable",
+                 "señal": "alcista" if not inv else "bajista",
+                 "desc": "Normal — sin señal recesión" if not inv else "⚠ INVERTIDA — señal recesión"},
+                {"ind": "US 10Y Treasury", "val": f"{u10_v}%",
+                 "tend": "bajando", "señal": "neutro",
+                 "desc": f"2Y: {u2_v}%  30Y: {u30_v}%"},
+                {"ind": "NFCI (condic. financieras)",
+                 "val": str(nfci_v),
+                 "tend": "estable",
+                 "señal": "bajista" if (nfci_v or 0) > 0.1 else "alcista",
+                 "desc": "NFCI > 0 = condiciones más tensas que la media"},
+            ],
+            "estadoCurva": {
+                "t10y2y": sp_2_10, "t10y3m": sp_3m_10,
+                "señalRecesion": "alta" if inv else "baja",
+                "descripcion": ("⚠ Curva invertida — posible señal de recesión" if inv
+                                else "✅ Curva normal — sin señal de recesión inmediata"),
+            },
+        },
+
+        "similitud_historica": sim,
+        "historico_30d": hist30,
+
+        # Secciones vacías que el frontend puede consumir
+        "sentimiento": {"score": 0, "descripcion": "No calculado en esta versión"},
+        "earnings":    {"alerta_volatilidad": False, "tickers_72h": []},
+        "derivados":   {"precio_qqq": p_qqq},
+        "skew":        {},
+        "barrida_estructural": {
+            "nivel_barrida": min90_v,
+            "zona_barrida": False,
+        },
+    }
+
+    return doc
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# ENTRY POINT
+# ══════════════════════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    doc = run()
+
+    OUTPUT_FILE.write_text(
+        json.dumps(doc, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
+
+    qqq  = doc["variables_crudas"]["precio_qqq"]
+    vix  = doc["variables_crudas"]["vix"]
+    risk = doc["risk_compuesto"]["valor"]
+    sem  = doc["plan_exposicion"]["semaforo"]
+    cot_f = doc["cot"].get("fecha_reporte","?")
+
+    print(f"\n{'='*60}")
+    print(f"  ✅  JSON guardado  →  {OUTPUT_FILE.name}")
+    print(f"  QQQ={qqq}  VIX={vix}  Risk={risk}/10  Semáforo={sem}")
+    print(f"  COT NQ fecha: {cot_f}")
+    print(f"{'='*60}\n")
