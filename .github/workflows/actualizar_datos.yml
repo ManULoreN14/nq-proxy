@@ -23,7 +23,7 @@ jobs:
           cache: 'pip'
 
       - name: Instalar dependencias
-        run: pip install yfinance requests pandas numpy -q
+        run: pip install yfinance requests pandas numpy xlrd openpyxl -q
 
       - name: Ejecutar motor MANENGIS
         env:

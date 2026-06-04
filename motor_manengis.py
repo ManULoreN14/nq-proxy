@@ -117,10 +117,18 @@ def _cot_from_zip():
         if r.status_code != 200:
             raise ValueError(f"HTTP {r.status_code}")
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        # El archivo dentro del ZIP se llama FinFutNet.txt
-        nombre = [n for n in z.namelist() if "FinFut" in n or ".txt" in n.lower()][0]
+        print(f"  ZIP contenido: {z.namelist()}")
+        nombre = z.namelist()[0]
         with z.open(nombre) as f:
-            df = pd.read_csv(f, low_memory=False)
+            raw = f.read()
+        # El ZIP puede contener XLS binario o CSV con encoding latin-1
+        try:
+            df = pd.read_excel(io.BytesIO(raw), engine="xlrd")
+        except Exception:
+            try:
+                df = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
+            except Exception:
+                df = pd.read_csv(io.BytesIO(raw), encoding="latin-1", low_memory=False)
         return df
     except Exception as e:
         print(f"  ! CFTC ZIP: {e}")
