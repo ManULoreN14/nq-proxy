@@ -1,6 +1,6 @@
 {
-  "version": "2.3",
-  "generado": "2026-06-04T21:23:02+00:00",
+  "version": "2.4",
+  "generado": "2026-06-04T21:26:09+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
@@ -29,12 +29,12 @@
     "regimen_mercado": "tendencia_alcista",
     "regimen_confianza": 100,
     "risk_score": 0.0,
-    "fedfunds": null,
-    "us2y": null,
-    "us10y": null,
-    "us30y": null,
-    "spread_2_10": null,
-    "spread_3m_10": null,
+    "fedfunds": 3.62,
+    "us2y": 4.05,
+    "us10y": 4.46,
+    "us30y": 4.97,
+    "spread_2_10": 0.41,
+    "spread_3m_10": 0.69,
     "curva_invertida": false
   },
   "tecnicos": {
@@ -55,10 +55,10 @@
     "descripcion": "VIX (15.4) < VIX3M (19.23): contango_normal"
   },
   "cot": {
-    "error": "Sin datos CFTC"
+    "error": "No disponible"
   },
   "cot_vix": {
-    "error": "Sin datos CFTC VIX"
+    "error": "No disponible"
   },
   "breadth": {
     "tickers_validos": 7,
@@ -152,13 +152,12 @@
     "exposicion_sugerida_pct": 80,
     "exposicion_base_pct": 80,
     "semaforo": "verde",
-    "estado": "Exposicion plena / constructiva",
+    "estado": "Exposicion plena",
     "accion": "Mantener",
     "dist_desde_max_pct": -0.74,
     "max_referencia": 746.16,
-    "fuente_max": "yfinance (60 sesiones)",
     "motivos": [],
-    "descripcion": "Exposicion sugerida 80%. Mantener. Factores: Sin senales de ajuste.",
+    "descripcion": "Exposicion 80%. Mantener. Sin senales de ajuste.",
     "barrida_estructural": {
       "nivel_barrida": 558.28,
       "dist_barrida_pct": 32.66,
@@ -176,93 +175,93 @@
     "descripcion": "Sin aceleracion. VIX -4.05% (3 dias)."
   },
   "fred": {
-    "score": 1,
+    "score": -1,
     "estado": "normal",
     "curva_invertida": false,
-    "curva_descripcion": "Sin datos FRED",
+    "curva_descripcion": "2Y=4.05% 10Y=4.46% 30Y=4.97% | Spread=0.41",
     "fedfunds": {
-      "valor": null,
-      "anterior": null,
+      "valor": 3.62,
+      "anterior": 3.62,
       "fecha": "2026-06-04"
     },
     "us2y": {
-      "valor": null,
-      "anterior": null
+      "valor": 4.05,
+      "anterior": 4.05
     },
     "us10y": {
-      "valor": null,
-      "anterior": null
+      "valor": 4.46,
+      "anterior": 4.47
     },
     "us30y": {
-      "valor": null,
-      "anterior": null
+      "valor": 4.97,
+      "anterior": 4.99
     },
     "spread_2_10": {
-      "valor": null
+      "valor": 0.41
     },
     "spread_3m_10": {
-      "valor": null
+      "valor": 0.69
     },
     "cpi_yoy": {
-      "valor": null
+      "valor": 332.407
     },
     "core_pce": {
-      "valor": null
+      "valor": 129.63
     },
     "balance_fed": {
-      "valor": null,
-      "anterior": null
+      "valor": 6704383.0,
+      "anterior": 6713643.0
     },
     "m2": {
-      "valor": null
+      "valor": 22804.5
     },
     "umcsent": {
-      "valor": null,
-      "anterior": null
+      "valor": 49.8,
+      "anterior": 53.3
     },
     "nfci": {
-      "valor": null
+      "valor": -0.494
     },
     "senales": [
       {
         "ind": "Fed Funds Rate",
-        "val": "None%",
+        "val": "3.62%",
         "tend": "estable",
         "senal": "neutro",
         "desc": "Tipo de intervencion Fed."
       },
       {
         "ind": "Curva 10Y-2Y",
-        "val": "+None%",
+        "val": "+0.41%",
         "tend": "estable",
         "senal": "alcista",
         "desc": "Normal"
       },
       {
-        "ind": "US 10Y Treasury",
-        "val": "None%",
+        "ind": "US 10Y",
+        "val": "4.46%",
         "tend": "bajando",
         "senal": "neutro",
-        "desc": "2Y: None%  30Y: None%"
+        "desc": "2Y:4.05% 30Y:4.97%"
       },
       {
         "ind": "NFCI",
-        "val": "None",
+        "val": "-0.494",
         "tend": "estable",
         "senal": "alcista",
-        "desc": "NFCI > 0 = condiciones mas tensas que la media"
+        "desc": "NFCI>0 = condiciones mas tensas"
       }
     ],
     "estadoCurva": {
-      "t10y2y": null,
-      "t10y3m": null,
+      "t10y2y": 0.41,
+      "t10y3m": 0.69,
       "senalRecesion": "baja",
       "descripcion": "Curva normal"
     }
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-04T21:23:02+00:00",
+    "generado": "2026-06-04T21:26:09+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.74,
