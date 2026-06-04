@@ -48,3 +48,4 @@ jobs:
           git add manengis_tactico.json
           git diff --staged --quiet || git commit -m "auto: datos $(date -u +%Y-%m-%d\ %H:%M\ UTC)"
           git push
+ 
