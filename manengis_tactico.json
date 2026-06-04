@@ -1,6 +1,6 @@
 {
   "version": "2.4",
-  "generado": "2026-06-04T21:26:09+00:00",
+  "generado": "2026-06-04T21:38:42+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
@@ -55,10 +55,10 @@
     "descripcion": "VIX (15.4) < VIX3M (19.23): contango_normal"
   },
   "cot": {
-    "error": "No disponible"
+    "error": "Columnas no encontradas. Disponibles: ['Market_and_Exchange_Names', 'As_of_Date_In_Form_YYMMDD', 'Report_Date_as_MM_DD_YYYY', 'CFTC_Contract_Market_Code', 'CFTC_Market_Code', 'CFTC_Region_Code', 'CFTC_Commodity_Code', 'Open_Interest_All', 'Dealer_Positions_Long_All', 'Dealer_Positions_Short_All']"
   },
   "cot_vix": {
-    "error": "No disponible"
+    "error": "Columnas VIX no encontradas"
   },
   "breadth": {
     "tickers_validos": 7,
@@ -261,7 +261,7 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-04T21:26:09+00:00",
+    "generado": "2026-06-04T21:38:42+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.74,
