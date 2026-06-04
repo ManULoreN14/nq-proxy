@@ -3,7 +3,7 @@ name: Actualizar datos de mercado
 on:
   schedule:
     - cron: '15 20 * * 1-5'   # L-V 20:15 UTC = 22:15 Madrid
-  workflow_dispatch:            # Permite lanzarlo manualmente desde GitHub
+  workflow_dispatch:
 
 jobs:
   actualizar:
@@ -23,9 +23,7 @@ jobs:
           cache: 'pip'
 
       - name: Instalar dependencias
-        run: |
-          pip install --upgrade pip
-          pip install yfinance requests pandas numpy
+        run: pip install yfinance requests pandas numpy -q
 
       - name: Ejecutar motor MANENGIS
         run: python motor_manengis.py
@@ -36,9 +34,9 @@ jobs:
           import json
           with open('manengis_tactico.json') as f:
               d = json.load(f)
-          gen = d.get('generado','?')
-          qqq = d.get('variables_crudas',{}).get('precio_qqq','?')
-          vix = d.get('variables_crudas',{}).get('vix','?')
+          gen  = d.get('generado','?')
+          qqq  = d.get('variables_crudas',{}).get('precio_qqq','?')
+          vix  = d.get('variables_crudas',{}).get('vix','?')
           risk = d.get('risk_compuesto',{}).get('valor','?')
           print(f'OK | generado={gen} | QQQ={qqq} | VIX={vix} | Risk={risk}')
           "
