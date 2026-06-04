@@ -1,19 +1,19 @@
 {
   "version": "2.1",
-  "generado": "2026-06-04T16:24:16.496055+00:00",
+  "generado": "2026-06-04T16:39:53.808281+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
-    "precio_qqq": 740.545,
-    "precio_ndx": 30418.6367,
-    "vix": 15.53,
-    "rsi": 64.79,
-    "ema20": 718.89,
+    "precio_qqq": 740.42,
+    "precio_ndx": 30416.9629,
+    "vix": 15.52,
+    "rsi": 64.67,
+    "ema20": 718.87,
     "ema50": 682.46,
     "atr14": 10.18,
-    "roc5d": 0.67,
+    "roc5d": 0.66,
     "vix3m": 19.34,
-    "vix_ts_ratio": 0.803,
+    "vix_ts_ratio": 0.8025,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
     "cot_lev_net": null,
@@ -23,7 +23,7 @@
     "breadth_divergencia": false,
     "exposicion_sugerida_pct": 80,
     "exposicion_semaforo": "verde",
-    "dist_desde_max_pct": -0.75,
+    "dist_desde_max_pct": -0.77,
     "fear_greed_score": null,
     "fear_greed_estado": "sin_datos",
     "regimen_mercado": "tendencia_alcista",
@@ -38,21 +38,21 @@
     "curva_invertida": false
   },
   "tecnicos": {
-    "precio": 740.545,
-    "rsi14": 64.79,
-    "ema20": 718.89,
+    "precio": 740.42,
+    "rsi14": 64.67,
+    "ema20": 718.87,
     "ema50": 682.46,
     "atr14": 10.18,
-    "roc5d": 0.67
+    "roc5d": 0.66
   },
   "vix_term_structure": {
-    "vix": 15.53,
+    "vix": 15.52,
     "vix3m": 19.34,
-    "ratio": 0.803,
-    "spread": 3.81,
+    "ratio": 0.8025,
+    "spread": 3.82,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (15.53) / VIX3M (19.34) = 0.803: contango normal, mercado tranquilo."
+    "descripcion": "VIX (15.52) / VIX3M (19.34) = 0.8025: contango normal, mercado tranquilo."
   },
   "cot": {
     "error": "No disponible"
@@ -69,56 +69,56 @@
     "detalle": [
       {
         "ticker": "AAPL",
-        "precio": 311.075,
-        "ema20": 302.1,
-        "ema50": 286.83,
+        "precio": 311.44,
+        "ema20": 302.14,
+        "ema50": 286.84,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "MSFT",
-        "precio": 428.455,
+        "precio": 428.38,
         "ema20": 425.1,
-        "ema50": 414.41,
+        "ema50": 414.4,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "NVDA",
-        "precio": 217.9277,
-        "ema20": 215.94,
-        "ema50": 207.0,
+        "precio": 218.14,
+        "ema20": 215.96,
+        "ema50": 207.01,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "GOOGL",
-        "precio": 372.075,
+        "precio": 372.01,
         "ema20": 377.45,
-        "ema50": 360.61,
+        "ema50": 360.6,
         "sobre_ema20": false,
         "sobre_ema50": true
       },
       {
         "ticker": "AMZN",
-        "precio": 254.1925,
-        "ema20": 262.12,
-        "ema50": 252.29,
+        "precio": 253.89,
+        "ema20": 262.09,
+        "ema50": 252.28,
         "sobre_ema20": false,
         "sobre_ema50": true
       },
       {
         "ticker": "META",
-        "precio": 635.16,
-        "ema20": 619.33,
-        "ema50": 623.8,
+        "precio": 632.0099,
+        "ema20": 619.03,
+        "ema50": 623.68,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "TSLA",
-        "precio": 420.0,
-        "ema20": 420.37,
+        "precio": 420.08,
+        "ema20": 420.38,
         "ema50": 407.79,
         "sobre_ema20": false,
         "sobre_ema50": true
@@ -143,7 +143,7 @@
       "precio_sobre_ema20": true,
       "precio_sobre_ema50": true,
       "ema20_sobre_ema50": true,
-      "rsi": 64.79,
+      "rsi": 64.67,
       "breadth_pct_ema20": 57.1
     }
   },
@@ -153,14 +153,14 @@
     "semaforo": "verde",
     "estado": "Exposicion plena / constructiva",
     "accion": "Mantener",
-    "dist_desde_max_pct": -0.75,
+    "dist_desde_max_pct": -0.77,
     "max_referencia": 746.16,
     "fuente_max": "yfinance (60 sesiones)",
     "motivos": [],
     "descripcion": "Exposicion sugerida 80%. Mantener. Factores: Sin señales de ajuste.",
     "barrida_estructural": {
       "nivel_barrida": 558.28,
-      "dist_barrida_pct": 32.65,
+      "dist_barrida_pct": 32.63,
       "zona_barrida": false,
       "sesiones_ventana": 90
     }
@@ -172,7 +172,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion de riesgo. VIX -3.24% (3 días)."
+    "descripcion": "Sin aceleracion de riesgo. VIX -3.3% (3 días)."
   },
   "fred": {
     "score": 1,
@@ -261,14 +261,14 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-04T16:26:41.472682Z",
+    "generado": "2026-06-04T16:42:19.877544Z",
     "fecha_referencia": "2026-05-27",
     "fingerprint_hoy": {
-      "dist_pct": -0.75,
-      "rsi": 64.79,
-      "vix": 15.53,
-      "vix_change_3d_pct": -3.24,
-      "roc5d": 0.67,
+      "dist_pct": -0.77,
+      "rsi": 64.67,
+      "vix": 15.52,
+      "vix_change_3d_pct": -3.3,
+      "roc5d": 0.66,
       "breadth_pct": 100.0
     },
     "config": {
@@ -289,27 +289,27 @@
       "ruido": {
         "porcentaje": 76.0,
         "n": 38,
-        "descripcion": "Sin caÃ­da significativa (<3%)"
+        "descripcion": "Sin caÃƒÂ­da significativa (<3%)"
       },
       "leve": {
         "porcentaje": 16.0,
         "n": 8,
-        "descripcion": "CorrecciÃ³n leve (3-5%)"
+        "descripcion": "CorrecciÃƒÂ³n leve (3-5%)"
       },
       "moderada": {
         "porcentaje": 4.0,
         "n": 2,
-        "descripcion": "CorrecciÃ³n moderada (5-10%)"
+        "descripcion": "CorrecciÃƒÂ³n moderada (5-10%)"
       },
       "fuerte": {
         "porcentaje": 4.0,
         "n": 2,
-        "descripcion": "CorrecciÃ³n fuerte (10-20%)"
+        "descripcion": "CorrecciÃƒÂ³n fuerte (10-20%)"
       },
       "crash": {
         "porcentaje": 0.0,
         "n": 0,
-        "descripcion": "Crash o caÃ­da severa (>20%)"
+        "descripcion": "Crash o caÃƒÂ­da severa (>20%)"
       }
     },
     "fiable": true,
@@ -376,7 +376,7 @@
         "caida_max_20d": 0.3
       }
     ],
-    "interpretacion": "La mayorÃ­a (92%) de momentos similares se resolviÃ³ sin caÃ­das significativas. Contexto histÃ³ricamente benigno."
+    "interpretacion": "La mayorÃƒÂ­a (92%) de momentos similares se resolviÃƒÂ³ sin caÃƒÂ­das significativas. Contexto histÃƒÂ³ricamente benigno."
   },
   "historico_30d": [
     {
@@ -546,8 +546,8 @@
       "regimen_mercado": "tendencia_alcista",
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
-      "precio_qqq": 740.545,
-      "vix": 15.53
+      "precio_qqq": 740.42,
+      "vix": 15.52
     }
   ],
   "sentimiento": {
@@ -559,7 +559,7 @@
     "tickers_72h": []
   },
   "derivados": {
-    "precio_qqq": 740.545
+    "precio_qqq": 740.42
   },
   "skew": {},
   "barrida_estructural": {
