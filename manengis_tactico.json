@@ -1,19 +1,19 @@
 {
   "version": "2.3",
-  "generado": "2026-06-04T20:21:53+00:00",
+  "generado": "2026-06-04T21:02:41+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
     "precio_qqq": 740.61,
     "precio_ndx": 30407.8105,
-    "vix": 15.25,
+    "vix": 15.4,
     "rsi": 64.85,
     "ema20": 718.89,
     "ema50": 682.47,
     "atr14": 10.18,
     "roc5d": 0.68,
-    "vix3m": 19.17,
-    "vix_ts_ratio": 0.7955,
+    "vix3m": 19.23,
+    "vix_ts_ratio": 0.8008,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
     "cot_lev_net": null,
@@ -46,13 +46,13 @@
     "roc5d": 0.68
   },
   "vix_term_structure": {
-    "vix": 15.25,
-    "vix3m": 19.17,
-    "ratio": 0.7955,
-    "spread": 3.92,
+    "vix": 15.4,
+    "vix3m": 19.23,
+    "ratio": 0.8008,
+    "spread": 3.83,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (15.25) < VIX3M (19.17): contango_normal"
+    "descripcion": "VIX (15.4) < VIX3M (19.23): contango_normal"
   },
   "cot": {
     "error": "Sin datos CFTC"
@@ -173,7 +173,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX -4.98% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX -4.05% (3 dias)."
   },
   "fred": {
     "score": 1,
@@ -204,7 +204,7 @@
       "valor": null
     },
     "cpi_yoy": {
-      "valor": 332.407
+      "valor": null
     },
     "core_pce": {
       "valor": null
@@ -214,11 +214,11 @@
       "anterior": null
     },
     "m2": {
-      "valor": 22804.5
+      "valor": null
     },
     "umcsent": {
-      "valor": 49.8,
-      "anterior": 53.3
+      "valor": null,
+      "anterior": null
     },
     "nfci": {
       "valor": null
@@ -262,13 +262,13 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-04T20:21:53+00:00",
+    "generado": "2026-06-04T21:02:41+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.74,
       "rsi": 64.85,
-      "vix": 15.25,
-      "vix_change_3d_pct": -4.98,
+      "vix": 15.4,
+      "vix_change_3d_pct": -4.05,
       "roc5d": 0.68,
       "breadth_pct": 100.0
     },
@@ -548,7 +548,7 @@
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
       "precio_qqq": 740.61,
-      "vix": 15.25
+      "vix": 15.4
     }
   ],
   "sentimiento": {
