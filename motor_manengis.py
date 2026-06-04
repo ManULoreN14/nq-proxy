@@ -104,9 +104,8 @@ def fred_series(sid):
 
 def _cot_from_zip():
     """
-    Descarga el ZIP con todos los COT del año actual desde CFTC.
-    Formato: fut_fin_xls_YYYY.zip -> FinFutNet.txt (texto fijo)
-    Devuelve DataFrame con todas las filas o None.
+    Descarga el ZIP COT del anio actual desde CFTC y devuelve DataFrame normalizado.
+    Normaliza nombres de columnas: guiones -> guiones_bajos, espacios -> guiones_bajos.
     """
     year = datetime.date.today().year
     url  = f"https://www.cftc.gov/files/dea/history/fut_fin_xls_{year}.zip"
@@ -117,11 +116,10 @@ def _cot_from_zip():
         if r.status_code != 200:
             raise ValueError(f"HTTP {r.status_code}")
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        print(f"  ZIP contenido: {z.namelist()}")
         nombre = z.namelist()[0]
         with z.open(nombre) as f:
             raw = f.read()
-        # El ZIP puede contener XLS binario o CSV con encoding latin-1
+        # Intentar leer como XLS/XLSX binario, fallback a CSV latin-1
         try:
             df = pd.read_excel(io.BytesIO(raw), engine="xlrd")
         except Exception:
@@ -129,6 +127,9 @@ def _cot_from_zip():
                 df = pd.read_excel(io.BytesIO(raw), engine="openpyxl")
             except Exception:
                 df = pd.read_csv(io.BytesIO(raw), encoding="latin-1", low_memory=False)
+        # Normalizar nombres de columnas: espacios y guiones -> guiones_bajos
+        df.columns = [c.strip().replace(" ","_").replace("-","_") for c in df.columns]
+        print(f"  CFTC ZIP OK: {len(df)} filas, cols fecha: {[c for c in df.columns if 'Date' in c or 'date' in c]}")
         return df
     except Exception as e:
         print(f"  ! CFTC ZIP: {e}")
