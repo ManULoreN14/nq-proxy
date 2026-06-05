@@ -1,48 +1,48 @@
 {
-  "generado": "2026-06-05T13:03:52Z",
-  "version": "1.0",
+  "generado": "2026-06-05T16:48:24Z",
+  "version": "1.1",
   "fuente": "radar_builder.py / datos desde manengis_tactico.json",
   "precio": {
-    "qqq": 740.61,
-    "ndx": 30407.8105,
-    "cambio_pct": 0.14
+    "qqq": 714.8,
+    "ndx": 29355.1543,
+    "cambio_pct": -0.64
   },
   "scores": {
     "horizontes": {
       "d2": {
-        "score": 0.415,
+        "score": 0.208,
         "estado": "alcista_mod",
-        "conf": 62
+        "conf": 56
       },
       "d5": {
-        "score": 0.365,
-        "estado": "alcista_mod",
-        "conf": 61
-      },
-      "w1": {
-        "score": 0.299,
-        "estado": "alcista_mod",
-        "conf": 59
-      },
-      "w2": {
-        "score": 0.228,
-        "estado": "alcista_mod",
-        "conf": 57
-      },
-      "w3": {
-        "score": 0.166,
+        "score": 0.183,
         "estado": "alcista_mod",
         "conf": 55
       },
-      "w4": {
-        "score": 0.116,
+      "w1": {
+        "score": 0.15,
+        "estado": "alcista_mod",
+        "conf": 54
+      },
+      "w2": {
+        "score": 0.114,
         "estado": "neutro",
         "conf": 53
+      },
+      "w3": {
+        "score": 0.083,
+        "estado": "neutro",
+        "conf": 52
+      },
+      "w4": {
+        "score": 0.058,
+        "estado": "neutro",
+        "conf": 52
       }
     },
     "componentes": {
       "tecnico": {
-        "score": 0.371,
+        "score": -0.171,
         "peso": 0.3,
         "label": "Técnico"
       },
@@ -52,7 +52,7 @@
         "label": "COT"
       },
       "volatilidad": {
-        "score": 0.5,
+        "score": 0.278,
         "peso": 0.2,
         "label": "Volatilidad"
       },
@@ -67,50 +67,133 @@
         "label": "Sentimiento"
       }
     },
-    "compuesto": 0.415
+    "compuesto": 0.208
   },
   "amplitud_mercado": {
     "factor_exposicion_recomendado": 0.95,
-    "pct_sobre_ema20": 50.0,
-    "pct_sobre_ema50": 100.0,
-    "descripcion": "Breadth sólido: 100.0% componentes sobre EMA50. Amplia participación alcista."
+    "pct_sobre_ema20": 14.3,
+    "pct_sobre_ema50": 71.4,
+    "descripcion": "Breadth sólido: 71.4% componentes sobre EMA50. Amplia participación alcista."
   },
   "liquidez": {
-    "atr14": 10.18,
+    "atr14": 11.05,
     "rangosPorHorizonte": {
       "d2": {
-        "sup": 29881,
-        "res": 30935
+        "sup": 28803,
+        "res": 29907
       },
       "d5": {
-        "sup": 29420,
-        "res": 31396
+        "sup": 28320,
+        "res": 30390
       },
       "w1": {
-        "sup": 29091,
-        "res": 31725
+        "sup": 27975,
+        "res": 30735
       },
       "w2": {
-        "sup": 28564,
-        "res": 32252
+        "sup": 27423,
+        "res": 31288
       },
       "w3": {
-        "sup": 28103,
-        "res": 32713
+        "sup": 26940,
+        "res": 31771
       },
       "w4": {
-        "sup": 27642,
-        "res": 33174
+        "sup": 26456,
+        "res": 32254
       }
     }
   },
   "meta": {
     "risk_score_manengis": 0.0,
-    "vix": 15.7,
-    "vix_ts": "contango_normal",
+    "vix": 18.44,
+    "vix_ts": "contango_tenso",
     "cot_sesgo": "sin_datos",
     "semaforo": "verde",
-    "regimen": "tendencia_alcista"
+    "regimen": "lateral"
   },
-  "ts": "2026-06-05T13:03:52Z"
+  "ts": "2026-06-05T16:48:24Z",
+  "cot": {
+    "error": "No disponible"
+  },
+  "vixTS": {
+    "spot": 18.44,
+    "vix3m": 20.67,
+    "vx1": null,
+    "vx2": null,
+    "spread1": 2.23,
+    "backwardation": false,
+    "senal": "neutro",
+    "vixPercentil": null,
+    "desc": "VIX (18.44) < VIX3M (20.67): contango_tenso"
+  },
+  "macro": {
+    "score": -1,
+    "fred": {
+      "walcl": {
+        "v": 6711495.0,
+        "trend": "up"
+      },
+      "liquidez_neta": null,
+      "fedfunds": {
+        "v": 3.62,
+        "trend": "down"
+      },
+      "hySpread": null,
+      "nfci": null,
+      "sofr": null,
+      "t5yie": null,
+      "t10yie": null,
+      "cpi_yoy": null,
+      "wlcflpcl": null
+    },
+    "curva": {
+      "t3m": null,
+      "t5y": null,
+      "t10y": 4.49,
+      "t30y": 4.99,
+      "sp10_2": 0.41,
+      "sp10_3m": null,
+      "invertida2y": false,
+      "invertida3m": null,
+      "senalRecesion": "2Y=4.08% 10Y=4.49% 30Y=4.99% | Spread=0.41"
+    }
+  },
+  "tecnicos": {
+    "d": {
+      "precio": 714.8,
+      "rsi14": 53.45,
+      "macd": null,
+      "stoch": null,
+      "bb": null,
+      "roc5": -3.18,
+      "roc10": null,
+      "roc20": null,
+      "volRatio5": null,
+      "ema8": null,
+      "ema21": 718.5,
+      "ema50": 683.79,
+      "ema100": null,
+      "ema200": null
+    },
+    "w": null,
+    "m": null
+  },
+  "pcr": {
+    "error": "No disponible",
+    "total": null,
+    "equity": null,
+    "desc": null,
+    "fuente": null
+  },
+  "opciones": {
+    "error": "No disponible",
+    "precio": 714.8,
+    "v1": null,
+    "v2": null,
+    "gex": null,
+    "gex_real": null,
+    "skew": null,
+    "ratio_0dte": null
+  }
 }
