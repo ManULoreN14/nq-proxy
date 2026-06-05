@@ -1,11 +1,11 @@
 {
-  "generado": "2026-06-05T16:48:24Z",
+  "generado": "2026-06-05T17:05:21Z",
   "version": "1.1",
   "fuente": "radar_builder.py / datos desde manengis_tactico.json",
   "precio": {
-    "qqq": 714.8,
-    "ndx": 29355.1543,
-    "cambio_pct": -0.64
+    "qqq": 715.73,
+    "ndx": 29396.4355,
+    "cambio_pct": -0.61
   },
   "scores": {
     "horizontes": {
@@ -79,53 +79,53 @@
     "atr14": 11.05,
     "rangosPorHorizonte": {
       "d2": {
-        "sup": 28803,
-        "res": 29907
+        "sup": 28844,
+        "res": 29949
       },
       "d5": {
-        "sup": 28320,
-        "res": 30390
+        "sup": 28360,
+        "res": 30433
       },
       "w1": {
-        "sup": 27975,
-        "res": 30735
+        "sup": 28014,
+        "res": 30779
       },
       "w2": {
-        "sup": 27423,
-        "res": 31288
+        "sup": 27461,
+        "res": 31332
       },
       "w3": {
-        "sup": 26940,
-        "res": 31771
+        "sup": 26977,
+        "res": 31815
       },
       "w4": {
-        "sup": 26456,
-        "res": 32254
+        "sup": 26494,
+        "res": 32299
       }
     }
   },
   "meta": {
     "risk_score_manengis": 0.0,
-    "vix": 18.44,
+    "vix": 18.86,
     "vix_ts": "contango_tenso",
     "cot_sesgo": "sin_datos",
     "semaforo": "verde",
     "regimen": "lateral"
   },
-  "ts": "2026-06-05T16:48:24Z",
+  "ts": "2026-06-05T17:05:21Z",
   "cot": {
     "error": "No disponible"
   },
   "vixTS": {
-    "spot": 18.44,
-    "vix3m": 20.67,
+    "spot": 18.86,
+    "vix3m": 20.86,
     "vx1": null,
     "vx2": null,
-    "spread1": 2.23,
+    "spread1": 2.0,
     "backwardation": false,
     "senal": "neutro",
     "vixPercentil": null,
-    "desc": "VIX (18.44) < VIX3M (20.67): contango_tenso"
+    "desc": "VIX (18.86) < VIX3M (20.86): contango_tenso"
   },
   "macro": {
     "score": -1,
@@ -161,18 +161,18 @@
   },
   "tecnicos": {
     "d": {
-      "precio": 714.8,
-      "rsi14": 53.45,
+      "precio": 715.73,
+      "rsi14": 54.04,
       "macd": null,
       "stoch": null,
       "bb": null,
-      "roc5": -3.18,
+      "roc5": -3.06,
       "roc10": null,
       "roc20": null,
       "volRatio5": null,
       "ema8": null,
-      "ema21": 718.5,
-      "ema50": 683.79,
+      "ema21": 718.59,
+      "ema50": 683.83,
       "ema100": null,
       "ema200": null
     },
@@ -188,7 +188,7 @@
   },
   "opciones": {
     "error": "No disponible",
-    "precio": 714.8,
+    "precio": 715.73,
     "v1": null,
     "v2": null,
     "gex": null,
