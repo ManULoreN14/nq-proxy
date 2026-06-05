@@ -235,20 +235,34 @@ def cot_vix():
     if not col_lev_l or not col_lev_s:
         return {"error": f"Columnas VIX no encontradas. Cols: {list(df.columns)[:8]}"}
 
-    # Filtrar por codigo 1170E1 o por nombre
-    mask = None
+    # Estrategia de filtrado en cascada:
+    # 1) Codigo de contrato 1170E1 (lo mas fiable)
+    # 2) Nombre con VIX + CBOE
+    # 3) Solo VIX en el nombre
+    sub = pd.DataFrame()
     if col_codigo in df.columns:
-        mask = (df[col_codigo].astype(str).str.strip() == "1170E1")
-    if mask is None or not df[mask].empty if mask is not None else True:
-        pass
-    if mask is None or not mask.any():
-        mask = (df[col_market].astype(str).str.contains("VIX", na=False, case=False) &
-                df[col_market].astype(str).str.contains("CBOE", na=False, case=False))
-    if not mask.any():
-        mask = df[col_market].astype(str).str.contains("VIX", na=False, case=False)
+        m = df[col_codigo].astype(str).str.strip() == "1170E1"
+        if m.any():
+            sub = df[m].copy()
+            print(f"  cot_vix: encontrado por codigo 1170E1 ({len(sub)} filas)")
 
-    sub = df[mask].copy()
     if sub.empty:
+        m = (df[col_market].astype(str).str.contains("VIX", na=False, case=False) &
+             df[col_market].astype(str).str.contains("CBOE", na=False, case=False))
+        if m.any():
+            sub = df[m].copy()
+            print(f"  cot_vix: encontrado por VIX+CBOE ({len(sub)} filas)")
+
+    if sub.empty:
+        m = df[col_market].astype(str).str.contains("VIX", na=False, case=False)
+        if m.any():
+            sub = df[m].copy()
+            print(f"  cot_vix: encontrado por VIX ({len(sub)} filas)")
+
+    if sub.empty:
+        # Diagnostico: mostrar nombres unicos disponibles
+        nombres_unicos = df[col_market].astype(str).unique()[:20] if col_market in df.columns else []
+        print(f"  cot_vix: nombres en el archivo: {list(nombres_unicos)}")
         return {"error": "VIX no encontrado en ZIP"}
 
     sub["_fecha"] = pd.to_datetime(sub[col_fecha], errors="coerce", dayfirst=False)
@@ -263,7 +277,12 @@ def cot_vix():
     neto      = nl - ns
     neto_prev = nl_p - ns_p
     pct  = round(nl/(nl+ns)*100,1) if (nl+ns)>0 else 50
-    senal = "alcista" if (neto<-20000 or pct<48) else             "bajista" if (neto>20000  or pct>52) else "neutro"
+    if neto < -20000 or pct < 48:
+        senal = "alcista"
+    elif neto > 20000 or pct > 52:
+        senal = "bajista"
+    else:
+        senal = "neutro"
 
     return {
         "fecha_reporte": str(c.get(col_fecha, ""))[:10],
@@ -462,7 +481,18 @@ def run():
     print(f"  {vts_est} | spread={vts_spread} | ch3d={vix_ch3d}%")
 
     print("COT NQ + VIX (ZIP CFTC)...")
-    cot_nq_d=cot_nq(); cot_vix_d=cot_vix()
+    try:
+        cot_nq_d = cot_nq()
+    except Exception as e:
+        print(f"  ! cot_nq() crash: {e}")
+        import traceback; traceback.print_exc()
+        cot_nq_d = {"error": f"crash: {e}"}
+    try:
+        cot_vix_d = cot_vix()
+    except Exception as e:
+        print(f"  ! cot_vix() crash: {e}")
+        import traceback; traceback.print_exc()
+        cot_vix_d = {"error": f"crash: {e}"}
     lev_net=cot_nq_d.get("leveraged_net") if isinstance(cot_nq_d,dict) else None
     cot_sesgo=cot_nq_d.get("sesgo","sin_datos") if isinstance(cot_nq_d,dict) else "sin_datos"
     cot_fecha=cot_nq_d.get("fecha_reporte","?") if isinstance(cot_nq_d,dict) else "?"
