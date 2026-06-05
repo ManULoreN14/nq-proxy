@@ -295,6 +295,69 @@ def cot_vix():
         )
     }
 
+# ── PCR CBOE ─────────────────────────────────────────────────────────────────
+
+def pcr_cboe():
+    """
+    Descarga el CSV diario de volumen de opciones del CBOE y extrae
+    TOTAL PUT/CALL RATIO y EQUITY PUT/CALL RATIO.
+    URL: https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv
+    Devuelve dict con claves: total, equity, fecha, descripcion.
+    """
+    import io
+    URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv"
+    try:
+        resp = requests.get(URL, timeout=15,
+                            headers={"User-Agent": "Mozilla/5.0"})
+        resp.raise_for_status()
+        df = pd.read_csv(io.StringIO(resp.text))
+        # Normalizar nombres de columnas: quitar espacios y pasar a minúsculas
+        df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+        # Columnas esperadas: 'date', 'total_put_call_ratio', 'equity_put_call_ratio'
+        # También pueden aparecer como 'p/c_ratio_total', 'p/c_ratio_equity', etc.
+        # Buscamos de forma flexible
+        def _find_col(df, *candidates):
+            for c in candidates:
+                if c in df.columns:
+                    return c
+            # búsqueda parcial
+            for c in df.columns:
+                for cand in candidates:
+                    if cand.replace("_", "") in c.replace("_", "").replace("/", ""):
+                        return c
+            return None
+
+        col_total  = _find_col(df, "total_put_call_ratio", "p/c_ratio_total",
+                                "total_put/call_ratio", "totalputcallratio")
+        col_equity = _find_col(df, "equity_put_call_ratio", "p/c_ratio_equity",
+                                "equity_put/call_ratio", "equityputcallratio")
+        col_date   = _find_col(df, "date", "trade_date", "fecha")
+
+        # Usar la última fila con datos válidos
+        df_valid = df.dropna(subset=[c for c in [col_total, col_equity] if c])
+        if df_valid.empty:
+            return {"error": "CSV CBOE sin filas válidas"}
+
+        row   = df_valid.iloc[-1]
+        fecha = str(row[col_date])[:10] if col_date else "desconocida"
+        total  = round(float(row[col_total]),  3) if col_total  else None
+        equity = round(float(row[col_equity]), 3) if col_equity else None
+
+        return {
+            "total":  total,
+            "equity": equity,
+            "index":  None,   # no disponible en este CSV
+            "spx":    None,   # no disponible en este CSV
+            "fecha":  fecha,
+            "descripcion": (
+                f"PCR Total={total} Equity={equity} · Fecha {fecha}. "
+                f"{'Equity<0.6 = euforia' if equity and equity<0.6 else 'Equity>1.0 = miedo' if equity and equity>1.0 else 'Zona normal'}."
+            )
+        }
+    except Exception as e:
+        return {"error": f"pcr_cboe: {e}"}
+
+
 # ── FEAR & GREED ─────────────────────────────────────────────────────────────
 
 def fear_greed():
@@ -499,6 +562,14 @@ def run():
     print(f"  NQ: net={lev_net} sesgo={cot_sesgo} fecha={cot_fecha}")
     print(f"  VIX: {cot_vix_d.get('senal','?') if isinstance(cot_vix_d,dict) else '?'}")
 
+    print("PCR CBOE (OPTIONS_VOLUME_REPORT)...")
+    try:
+        pcr_d = pcr_cboe()
+    except Exception as e:
+        print(f"  ! pcr_cboe() crash: {e}")
+        pcr_d = {"error": f"crash: {e}"}
+    print(f"  PCR Total={pcr_d.get('total','?')} Equity={pcr_d.get('equity','?')} fecha={pcr_d.get('fecha','?')}")
+
     print("Breadth Mag7...")
     br=calcular_breadth(MAG7)
     br_pct20=br["pct_sobre_ema20"]; br_pct50=br["pct_sobre_ema50"]; br_div=br["divergencia"]
@@ -659,6 +730,7 @@ def run():
         "earnings":{"alerta_volatilidad":False,"tickers_72h":[]},
         "derivados":{"precio_qqq":p_qqq},"skew":{},
         "barrida_estructural":{"nivel_barrida":min90_v,"zona_barrida":False},
+        "pcr": pcr_d or {"error": "No disponible"},
     }
     return doc
 
@@ -669,6 +741,7 @@ if __name__=="__main__":
     print(f"  JSON guardado: {OUTPUT_FILE.name}")
     print(f"  QQQ={doc['variables_crudas']['precio_qqq']}  VIX={doc['variables_crudas']['vix']}")
     print(f"  COT fecha={doc['cot'].get('fecha_reporte','?')}  sesgo={doc['cot'].get('sesgo','?')}")
+    print(f"  PCR Total={doc['pcr'].get('total','?')}  Equity={doc['pcr'].get('equity','?')}")
     print(f"  FRED 10Y={doc['fred']['us10y']['valor']}%  FF={doc['fred']['fedfunds']['valor']}%")
     print(f"  Risk={doc['risk_compuesto']['valor']}/10  Semaforo={doc['plan_exposicion']['semaforo']}")
     print(f"{'='*60}\n")
