@@ -1,19 +1,19 @@
 {
   "version": "2.4",
-  "generado": "2026-06-05T12:11:18+00:00",
+  "generado": "2026-06-05T13:03:52+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
     "precio_qqq": 740.61,
     "precio_ndx": 30407.8105,
-    "vix": 15.67,
+    "vix": 15.7,
     "rsi": 64.85,
     "ema20": 718.89,
     "ema50": 682.47,
     "atr14": 10.18,
     "roc5d": 0.68,
     "vix3m": 19.23,
-    "vix_ts_ratio": 0.8149,
+    "vix_ts_ratio": 0.8164,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
     "cot_lev_net": null,
@@ -46,13 +46,13 @@
     "roc5d": 0.68
   },
   "vix_term_structure": {
-    "vix": 15.67,
+    "vix": 15.7,
     "vix3m": 19.23,
-    "ratio": 0.8149,
-    "spread": 3.56,
+    "ratio": 0.8164,
+    "spread": 3.53,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (15.67) < VIX3M (19.23): contango_normal"
+    "descripcion": "VIX (15.7) < VIX3M (19.23): contango_normal"
   },
   "cot": {
     "error": "No disponible"
@@ -164,7 +164,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX -0.63% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX -0.44% (3 dias)."
   },
   "fred": {
     "score": -1,
@@ -253,13 +253,13 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-05T12:11:18+00:00",
+    "generado": "2026-06-05T13:03:52+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.74,
       "rsi": 64.85,
-      "vix": 15.67,
-      "vix_change_3d_pct": -0.63,
+      "vix": 15.7,
+      "vix_change_3d_pct": -0.44,
       "roc5d": 0.68,
       "breadth_pct": 100.0
     },
@@ -549,7 +549,7 @@
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
       "precio_qqq": 740.61,
-      "vix": 15.67
+      "vix": 15.7
     }
   ],
   "sentimiento": {
