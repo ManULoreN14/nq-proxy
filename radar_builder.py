@@ -422,6 +422,224 @@ def calc_rangos(precio_ndx, atr14):
     return rangos
 
 
+
+# ─────────────────────────────────────────────────────────────────
+# BUILD_RENDER_KEYS
+# Construye las 6 claves que el frontend espera en D (datos_radar.json)
+# para que renderCOT, renderFRED/renderCurva, renderVixTS, renderTecnicos,
+# renderPCR, renderOI y renderGEX tengan datos y no queden en blanco.
+# Mapeo completo:
+#   cot     ← data["cot"] + data["variables_crudas"]["cot_lev_net/cot_sesgo"]
+#   vixTS   ← data["vix_term_structure"]
+#   macro   ← data["fred"] + data["variables_crudas"][us10y/us30y/spread_2_10]
+#   tecnicos← data["tecnicos"]
+#   pcr     ← no disponible en manengis → objeto con error
+#   opciones← no disponible en manengis → objeto con error + precio
+# ─────────────────────────────────────────────────────────────────
+
+def _vts_to_senal(estado, backwardation):
+    """Traduce el estado VTS a la señal que espera renderVixTS()."""
+    if backwardation:
+        return "bajista"
+    if estado == "contango_normal":
+        return "alcista"
+    if estado == "contango_tenso":
+        return "neutro"
+    if estado in ("backwardation_leve", "backwardation"):
+        return "bajista"
+    return "neutro"
+
+
+def build_render_keys(data):
+    """
+    Devuelve un dict con exactamente las claves que el frontend espera:
+      cot, vixTS, macro, tecnicos, pcr, opciones
+
+    Regla: si no hay datos reales se incluye el objeto con error/null
+    para que el frontend muestre "no disponible" en lugar de pantalla
+    en blanco (que es el bug que este parche resuelve).
+    """
+    v       = data.get("variables_crudas", {})
+    vts     = data.get("vix_term_structure", {})
+    tec     = data.get("tecnicos", {})
+    fred    = data.get("fred", {})
+    cot_raw = data.get("cot", {})
+
+    # ── 1. D.cot ─────────────────────────────────────────────────
+    # renderCOT() usa: largos, cortos, neto, pctLargo, senal,
+    #   cambioNeto, trend4w, netoDealers, senalDealers, desc, fecha
+    cot_error = cot_raw.get("error") if cot_raw else "No disponible"
+    cot_neto  = v.get("cot_lev_net")   # None si no hay datos
+    cot_sesgo = v.get("cot_sesgo", "sin_datos")
+
+    if cot_error and cot_neto is None:
+        cot_block = {"error": cot_error}
+    else:
+        senal_cot = ("bajista" if cot_sesgo == "bajista"
+                     else "alcista" if cot_sesgo == "alcista"
+                     else "neutro")
+        cot_block = {
+            "neto":         cot_neto,
+            "pctLargo":     None,
+            "largos":       None,
+            "cortos":       None,
+            "senal":        senal_cot,
+            "cambioNeto":   None,
+            "trend4w":      None,
+            "netoDealers":  None,
+            "senalDealers": "neutro",
+            "desc":         f"COT sesgo={cot_sesgo} · neto={cot_neto}",
+            "fecha":        None,
+        }
+
+    # ── 2. D.vixTS ───────────────────────────────────────────────
+    # renderVixTS() usa: spot, vix3m, vx1, vx2, spread1,
+    #   backwardation, senal, vixPercentil, desc
+    if vts and not vts.get("error"):
+        back       = bool(vts.get("backwardation", False))
+        spot       = vts.get("vix")      # "vix" es el campo spot en vix_term_structure
+        v3m        = vts.get("vix3m")
+        sp         = vts.get("spread")   # spread = vix3m - vix (positivo=contango)
+        if sp is None and spot is not None and v3m is not None:
+            try:
+                sp = round(float(v3m) - float(spot), 2)
+            except (TypeError, ValueError):
+                sp = None
+        estado_vts = vts.get("estado", "sin_datos")
+        senal_vts  = _vts_to_senal(estado_vts, back)
+        desc_vts   = (vts.get("descripcion") or
+                      f"VIX={spot} / VIX3M={v3m}  ratio={vts.get('ratio')} · {estado_vts}")
+        vixts_block = {
+            "spot":          spot,
+            "vix3m":         v3m,
+            "vx1":           None,
+            "vx2":           None,
+            "spread1":       sp,
+            "backwardation": back,
+            "senal":         senal_vts,
+            "vixPercentil":  None,
+            "desc":          desc_vts,
+        }
+    else:
+        vixts_block = {"error": "VIX TS no disponible"}
+
+    # ── 3. D.macro ───────────────────────────────────────────────
+    # renderFRED() usa: D.macro.score + D.macro.fred.*
+    # renderCurva() usa: D.macro.curva.*
+    fred_score = fred.get("score", 0) if fred else 0
+
+    def _fred_val(block):
+        """Extrae {v, trend} de bloque {valor, anterior} o devuelve None."""
+        if not block or not isinstance(block, dict):
+            return None
+        val  = block.get("valor")
+        prev = block.get("anterior")
+        if val is None:
+            return None
+        trend = None
+        if prev is not None:
+            try:
+                trend = "up" if float(val) > float(prev) else "down"
+            except (TypeError, ValueError):
+                pass
+        return {"v": val, "trend": trend}
+
+    fedfunds_block = _fred_val(fred.get("fedfunds", {})) if fred else None
+    balance_block  = _fred_val(fred.get("balance_fed", {})) if fred else None
+
+    us10y     = v.get("us10y")
+    us30y     = v.get("us30y")
+    sp2_10    = v.get("spread_2_10")
+    curva_inv = bool(v.get("curva_invertida", False))
+
+    curva_block = {
+        "t3m":           None,
+        "t5y":           None,
+        "t10y":          us10y,
+        "t30y":          us30y,
+        "sp10_2":        sp2_10,
+        "sp10_3m":       None,
+        "invertida2y":   curva_inv,
+        "invertida3m":   None,
+        "senalRecesion": (fred.get("curva_descripcion") if fred else None),
+    }
+
+    macro_block = {
+        "score": fred_score,
+        "fred": {
+            "walcl":         balance_block,
+            "liquidez_neta": None,
+            "fedfunds":      fedfunds_block,
+            "hySpread":      None,
+            "nfci":          None,
+            "sofr":          None,
+            "t5yie":         None,
+            "t10yie":        None,
+            "cpi_yoy":       None,
+            "wlcflpcl":      None,
+        },
+        "curva": curva_block,
+    }
+
+    # ── 4. D.tecnicos ────────────────────────────────────────────
+    # renderTecnicos() usa: D.tecnicos.d.* (diario), .w (semanal), .m (mensual)
+    # manengis.tecnicos tiene: precio, rsi14, ema20, ema50, atr14, roc5d
+    precio_tec = tec.get("precio") or v.get("precio_qqq")
+    tecnicos_block = {
+        "d": {
+            "precio":    precio_tec,
+            "rsi14":     tec.get("rsi14"),
+            "macd":      None,
+            "stoch":     None,
+            "bb":        None,
+            "roc5":      tec.get("roc5d"),
+            "roc10":     None,
+            "roc20":     None,
+            "volRatio5": None,
+            "ema8":      None,
+            "ema21":     tec.get("ema20"),   # ema20 del motor ≈ ema21 para el frontend
+            "ema50":     tec.get("ema50"),
+            "ema100":    None,
+            "ema200":    None,
+        },
+        "w": None,
+        "m": None,
+    }
+
+    # ── 5. D.pcr ─────────────────────────────────────────────────
+    # renderPCR() usa: total, equity, desc, error, fuente
+    pcr_block = {
+        "error":  "No disponible",
+        "total":  None,
+        "equity": None,
+        "desc":   None,
+        "fuente": None,
+    }
+
+    # ── 6. D.opciones ────────────────────────────────────────────
+    # renderOI()       usa: v1.{topCalls, topPuts, maxPain, senal}, precio
+    # renderGEX()      usa: opciones.gex.{valor, estado, desc, trampa}
+    # renderDerivados()usa: gex_real, skew, ratio_0dte
+    opciones_block = {
+        "error":      "No disponible",
+        "precio":     v.get("precio_qqq"),
+        "v1":         None,
+        "v2":         None,
+        "gex":        None,
+        "gex_real":   None,
+        "skew":       None,
+        "ratio_0dte": None,
+    }
+
+    return {
+        "cot":      cot_block,
+        "vixTS":    vixts_block,
+        "macro":    macro_block,
+        "tecnicos": tecnicos_block,
+        "pcr":      pcr_block,
+        "opciones": opciones_block,
+    }
+
 # ─────────────────────────────────────────────────────────────────
 # BUILDER PRINCIPAL
 # ─────────────────────────────────────────────────────────────────
@@ -542,10 +760,16 @@ def build():
         "regimen":             data.get("regimen", {}).get("regimen", "sin_datos"),
     }
 
+    # ── Claves de render para sub-pestañas Inst/Macro/Técnico ──────────
+    # Mapea campos de manengis_tactico.json a las claves que usan
+    # renderCOT, renderFRED, renderVixTS, renderTecnicos, renderPCR,
+    # renderOI y renderGEX.  Sin estas claves esas pestañas quedaban vacías.
+    render_keys = build_render_keys(data)
+
     # ── Documento final ───────────────────────────────────────────────────
     doc = {
         "generado": utcnow_str(),
-        "version": "1.0",
+        "version": "1.1",
         "fuente": "radar_builder.py / datos desde manengis_tactico.json",
         "precio": precio,
         "scores": {
@@ -558,6 +782,10 @@ def build():
         "meta":             meta,
         # Campo de frescura para updateFreshness() del frontend
         "ts":               utcnow_str(),
+        # ── Claves de render (sub-pestañas Inst / Macro / Técnico) ───────
+        # Consumidas directamente por renderCOT, renderFRED, renderCurva,
+        # renderVixTS, renderTecnicos, renderPCR, renderOI, renderGEX.
+        **render_keys,
     }
     return doc
 
