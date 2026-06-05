@@ -2,19 +2,17 @@ name: Actualizar datos NQ
 
 on:
   schedule:
-    # L-V 22:15 hora de Madrid (21:15 UTC en verano / 20:15 UTC en invierno)
-    # Usamos 21:15 UTC para cubrir horario de verano (CEST = UTC+2)
     - cron: '15 21 * * 1-5'
-  workflow_dispatch:   # permite lanzar manualmente desde GitHub
+  workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Obj-3: suprimir advertencia Node.js 24
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
     permissions:
-      contents: write    # necesario para git push
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -35,16 +33,25 @@ jobs:
       - name: Ejecutar motor_manengis.py
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-        run: python motor_manengis.py
+        run: |
+          set -e
+          python motor_manengis.py
+          echo "=== manengis_tactico.json primeras líneas ==="
+          head -5 manengis_tactico.json
 
       - name: Ejecutar radar_builder.py
-        run: python radar_builder.py
+        run: |
+          set -e
+          python radar_builder.py
+          echo "=== datos_radar.json primeras líneas ==="
+          head -5 datos_radar.json
 
       - name: Commit y push de los JSON
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manengis_tactico.json datos_radar.json
-          # Solo hace commit si hay cambios reales
-          git diff --cached --quiet || git commit -m "data: actualización automática $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push
+          git add -f manengis_tactico.json datos_radar.json
+          git status
+          git diff --cached --stat
+          git commit -m "data: actualización automática $(date -u +'%Y-%m-%d %H:%M UTC')" || echo "Sin cambios que commitear"
+          git push || echo "Nada que pushear"
