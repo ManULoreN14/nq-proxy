@@ -1,6 +1,6 @@
 {
   "version": "2.4",
-  "generado": "2026-06-04T21:52:43+00:00",
+  "generado": "2026-06-05T06:33:44+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
@@ -12,13 +12,13 @@
     "ema50": 682.47,
     "atr14": 10.18,
     "roc5d": 0.68,
-    "vix3m": 19.23,
-    "vix_ts_ratio": 0.8008,
+    "vix3m": 19.76,
+    "vix_ts_ratio": 0.7794,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
-    "cot_lev_net": null,
-    "cot_sesgo": "sin_datos",
-    "breadth_pct_ema20": 57.1,
+    "cot_lev_net": -51679,
+    "cot_sesgo": "alcista",
+    "breadth_pct_ema20": 50.0,
     "breadth_pct_ema50": 100.0,
     "breadth_divergencia": false,
     "exposicion_sugerida_pct": 80,
@@ -30,11 +30,11 @@
     "regimen_confianza": 100,
     "risk_score": 0.0,
     "fedfunds": 3.62,
-    "us2y": 4.05,
-    "us10y": 4.46,
-    "us30y": 4.97,
+    "us2y": 4.08,
+    "us10y": 4.49,
+    "us30y": 4.99,
     "spread_2_10": 0.41,
-    "spread_3m_10": 0.69,
+    "spread_3m_10": 0.71,
     "curva_invertida": false
   },
   "tecnicos": {
@@ -47,24 +47,41 @@
   },
   "vix_term_structure": {
     "vix": 15.4,
-    "vix3m": 19.23,
-    "ratio": 0.8008,
-    "spread": 3.83,
+    "vix3m": 19.76,
+    "ratio": 0.7794,
+    "spread": 4.36,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (15.4) < VIX3M (19.23): contango_normal"
+    "descripcion": "VIX (15.4) < VIX3M (19.76): contango_normal"
   },
   "cot": {
-    "error": "Columnas no encontradas. Disponibles: ['Market_and_Exchange_Names', 'As_of_Date_In_Form_YYMMDD', 'Report_Date_as_MM_DD_YYYY', 'CFTC_Contract_Market_Code', 'CFTC_Market_Code', 'CFTC_Region_Code', 'CFTC_Commodity_Code', 'Open_Interest_All', 'Dealer_Positions_Long_All', 'Dealer_Positions_Short_All']"
+    "fecha_reporte": "2026-05-26",
+    "leveraged_long": 52861,
+    "leveraged_short": 104540,
+    "leveraged_net": -51679,
+    "leveraged_net_prev": -45371,
+    "asset_manager_long": 117374,
+    "asset_manager_short": 32311,
+    "asset_manager_net": 85063,
+    "pct_largo": 33.6,
+    "sesgo": "alcista",
+    "descripcion": "Leveraged Money corto neto 51,679 contratos en NQ. Sesgo: ALCISTA."
   },
   "cot_vix": {
-    "error": "Columnas VIX no encontradas"
+    "fecha_reporte": "2026-05-26",
+    "nc_long": 65926,
+    "nc_short": 115262,
+    "neto": -49336,
+    "neto_prev": -51904,
+    "pct_largo": 36.4,
+    "senal": "alcista",
+    "descripcion": "Leveraged Money cortos netos en VIX: 49,336 contratos. Senal: ALCISTA."
   },
   "breadth": {
-    "tickers_validos": 7,
-    "sobre_ema20": 4,
-    "sobre_ema50": 7,
-    "pct_sobre_ema20": 57.1,
+    "tickers_validos": 6,
+    "sobre_ema20": 3,
+    "sobre_ema50": 6,
+    "pct_sobre_ema20": 50.0,
     "pct_sobre_ema50": 100.0,
     "detalle": [
       {
@@ -86,8 +103,8 @@
       {
         "ticker": "NVDA",
         "precio": 218.66,
-        "ema20": 216.01,
-        "ema50": 207.03,
+        "ema20": 215.78,
+        "ema50": 206.8,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
@@ -105,14 +122,6 @@
         "ema20": 262.08,
         "ema50": 252.27,
         "sobre_ema20": false,
-        "sobre_ema50": true
-      },
-      {
-        "ticker": "META",
-        "precio": 627.57,
-        "ema20": 618.6,
-        "ema50": 623.5,
-        "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
@@ -145,7 +154,7 @@
       "precio_sobre_ema50": true,
       "ema20_sobre_ema50": true,
       "rsi": 64.85,
-      "breadth_pct_ema20": 57.1
+      "breadth_pct_ema20": 50.0
     }
   },
   "plan_exposicion": {
@@ -178,29 +187,29 @@
     "score": -1,
     "estado": "normal",
     "curva_invertida": false,
-    "curva_descripcion": "2Y=4.05% 10Y=4.46% 30Y=4.97% | Spread=0.41",
+    "curva_descripcion": "2Y=4.08% 10Y=4.49% 30Y=4.99% | Spread=0.41",
     "fedfunds": {
       "valor": 3.62,
       "anterior": 3.62,
-      "fecha": "2026-06-04"
+      "fecha": "2026-06-05"
     },
     "us2y": {
-      "valor": 4.05,
+      "valor": 4.08,
       "anterior": 4.05
     },
     "us10y": {
-      "valor": 4.46,
-      "anterior": 4.47
+      "valor": 4.49,
+      "anterior": 4.46
     },
     "us30y": {
-      "valor": 4.97,
-      "anterior": 4.99
+      "valor": 4.99,
+      "anterior": 4.97
     },
     "spread_2_10": {
       "valor": 0.41
     },
     "spread_3m_10": {
-      "valor": 0.69
+      "valor": 0.71
     },
     "cpi_yoy": {
       "valor": 332.407
@@ -209,8 +218,8 @@
       "valor": 129.63
     },
     "balance_fed": {
-      "valor": 6704383.0,
-      "anterior": 6713643.0
+      "valor": 6711495.0,
+      "anterior": 6704383.0
     },
     "m2": {
       "valor": 22804.5
@@ -239,10 +248,10 @@
       },
       {
         "ind": "US 10Y",
-        "val": "4.46%",
+        "val": "4.49%",
         "tend": "bajando",
         "senal": "neutro",
-        "desc": "2Y:4.05% 30Y:4.97%"
+        "desc": "2Y:4.08% 30Y:4.99%"
       },
       {
         "ind": "NFCI",
@@ -254,14 +263,14 @@
     ],
     "estadoCurva": {
       "t10y2y": 0.41,
-      "t10y3m": 0.69,
+      "t10y3m": 0.71,
       "senalRecesion": "baja",
       "descripcion": "Curva normal"
     }
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-04T21:52:43+00:00",
+    "generado": "2026-06-05T06:33:44+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.74,
@@ -541,6 +550,16 @@
     },
     {
       "fecha": "2026-06-04",
+      "risk_score": 0.0,
+      "fear_greed_score": 12.0,
+      "regimen_mercado": "tendencia_alcista",
+      "exposicion_semaforo": "verde",
+      "exposicion_pct": 80,
+      "precio_qqq": 740.61,
+      "vix": 15.4
+    },
+    {
+      "fecha": "2026-06-05",
       "risk_score": 0.0,
       "fear_greed_score": 12.0,
       "regimen_mercado": "tendencia_alcista",
