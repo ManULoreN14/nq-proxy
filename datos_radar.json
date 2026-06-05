@@ -1,51 +1,116 @@
 {
-  "generado": "2026-05-31T08:00:00",
-  "fuente": "sample_manual",
+  "generado": "2026-06-05T12:11:18Z",
   "version": "1.0",
+  "fuente": "radar_builder.py / datos desde manengis_tactico.json",
   "precio": {
-    "qqq": 735.6,
-    "ndx": 19250.0,
-    "cambio_pct": 0.45
+    "qqq": 740.61,
+    "ndx": 30407.8105,
+    "cambio_pct": 0.14
   },
   "scores": {
     "horizontes": {
-      "d2": { "score": 0.4,  "estado": "alcista_mod", "conf": 62 },
-      "d5": { "score": 0.3,  "estado": "alcista_mod", "conf": 58 },
-      "w1": { "score": 0.1,  "estado": "neutro",      "conf": 51 },
-      "w2": { "score": -0.1, "estado": "neutro",      "conf": 49 },
-      "w3": { "score": -0.2, "estado": "bajista_mod", "conf": 54 },
-      "w4": { "score": -0.3, "estado": "bajista_mod", "conf": 57 }
+      "d2": {
+        "score": 0.415,
+        "estado": "alcista_mod",
+        "conf": 62
+      },
+      "d5": {
+        "score": 0.365,
+        "estado": "alcista_mod",
+        "conf": 61
+      },
+      "w1": {
+        "score": 0.299,
+        "estado": "alcista_mod",
+        "conf": 59
+      },
+      "w2": {
+        "score": 0.228,
+        "estado": "alcista_mod",
+        "conf": 57
+      },
+      "w3": {
+        "score": 0.166,
+        "estado": "alcista_mod",
+        "conf": 55
+      },
+      "w4": {
+        "score": 0.116,
+        "estado": "neutro",
+        "conf": 53
+      }
     },
     "componentes": {
-      "tecnico":      { "score": 0.6,  "peso": 0.30, "label": "Técnico" },
-      "cot":          { "score": -0.4, "peso": 0.20, "label": "COT" },
-      "volatilidad":  { "score": 0.5,  "peso": 0.20, "label": "Volatilidad" },
-      "macro":        { "score": 0.2,  "peso": 0.15, "label": "Macro FRED" },
-      "sentimiento":  { "score": 0.1,  "peso": 0.15, "label": "Sentimiento" }
-    }
+      "tecnico": {
+        "score": 0.371,
+        "peso": 0.3,
+        "label": "Técnico"
+      },
+      "cot": {
+        "score": 0.0,
+        "peso": 0.2,
+        "label": "COT"
+      },
+      "volatilidad": {
+        "score": 0.5,
+        "peso": 0.2,
+        "label": "Volatilidad"
+      },
+      "macro": {
+        "score": 0.533,
+        "peso": 0.15,
+        "label": "Macro FRED"
+      },
+      "sentimiento": {
+        "score": 0.824,
+        "peso": 0.15,
+        "label": "Sentimiento"
+      }
+    },
+    "compuesto": 0.415
   },
   "amplitud_mercado": {
-    "factor_exposicion_recomendado": 0.72,
-    "pct_sobre_ema20": 58,
-    "pct_sobre_ema50": 61,
-    "descripcion": "Amplitud moderada. Mayoría de componentes por encima de medias."
+    "factor_exposicion_recomendado": 0.95,
+    "pct_sobre_ema20": 50.0,
+    "pct_sobre_ema50": 100.0,
+    "descripcion": "Breadth sólido: 100.0% componentes sobre EMA50. Amplia participación alcista."
   },
   "liquidez": {
-    "atr14": 11.3,
+    "atr14": 10.18,
     "rangosPorHorizonte": {
-      "d2": { "sup": 19100, "res": 19420 },
-      "d5": { "sup": 18950, "res": 19550 },
-      "w1": { "sup": 18700, "res": 19700 },
-      "w2": { "sup": 18400, "res": 19900 },
-      "w3": { "sup": 18100, "res": 20100 },
-      "w4": { "sup": 17800, "res": 20400 }
+      "d2": {
+        "sup": 29881,
+        "res": 30935
+      },
+      "d5": {
+        "sup": 29420,
+        "res": 31396
+      },
+      "w1": {
+        "sup": 29091,
+        "res": 31725
+      },
+      "w2": {
+        "sup": 28564,
+        "res": 32252
+      },
+      "w3": {
+        "sup": 28103,
+        "res": 32713
+      },
+      "w4": {
+        "sup": 27642,
+        "res": 33174
+      }
     }
   },
   "meta": {
-    "nota": "Archivo de muestra generado manualmente. Sustituir por salida real de radar_builder.py cuando esté disponible.",
-    "risk_score_manengis": 4.9,
-    "vix": 15.74,
+    "risk_score_manengis": 0.0,
+    "vix": 15.67,
     "vix_ts": "contango_normal",
-    "cot_sesgo": "bajista"
-  }
+    "cot_sesgo": "sin_datos",
+    "semaforo": "verde",
+    "regimen": "tendencia_alcista"
+  },
+  "ts": "2026-06-05T12:11:18Z"
 }

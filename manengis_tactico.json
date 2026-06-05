@@ -1,23 +1,23 @@
 {
   "version": "2.4",
-  "generado": "2026-06-05T06:35:37+00:00",
+  "generado": "2026-06-05T12:11:18+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
     "precio_qqq": 740.61,
     "precio_ndx": 30407.8105,
-    "vix": 15.4,
+    "vix": 15.67,
     "rsi": 64.85,
     "ema20": 718.89,
     "ema50": 682.47,
     "atr14": 10.18,
     "roc5d": 0.68,
-    "vix3m": 19.76,
-    "vix_ts_ratio": 0.7794,
+    "vix3m": 19.23,
+    "vix_ts_ratio": 0.8149,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
-    "cot_lev_net": -51679,
-    "cot_sesgo": "alcista",
+    "cot_lev_net": null,
+    "cot_sesgo": "sin_datos",
     "breadth_pct_ema20": 50.0,
     "breadth_pct_ema50": 100.0,
     "breadth_divergencia": false,
@@ -46,36 +46,19 @@
     "roc5d": 0.68
   },
   "vix_term_structure": {
-    "vix": 15.4,
-    "vix3m": 19.76,
-    "ratio": 0.7794,
-    "spread": 4.36,
+    "vix": 15.67,
+    "vix3m": 19.23,
+    "ratio": 0.8149,
+    "spread": 3.56,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (15.4) < VIX3M (19.76): contango_normal"
+    "descripcion": "VIX (15.67) < VIX3M (19.23): contango_normal"
   },
   "cot": {
-    "fecha_reporte": "2026-05-26",
-    "leveraged_long": 52861,
-    "leveraged_short": 104540,
-    "leveraged_net": -51679,
-    "leveraged_net_prev": -45371,
-    "asset_manager_long": 117374,
-    "asset_manager_short": 32311,
-    "asset_manager_net": 85063,
-    "pct_largo": 33.6,
-    "sesgo": "alcista",
-    "descripcion": "Leveraged Money corto neto 51,679 contratos en NQ. Sesgo: ALCISTA."
+    "error": "No disponible"
   },
   "cot_vix": {
-    "fecha_reporte": "2026-05-26",
-    "nc_long": 65926,
-    "nc_short": 115262,
-    "neto": -49336,
-    "neto_prev": -51904,
-    "pct_largo": 36.4,
-    "senal": "alcista",
-    "descripcion": "Leveraged Money cortos netos en VIX: 49,336 contratos. Senal: ALCISTA."
+    "error": "No disponible"
   },
   "breadth": {
     "tickers_validos": 6,
@@ -181,7 +164,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX -4.05% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX -0.63% (3 dias)."
   },
   "fred": {
     "score": -1,
@@ -270,13 +253,13 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-05T06:35:37+00:00",
+    "generado": "2026-06-05T12:11:18+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.74,
       "rsi": 64.85,
-      "vix": 15.4,
-      "vix_change_3d_pct": -4.05,
+      "vix": 15.67,
+      "vix_change_3d_pct": -0.63,
       "roc5d": 0.68,
       "breadth_pct": 100.0
     },
@@ -566,7 +549,7 @@
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
       "precio_qqq": 740.61,
-      "vix": 15.4
+      "vix": 15.67
     }
   ],
   "sentimiento": {
@@ -584,5 +567,8 @@
   "barrida_estructural": {
     "nivel_barrida": 558.28,
     "zona_barrida": false
+  },
+  "pcr": {
+    "error": "pcr_cboe: 403 Client Error: Forbidden for url: https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv"
   }
 }
