@@ -143,39 +143,53 @@ def _find_col(df, *keywords):
     return None
 
 def cot_nq():
-    """COT NQ Futures desde ZIP semanal CFTC."""
+    """
+    COT NQ Futures desde ZIP financiero CFTC (fut_fin_xls).
+    Columnas del XLS financiero: Lev_Money_* y Asset_Mgr_*
+    Fecha: Report_Date_as_MM_DD_YYYY
+    """
     df = _cot_from_zip()
     if df is None:
         return {"error": "No disponible"}
 
-    # Encontrar columnas de forma flexible
-    col_market = _find_col(df, "Market", "Exchange")
-    col_fecha  = _find_col(df, "Report", "Date") or _find_col(df, "As", "of", "Date") or _find_col(df, "Date")
-    col_nc_l   = _find_col(df, "NonComm", "Long")  or _find_col(df, "Noncommercial", "Long")
-    col_nc_s   = _find_col(df, "NonComm", "Short") or _find_col(df, "Noncommercial", "Short")
-    col_c_l    = _find_col(df, "Comm", "Long")  or _find_col(df, "Commercial", "Long")
-    col_c_s    = _find_col(df, "Comm", "Short") or _find_col(df, "Commercial", "Short")
+    # Columnas exactas del archivo fut_fin_xls (Financial Futures)
+    col_market = "Market_and_Exchange_Names"
+    col_fecha  = "Report_Date_as_MM_DD_YYYY"
+    col_lev_l  = "Lev_Money_Positions_Long_All"
+    col_lev_s  = "Lev_Money_Positions_Short_All"
+    col_am_l   = "Asset_Mgr_Positions_Long_All"
+    col_am_s   = "Asset_Mgr_Positions_Short_All"
 
-    print(f"  cot_nq cols: market={col_market} fecha={col_fecha} nc_l={col_nc_l} nc_s={col_nc_s}")
+    # Fallback flexible por si el nombre cambia ligeramente
+    if col_lev_l not in df.columns:
+        col_lev_l = _find_col(df, "Lev", "Long") or _find_col(df, "Leveraged", "Long")
+    if col_lev_s not in df.columns:
+        col_lev_s = _find_col(df, "Lev", "Short") or _find_col(df, "Leveraged", "Short")
+    if col_am_l not in df.columns:
+        col_am_l = _find_col(df, "Asset", "Long")
+    if col_am_s not in df.columns:
+        col_am_s = _find_col(df, "Asset", "Short")
 
-    if not all([col_market, col_fecha, col_nc_l, col_nc_s]):
-        return {"error": f"Columnas no encontradas. Disponibles: {list(df.columns)[:10]}"}
+    print(f"  cot_nq: lev_l={col_lev_l} lev_s={col_lev_s} fecha={col_fecha}")
+
+    if not col_lev_l or not col_lev_s or col_market not in df.columns:
+        return {"error": f"Columnas no encontradas. Cols: {list(df.columns)[:8]}"}
 
     mask = df[col_market].astype(str).str.contains("NASDAQ MINI", na=False, case=False)
     sub  = df[mask].copy()
     if sub.empty:
-        return {"error": "NQ no encontrado"}
+        return {"error": "NQ no encontrado en ZIP"}
 
-    sub["fecha"] = pd.to_datetime(sub[col_fecha], errors="coerce")
-    sub = sub.sort_values("fecha", ascending=False).reset_index(drop=True)
+    sub["_fecha"] = pd.to_datetime(sub[col_fecha], errors="coerce", dayfirst=False)
+    sub = sub.sort_values("_fecha", ascending=False).reset_index(drop=True)
     c = sub.iloc[0]; p = sub.iloc[1] if len(sub)>1 else sub.iloc[0]
 
-    ll  = int(c.get(col_nc_l, 0) or 0)
-    ls  = int(c.get(col_nc_s, 0) or 0)
-    al  = int(c.get(col_c_l, 0) or 0) if col_c_l else 0
-    as_ = int(c.get(col_c_s, 0) or 0) if col_c_s else 0
-    ll_p = int(p.get(col_nc_l, 0) or 0)
-    ls_p = int(p.get(col_nc_s, 0) or 0)
+    ll  = int(c.get(col_lev_l, 0) or 0)
+    ls  = int(c.get(col_lev_s, 0) or 0)
+    al  = int(c.get(col_am_l,  0) or 0) if col_am_l else 0
+    as_ = int(c.get(col_am_s,  0) or 0) if col_am_s else 0
+    ll_p = int(p.get(col_lev_l, 0) or 0)
+    ls_p = int(p.get(col_lev_s, 0) or 0)
 
     neto      = ll - ls
     neto_prev = ll_p - ls_p
@@ -192,52 +206,64 @@ def cot_nq():
         "asset_manager_net":  al - as_,
         "pct_largo": pct, "sesgo": sesgo,
         "descripcion": (
-            f"Non-Commercial {'corto' if neto<0 else 'largo'} "
+            f"Leveraged Money {'corto' if neto<0 else 'largo'} "
             f"neto {abs(neto):,} contratos en NQ. Sesgo: {sesgo.upper()}."
         )
     }
 
 def cot_vix():
-    """COT VIX Futures (1170E1) desde ZIP semanal CFTC."""
+    """
+    COT VIX Futures (codigo 1170E1) desde ZIP financiero CFTC.
+    Usa Lev_Money_* como proxy de especuladores en VIX.
+    Logica INVERSA al NQ: cortos en VIX = alcista para el mercado.
+    """
     df = _cot_from_zip()
     if df is None:
         return {"error": "No disponible"}
 
-    col_market = _find_col(df, "Market", "Exchange")
-    col_codigo = _find_col(df, "CFTC", "Contract", "Market", "Code") or _find_col(df, "Contract", "Code")
-    col_fecha  = _find_col(df, "Report", "Date") or _find_col(df, "As", "of", "Date") or _find_col(df, "Date")
-    col_nc_l   = _find_col(df, "NonComm", "Long")  or _find_col(df, "Noncommercial", "Long")
-    col_nc_s   = _find_col(df, "NonComm", "Short") or _find_col(df, "Noncommercial", "Short")
+    col_market = "Market_and_Exchange_Names"
+    col_codigo = "CFTC_Contract_Market_Code"
+    col_fecha  = "Report_Date_as_MM_DD_YYYY"
+    col_lev_l  = "Lev_Money_Positions_Long_All"
+    col_lev_s  = "Lev_Money_Positions_Short_All"
 
-    if not all([col_market, col_fecha, col_nc_l, col_nc_s]):
-        return {"error": "Columnas VIX no encontradas"}
+    if col_lev_l not in df.columns:
+        col_lev_l = _find_col(df, "Lev", "Long") or _find_col(df, "Leveraged", "Long")
+    if col_lev_s not in df.columns:
+        col_lev_s = _find_col(df, "Lev", "Short") or _find_col(df, "Leveraged", "Short")
 
-    # Probar por codigo de contrato 1170E1
+    if not col_lev_l or not col_lev_s:
+        return {"error": f"Columnas VIX no encontradas. Cols: {list(df.columns)[:8]}"}
+
+    # Filtrar por codigo 1170E1 o por nombre
     mask = None
-    if col_codigo:
+    if col_codigo in df.columns:
         mask = (df[col_codigo].astype(str).str.strip() == "1170E1")
+    if mask is None or not df[mask].empty if mask is not None else True:
+        pass
     if mask is None or not mask.any():
-        # Fallback por nombre
-        mask = df[col_market].astype(str).str.contains("VIX FUTURES", na=False, case=False) | \
-               df[col_market].astype(str).str.contains("CBOE VIX", na=False, case=False)
+        mask = (df[col_market].astype(str).str.contains("VIX", na=False, case=False) &
+                df[col_market].astype(str).str.contains("CBOE", na=False, case=False))
+    if not mask.any():
+        mask = df[col_market].astype(str).str.contains("VIX", na=False, case=False)
+
     sub = df[mask].copy()
     if sub.empty:
         return {"error": "VIX no encontrado en ZIP"}
 
-    sub["fecha"] = pd.to_datetime(sub[col_fecha], errors="coerce")
-    sub = sub.sort_values("fecha", ascending=False).reset_index(drop=True)
+    sub["_fecha"] = pd.to_datetime(sub[col_fecha], errors="coerce", dayfirst=False)
+    sub = sub.sort_values("_fecha", ascending=False).reset_index(drop=True)
     c = sub.iloc[0]; p = sub.iloc[1] if len(sub)>1 else sub.iloc[0]
 
-    nl   = int(c.get(col_nc_l, 0) or 0)
-    ns   = int(c.get(col_nc_s, 0) or 0)
-    nl_p = int(p.get(col_nc_l, 0) or 0)
-    ns_p = int(p.get(col_nc_s, 0) or 0)
+    nl   = int(c.get(col_lev_l, 0) or 0)
+    ns   = int(c.get(col_lev_s, 0) or 0)
+    nl_p = int(p.get(col_lev_l, 0) or 0)
+    ns_p = int(p.get(col_lev_s, 0) or 0)
 
     neto      = nl - ns
     neto_prev = nl_p - ns_p
     pct  = round(nl/(nl+ns)*100,1) if (nl+ns)>0 else 50
-    senal = "alcista" if (neto<-20000 or pct<48) else \
-            "bajista" if (neto>20000  or pct>52) else "neutro"
+    senal = "alcista" if (neto<-20000 or pct<48) else             "bajista" if (neto>20000  or pct>52) else "neutro"
 
     return {
         "fecha_reporte": str(c.get(col_fecha, ""))[:10],
@@ -245,7 +271,7 @@ def cot_vix():
         "neto": neto, "neto_prev": neto_prev,
         "pct_largo": pct, "senal": senal,
         "descripcion": (
-            f"Non-Commercial {'cortos' if neto<0 else 'largos'} "
+            f"Leveraged Money {'cortos' if neto<0 else 'largos'} "
             f"netos en VIX: {abs(neto):,} contratos. Senal: {senal.upper()}."
         )
     }
