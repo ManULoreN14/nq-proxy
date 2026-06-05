@@ -39,10 +39,12 @@ jobs:
           echo "=== manengis_tactico.json primeras líneas ==="
           head -5 manengis_tactico.json
 
-      - name: Ejecutar radar_builder.py
+      - name: Ejecutar actualizar_radar.py
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           set -e
-          python radar_builder.py
+          python actualizar_radar.py --nogit
           echo "=== datos_radar.json primeras líneas ==="
           head -5 datos_radar.json
 
