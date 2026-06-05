@@ -129,7 +129,11 @@ def _cot_from_zip():
                 df = pd.read_csv(io.BytesIO(raw), encoding="latin-1", low_memory=False)
         # Normalizar nombres de columnas: espacios y guiones -> guiones_bajos
         df.columns = [c.strip().replace(" ","_").replace("-","_") for c in df.columns]
-        print(f"  CFTC ZIP OK: {len(df)} filas, cols fecha: {[c for c in df.columns if 'Date' in c or 'date' in c]}")
+        # Log de columnas clave para diagnóstico (Leveraged, Dealer, Asset)
+        cols_inst = [c for c in df.columns if any(k in c for k in
+                     ("Leveraged","Lev_Money","Dealer","Asset_Mgr","Asset_Manager"))]
+        print(f"  CFTC ZIP OK: {len(df)} filas")
+        print(f"  CFTC cols institucionales: {cols_inst[:10]}")
         return df
     except Exception as e:
         print(f"  ! CFTC ZIP: {e}")
@@ -145,35 +149,85 @@ def _find_col(df, *keywords):
 def cot_nq():
     """
     COT NQ Futures desde ZIP financiero CFTC (fut_fin_xls).
-    Columnas del XLS financiero: Lev_Money_* y Asset_Mgr_*
+    El ZIP 'Traders in Financial Futures' usa estas columnas reales:
+      - Leveraged_Funds_Positions_Long_All  / _Short_All  (especuladores)
+      - Asset_Mgr_Positions_Long_All        / _Short_All  (gestoras)
+      - Dealer_Positions_Long_All           / _Short_All  (dealers/smart money)
     Fecha: Report_Date_as_MM_DD_YYYY
     """
     df = _cot_from_zip()
     if df is None:
         return {"error": "No disponible"}
 
-    # Columnas exactas del archivo fut_fin_xls (Financial Futures)
     col_market = "Market_and_Exchange_Names"
     col_fecha  = "Report_Date_as_MM_DD_YYYY"
-    col_lev_l  = "Lev_Money_Positions_Long_All"
-    col_lev_s  = "Lev_Money_Positions_Short_All"
-    col_am_l   = "Asset_Mgr_Positions_Long_All"
-    col_am_s   = "Asset_Mgr_Positions_Short_All"
 
-    # Fallback flexible por si el nombre cambia ligeramente
-    if col_lev_l not in df.columns:
-        col_lev_l = _find_col(df, "Lev", "Long") or _find_col(df, "Leveraged", "Long")
-    if col_lev_s not in df.columns:
-        col_lev_s = _find_col(df, "Lev", "Short") or _find_col(df, "Leveraged", "Short")
-    if col_am_l not in df.columns:
+    # ── Leveraged Funds (Large Speculators: hedge funds, CTAs) ───────────────
+    # Nombres reales en el ZIP financiero CFTC 2024-2026:
+    col_lev_l = None
+    col_lev_s = None
+    for candidate in [
+        "Leveraged_Funds_Positions_Long_All",   # nombre real confirmado
+        "Lev_Money_Positions_Long_All",          # nombre alternativo antiguo
+    ]:
+        if candidate in df.columns:
+            col_lev_l = candidate
+            break
+    for candidate in [
+        "Leveraged_Funds_Positions_Short_All",
+        "Lev_Money_Positions_Short_All",
+    ]:
+        if candidate in df.columns:
+            col_lev_s = candidate
+            break
+    # Fallback genérico si los nombres exactos no aparecen
+    if not col_lev_l:
+        col_lev_l = _find_col(df, "Leveraged", "Long") or _find_col(df, "Lev", "Long")
+    if not col_lev_s:
+        col_lev_s = _find_col(df, "Leveraged", "Short") or _find_col(df, "Lev", "Short")
+
+    # ── Asset Manager / Institutional ────────────────────────────────────────
+    col_am_l = None
+    col_am_s = None
+    for candidate in ["Asset_Mgr_Positions_Long_All", "Asset_Manager_Positions_Long_All"]:
+        if candidate in df.columns:
+            col_am_l = candidate
+            break
+    for candidate in ["Asset_Mgr_Positions_Short_All", "Asset_Manager_Positions_Short_All"]:
+        if candidate in df.columns:
+            col_am_s = candidate
+            break
+    if not col_am_l:
         col_am_l = _find_col(df, "Asset", "Long")
-    if col_am_s not in df.columns:
+    if not col_am_s:
         col_am_s = _find_col(df, "Asset", "Short")
 
-    print(f"  cot_nq: lev_l={col_lev_l} lev_s={col_lev_s} fecha={col_fecha}")
+    # ── Dealer / Intermediary (Smart Money) ──────────────────────────────────
+    col_dl_l = None
+    col_dl_s = None
+    for candidate in ["Dealer_Positions_Long_All", "Dealer_Intermediary_Positions_Long_All"]:
+        if candidate in df.columns:
+            col_dl_l = candidate
+            break
+    for candidate in ["Dealer_Positions_Short_All", "Dealer_Intermediary_Positions_Short_All"]:
+        if candidate in df.columns:
+            col_dl_s = candidate
+            break
+    if not col_dl_l:
+        col_dl_l = _find_col(df, "Dealer", "Long")
+    if not col_dl_s:
+        col_dl_s = _find_col(df, "Dealer", "Short")
+
+    # ── Diagnóstico en log para debugging futuro ──────────────────────────────
+    print(f"  cot_nq cols → lev_l={col_lev_l} | lev_s={col_lev_s}")
+    print(f"               am_l={col_am_l}  | am_s={col_am_s}")
+    print(f"               dl_l={col_dl_l}  | dl_s={col_dl_s}")
+    if not col_lev_l or not col_lev_s:
+        # Volcar todas las columnas para diagnóstico
+        print(f"  cot_nq TODAS LAS COLS: {list(df.columns)}")
 
     if not col_lev_l or not col_lev_s or col_market not in df.columns:
-        return {"error": f"Columnas no encontradas. Cols: {list(df.columns)[:8]}"}
+        return {"error": f"Columnas Leveraged Funds no encontradas. Cols disponibles: {list(df.columns)[:12]}"}
 
     mask = df[col_market].astype(str).str.contains("NASDAQ MINI", na=False, case=False)
     sub  = df[mask].copy()
@@ -184,17 +238,23 @@ def cot_nq():
     sub = sub.sort_values("_fecha", ascending=False).reset_index(drop=True)
     c = sub.iloc[0]; p = sub.iloc[1] if len(sub)>1 else sub.iloc[0]
 
-    ll  = int(c.get(col_lev_l, 0) or 0)
-    ls  = int(c.get(col_lev_s, 0) or 0)
-    al  = int(c.get(col_am_l,  0) or 0) if col_am_l else 0
-    as_ = int(c.get(col_am_s,  0) or 0) if col_am_s else 0
+    ll   = int(c.get(col_lev_l, 0) or 0)
+    ls   = int(c.get(col_lev_s, 0) or 0)
+    al   = int(c.get(col_am_l,  0) or 0) if col_am_l else 0
+    as_  = int(c.get(col_am_s,  0) or 0) if col_am_s else 0
+    dl   = int(c.get(col_dl_l,  0) or 0) if col_dl_l else 0
+    ds   = int(c.get(col_dl_s,  0) or 0) if col_dl_s else 0
     ll_p = int(p.get(col_lev_l, 0) or 0)
     ls_p = int(p.get(col_lev_s, 0) or 0)
 
     neto      = ll - ls
     neto_prev = ll_p - ls_p
     pct  = round(ll/(ll+ls)*100,1) if (ll+ls)>0 else 50
+    # Sesgo contrario: <35% largos = specs muy cortos = señal ALCISTA contraria
+    #                  >65% largos = specs muy largos = señal BAJISTA contraria
     sesgo = "bajista" if pct>65 else "alcista" if pct<35 else "neutro"
+
+    print(f"  cot_nq resultado: lev_long={ll:,} lev_short={ls:,} neto={neto:,} pct={pct}% sesgo={sesgo}")
 
     return {
         "fecha_reporte":      str(c.get(col_fecha, ""))[:10],
@@ -202,12 +262,15 @@ def cot_nq():
         "leveraged_short":    ls,
         "leveraged_net":      neto,
         "leveraged_net_prev": neto_prev,
-        "asset_manager_long": al, "asset_manager_short": as_,
+        "asset_manager_long": al,  "asset_manager_short": as_,
         "asset_manager_net":  al - as_,
+        "dealer_long":        dl,  "dealer_short": ds,
+        "dealer_net":         dl - ds,
         "pct_largo": pct, "sesgo": sesgo,
         "descripcion": (
-            f"Leveraged Money {'corto' if neto<0 else 'largo'} "
-            f"neto {abs(neto):,} contratos en NQ. Sesgo: {sesgo.upper()}."
+            f"Leveraged Funds {'corto' if neto<0 else 'largo'} "
+            f"neto {abs(neto):,} contratos en NQ. Sesgo: {sesgo.upper()}. "
+            f"({pct}% largos · Dealers neto {dl-ds:+,})"
         )
     }
 
@@ -224,16 +287,27 @@ def cot_vix():
     col_market = "Market_and_Exchange_Names"
     col_codigo = "CFTC_Contract_Market_Code"
     col_fecha  = "Report_Date_as_MM_DD_YYYY"
-    col_lev_l  = "Lev_Money_Positions_Long_All"
-    col_lev_s  = "Lev_Money_Positions_Short_All"
 
-    if col_lev_l not in df.columns:
-        col_lev_l = _find_col(df, "Lev", "Long") or _find_col(df, "Leveraged", "Long")
-    if col_lev_s not in df.columns:
-        col_lev_s = _find_col(df, "Lev", "Short") or _find_col(df, "Leveraged", "Short")
+    # Nombres reales del ZIP financiero CFTC (mismo fix que cot_nq)
+    col_lev_l = None
+    col_lev_s = None
+    for candidate in ["Leveraged_Funds_Positions_Long_All", "Lev_Money_Positions_Long_All"]:
+        if candidate in df.columns:
+            col_lev_l = candidate
+            break
+    for candidate in ["Leveraged_Funds_Positions_Short_All", "Lev_Money_Positions_Short_All"]:
+        if candidate in df.columns:
+            col_lev_s = candidate
+            break
+    if not col_lev_l:
+        col_lev_l = _find_col(df, "Leveraged", "Long") or _find_col(df, "Lev", "Long")
+    if not col_lev_s:
+        col_lev_s = _find_col(df, "Leveraged", "Short") or _find_col(df, "Lev", "Short")
+
+    print(f"  cot_vix cols → lev_l={col_lev_l} | lev_s={col_lev_s}")
 
     if not col_lev_l or not col_lev_s:
-        return {"error": f"Columnas VIX no encontradas. Cols: {list(df.columns)[:8]}"}
+        return {"error": f"Columnas VIX no encontradas. Cols: {list(df.columns)[:12]}"}
 
     # Estrategia de filtrado en cascada:
     # 1) Codigo de contrato 1170E1 (lo mas fiable)
