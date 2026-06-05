@@ -1,6 +1,6 @@
 {
   "version": "2.4",
-  "generado": "2026-06-05T21:29:40+00:00",
+  "generado": "2026-06-05T22:42:42+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
@@ -16,8 +16,8 @@
     "vix_ts_ratio": 0.9858,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_tenso",
-    "cot_lev_net": null,
-    "cot_sesgo": "sin_datos",
+    "cot_lev_net": -53650,
+    "cot_sesgo": "alcista",
     "breadth_pct_ema20": 14.3,
     "breadth_pct_ema50": 42.9,
     "breadth_divergencia": true,
@@ -55,10 +55,30 @@
     "descripcion": "VIX (21.51) < VIX3M (21.82): contango_tenso"
   },
   "cot": {
-    "error": "No disponible"
+    "fecha_reporte": "2026-06-02",
+    "leveraged_long": 57156,
+    "leveraged_short": 110806,
+    "leveraged_net": -53650,
+    "leveraged_net_prev": -51679,
+    "asset_manager_long": 116161,
+    "asset_manager_short": 37070,
+    "asset_manager_net": 79091,
+    "dealer_long": 73912,
+    "dealer_short": 104591,
+    "dealer_net": -30679,
+    "pct_largo": 34.0,
+    "sesgo": "alcista",
+    "descripcion": "Leveraged Funds corto neto 53,650 contratos en NQ. Sesgo: ALCISTA. (34.0% largos · Dealers neto -30,679)"
   },
   "cot_vix": {
-    "error": "No disponible"
+    "fecha_reporte": "2026-06-02",
+    "nc_long": 80763,
+    "nc_short": 113796,
+    "neto": -33033,
+    "neto_prev": -49336,
+    "pct_largo": 41.5,
+    "senal": "alcista",
+    "descripcion": "Leveraged Money cortos netos en VIX: 33,033 contratos. Senal: ALCISTA."
   },
   "breadth": {
     "tickers_validos": 7,
@@ -186,7 +206,7 @@
     "fedfunds": {
       "valor": 3.62,
       "anterior": 3.62,
-      "fecha": "2026-06-05"
+      "fecha": "2026-06-06"
     },
     "us2y": {
       "valor": 4.05,
@@ -265,7 +285,7 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-05T21:29:40+00:00",
+    "generado": "2026-06-05T22:42:42+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -5.51,
@@ -555,6 +575,16 @@
     },
     {
       "fecha": "2026-06-05",
+      "risk_score": 0.5,
+      "fear_greed_score": 12.0,
+      "regimen_mercado": "lateral",
+      "exposicion_semaforo": "verde",
+      "exposicion_pct": 80,
+      "precio_qqq": 705.06,
+      "vix": 21.51
+    },
+    {
+      "fecha": "2026-06-06",
       "risk_score": 0.5,
       "fear_greed_score": 12.0,
       "regimen_mercado": "lateral",
