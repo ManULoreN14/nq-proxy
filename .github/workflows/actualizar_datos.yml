@@ -1,54 +1,50 @@
-name: Actualizar datos de mercado
+name: Actualizar datos NQ
 
 on:
   schedule:
-    - cron: '15 20 * * 1-5'   # L-V 20:15 UTC = 22:15 Madrid
-  workflow_dispatch:
+    # L-V 22:15 hora de Madrid (21:15 UTC en verano / 20:15 UTC en invierno)
+    # Usamos 21:15 UTC para cubrir horario de verano (CEST = UTC+2)
+    - cron: '15 21 * * 1-5'
+  workflow_dispatch:   # permite lanzar manualmente desde GitHub
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # Obj-3: suprimir advertencia Node.js 24
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     permissions:
-      contents: write
+      contents: write    # necesario para git push
 
     steps:
-      - name: Checkout del repo
+      - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configurar Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Instalar dependencias
-        run: pip install yfinance requests pandas numpy xlrd openpyxl -q
+        run: |
+          pip install --upgrade pip
+          pip install yfinance requests pandas numpy
 
-      - name: Ejecutar motor MANENGIS
+      - name: Ejecutar motor_manengis.py
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python motor_manengis.py
 
-      - name: Verificar JSON generado
-        run: |
-          python -c "
-          import json
-          with open('manengis_tactico.json') as f:
-              d = json.load(f)
-          gen  = d.get('generado','?')
-          qqq  = d.get('variables_crudas',{}).get('precio_qqq','?')
-          vix  = d.get('variables_crudas',{}).get('vix','?')
-          ff   = d.get('fred',{}).get('fedfunds',{}).get('valor','?')
-          cot  = d.get('cot',{}).get('fecha_reporte','?')
-          risk = d.get('risk_compuesto',{}).get('valor','?')
-          print(f'OK | QQQ={qqq} VIX={vix} FF={ff}% COT={cot} Risk={risk}')
-          "
+      - name: Ejecutar radar_builder.py
+        run: python radar_builder.py
 
-      - name: Commit y push del JSON actualizado
+      - name: Commit y push de los JSON
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manengis_tactico.json
-          git diff --staged --quiet || git commit -m "auto: datos $(date -u +%Y-%m-%d\ %H:%M\ UTC)"
+          git add manengis_tactico.json datos_radar.json
+          # Solo hace commit si hay cambios reales
+          git diff --cached --quiet || git commit -m "data: actualización automática $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
