@@ -1,6 +1,6 @@
 {
   "version": "7.0-fase7",
-  "ts": "2026-06-06T10:52:08.918480",
+  "ts": "2026-06-06T11:21:33.250135",
   "precio": {
     "ndx": 28957.5996,
     "qqq": 705.06,
@@ -1025,7 +1025,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (81% similitud). Contexto: VIX=21.5, RSI=48. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-06T10:50:39.625220"
+    "ts_calculo": "2026-06-06T11:21:33.230061"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001444,
@@ -1042,9 +1042,9 @@
     "fuente": "fase5_amplitud_v5",
     "error": null,
     "ndx100_breadth": {
-      "error": "sin_datos",
       "senal": "neutro",
-      "score": 0.0
+      "score": 0.0,
+      "error": "saltado_noinstitucional"
     }
   },
   "cta_levels": {
@@ -1062,15 +1062,8 @@
     "error": null
   },
   "sec_insiders": {
-    "compras_90d": 8,
-    "ventas_90d": 0,
-    "ratio": 8.0,
-    "empresas_ok": 8,
-    "senal": "alcista",
-    "desc": "Insiders Big Tech acumulando - 8 compras vs 0 ventas (90d)",
-    "fuente": "sec_edgar_form4",
-    "nota": "Datos con retraso de hasta 2 dias habiles (normativa SEC)",
-    "error": null
+    "senal": "neutro",
+    "error": "saltado_noinstitucional"
   },
   "fase_activa": 7,
   "proximas_fases": "Fase8=SEC_13F_Form4_Completo+PBoC_Directo"
