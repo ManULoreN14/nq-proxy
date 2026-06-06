@@ -2323,6 +2323,33 @@ def calcular_opciones_qqq(precios: dict) -> dict:
         if gamma_flip_level is not None and precio_qqq:
             dist_gamma_flip_pct = round((gamma_flip_level - precio_qqq) / precio_qqq * 100, 2)
 
+        # ── LECTURA DE GEX MANUAL (gex_manual.json) ───────────────────────
+        # Si existe gex_manual.json (generado por gex_parser.py), lo usa
+        # como fuente primaria, sobreescribiendo el calculado por yfinance.
+        gex_manual_path = SCRIPT_DIR / "gex_manual.json"
+        try:
+            if gex_manual_path.exists():
+                with open(gex_manual_path, "r") as _f:
+                    _gm = json.load(_f)
+                # Solo usar si se generó hace menos de 24h
+                _gen = _gm.get("generado", "")
+                if _gen:
+                    from datetime import timezone as _tz
+                    _dt = datetime.datetime.fromisoformat(_gen.replace("Z",""))
+                    _age_h = (datetime.datetime.now() - _dt).total_seconds() / 3600
+                else:
+                    _age_h = 0
+                if _age_h < 24:
+                    gex_real_total   = _gm.get("valor_total")             # en dólares
+                    gamma_flip_level = _gm.get("gamma_flip_level")
+                    dist_gamma_flip_pct = _gm.get("dist_gamma_flip_pct")
+                    fuente_gex = "gex_parser_local"
+                    log.info(f"  [GEX] Cargado desde gex_manual.json | total={gex_real_total} | flip={gamma_flip_level} | generado hace {_age_h:.1f}h")
+                else:
+                    log.info(f"  [GEX] gex_manual.json demasiado antiguo ({_age_h:.1f}h > 24h), usando yfinance")
+        except Exception as _e:
+            log.warning(f"  [GEX] No se pudo leer gex_manual.json: {_e}")
+
         gex_real_dict = {
             "valor_total":        gex_real_total,
             "gamma_flip_level":   gamma_flip_level,
