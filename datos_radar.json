@@ -1,6 +1,6 @@
 {
   "version": "7.0-fase7",
-  "ts": "2026-06-06T12:52:02.934870",
+  "ts": "2026-06-06T13:03:28.804298",
   "precio": {
     "ndx": 28957.5996,
     "qqq": 705.06,
@@ -1025,7 +1025,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (81% similitud). Contexto: VIX=21.5, RSI=48. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-06T12:49:48.860548"
+    "ts_calculo": "2026-06-06T12:57:53.768190"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001444,
@@ -1063,79 +1063,79 @@
   },
   "sec_insiders": {
     "compras_90d": 0,
-    "ventas_90d": 0,
+    "ventas_90d": 363,
     "shares_compradas": 0,
-    "shares_vendidas": 0,
+    "shares_vendidas": 3950592,
     "ratio": 0.0,
     "empresas_ok": 8,
-    "senal": "neutro",
-    "desc": "Sin transacciones de insiders detectadas en 90d",
+    "senal": "bajista",
+    "desc": "Insiders Big Tech vendiendo — 363 ventas vs 0 compras (90d) · 3,950,592 acc vendidas",
     "fuente": "sec_edgar_form4_api",
     "nota": "Datos con retraso de hasta 2 dias habiles (normativa SEC). Solo transacciones P (compra) y S (venta) en mercado abierto.",
     "detalle": [
       {
         "ticker": "AAPL",
-        "forms": 0,
+        "forms": 10,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 13,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 397759
       },
       {
         "ticker": "MSFT",
-        "forms": 0,
+        "forms": 15,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 3,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 29083
       },
       {
         "ticker": "NVDA",
-        "forms": 0,
+        "forms": 17,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 43,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 1927857
       },
       {
         "ticker": "AMZN",
-        "forms": 0,
+        "forms": 24,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 37,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 195774
       },
       {
         "ticker": "META",
-        "forms": 0,
+        "forms": 43,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 91,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 43269
       },
       {
         "ticker": "GOOGL",
-        "forms": 0,
+        "forms": 43,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 48,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 193118
       },
       {
         "ticker": "TSLA",
-        "forms": 0,
+        "forms": 6,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 33,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 57482
       },
       {
         "ticker": "AVGO",
-        "forms": 0,
+        "forms": 18,
         "compras": 0,
-        "ventas": 0,
+        "ventas": 95,
         "sh_compras": 0,
-        "sh_ventas": 0
+        "sh_ventas": 1106249
       }
     ],
     "error": null
