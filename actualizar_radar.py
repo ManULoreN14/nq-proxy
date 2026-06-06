@@ -572,9 +572,33 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
 def calcular_sec_insiders() -> dict:
     """
     Descarga Form 4 (insider transactions) de las 8 principales Big Tech
-    via sec-edgar-downloader. Ratio compras/ventas de directivos 90 dias.
+    via API REST publica de SEC EDGAR (sin dependencias externas).
+
+    Flujo por empresa:
+      1. GET https://data.sec.gov/submissions/CIK{cik}.json
+         → lista de filings recientes con tipo, fecha y accessionNumber
+      2. Para cada Form 4 en los ultimos 90 dias:
+         GET https://www.sec.gov/Archives/edgar/data/{cik}/{accn}/{accn}.xml
+         → parsear <transactionCode>: P=compra, S=venta
+         → parsear <transactionShares> para sumar volumen real
+      3. Agregar compras/ventas totales y calcular ratio
+
+    Codigos Form 4 relevantes:
+      P  = Purchase (compra en mercado abierto) — señal positiva FUERTE
+      S  = Sale (venta en mercado abierto)      — señal negativa
+      A  = Award/Grant de acciones              — ignorar (no es dinero propio)
+      F  = Retencion para impuestos             — ignorar
+      M  = Ejercicio de opciones                — ignorar
+      G/D/C/W/X/Z                               — ignorar
+
     NOTA: Datos con retraso de hasta 2 dias habiles (normativa SEC).
+    Fuente: https://data.sec.gov/submissions/ (API publica, sin autenticacion)
     """
+    import requests as _req
+    import xml.etree.ElementTree as ET
+    import time as _time
+    from datetime import datetime as dt_cls, timedelta
+
     BIG_TECH = {
         "AAPL":  "0000320193",
         "MSFT":  "0000789019",
@@ -585,62 +609,269 @@ def calcular_sec_insiders() -> dict:
         "TSLA":  "0001318605",
         "AVGO":  "0001730168",
     }
+
+    # User-Agent obligatorio segun politica de la SEC
+    HEADERS = {
+        "User-Agent":      "NQRadar nqradar@example.com",
+        "Accept-Encoding": "gzip, deflate",
+        "Accept":          "application/json, text/xml, */*",
+    }
+    TIMEOUT     = 15
+    DELAY_S     = 0.12   # SEC pide max ~10 req/s; 0.12s = ~8 req/s, conservador
+    fecha_limite = (dt_cls.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+
+    compras_total  = 0   # transacciones tipo P (dinero propio)
+    ventas_total   = 0   # transacciones tipo S (venta en mercado)
+    shares_compras = 0   # acciones compradas (volumen)
+    shares_ventas  = 0   # acciones vendidas  (volumen)
+    empresas_ok    = 0
+    empresas_error = []
+    detalle        = []  # lista de dicts por empresa para log
+
+    def _get_json(url):
+        r = _req.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        return r.json()
+
+    def _get_xml_text(url):
+        r = _req.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        return r.text
+
+    def _parse_form4_xml(xml_text, ticker):
+        """
+        Parsea un Form 4 XML y devuelve (compras, ventas, sh_compras, sh_ventas).
+        Maneja namespaces variables del esquema SEC.
+        """
+        c = v = shc = shv = 0
+        try:
+            # El XML de Form 4 a veces tiene namespace, a veces no
+            # Normalizar quitando namespace para simplicidad
+            xml_clean = xml_text
+            if "xmlns" in xml_text:
+                import re
+                xml_clean = re.sub(r'\s*xmlns[^"]*"[^"]*"', "", xml_text)
+            root = ET.fromstring(xml_clean)
+
+            # Cada transaccion esta en <nonDerivativeTransaction> o <derivativeTransaction>
+            # Solo nos interesan las no-derivadas (acciones directas)
+            for tx in root.findall(".//nonDerivativeTransaction"):
+                code_el = tx.find(".//transactionCode")
+                if code_el is None:
+                    continue
+                code = (code_el.text or "").strip().upper()
+
+                shares_el = tx.find(".//transactionShares/value")
+                shares = 0.0
+                if shares_el is not None and shares_el.text:
+                    try:
+                        shares = float(shares_el.text.replace(",", ""))
+                    except ValueError:
+                        shares = 0.0
+
+                if code == "P":       # compra en mercado abierto
+                    c   += 1
+                    shc += shares
+                elif code == "S":     # venta en mercado abierto
+                    v   += 1
+                    shv += shares
+                # A, F, M, G, D, C, W, X, Z → ignorar
+
+        except ET.ParseError as pe:
+            log.debug("  [SEC XML] " + ticker + " parse error: " + str(pe))
+        return c, v, shc, shv
+
+    def _accn_to_path(accn):
+        """'0001234567-26-000123' → '000123456726000123' (sin guiones)"""
+        return accn.replace("-", "")
+
     try:
-        from sec_edgar_downloader import Downloader
-        from datetime import datetime as dt_cls, timedelta
-
-        dl = Downloader("NQRadar", "nqradar@example.com",
-                        str(BASE_DIR / "sec_filings"))
-
-        compras_total = 0
-        ventas_total  = 0
-        empresas_ok   = 0
-        fecha_limite  = (dt_cls.now() - timedelta(days=90)).strftime("%Y-%m-%d")
-
         for ticker, cik in BIG_TECH.items():
+            emp_compras = emp_ventas = emp_shc = emp_shv = 0
+            emp_forms_procesados = 0
             try:
-                dl.get("4", cik, after=fecha_limite, limit=20)
-                empresas_ok += 1
-                form4_dir = BASE_DIR / "sec_filings" / "sec-edgar-filings" / cik / "4"
-                if form4_dir.exists():
-                    n_forms = len(list(form4_dir.glob("**/*.txt")))
-                    if n_forms > 3:
-                        compras_total += 1
-            except Exception as e_ticker:
-                log.warning("  [SEC] " + ticker + ": " + str(e_ticker))
+                # 1. Submissions index
+                sub_url = "https://data.sec.gov/submissions/CIK" + cik + ".json"
+                sub     = _get_json(sub_url)
+                _time.sleep(DELAY_S)
+
+                recent = sub.get("filings", {}).get("recent", {})
+                forms  = recent.get("form",          [])
+                dates  = recent.get("filingDate",    [])
+                accns  = recent.get("accessionNumber", [])
+
+                # Filtrar Form 4 dentro del periodo
+                form4s = [
+                    (d, a)
+                    for f, d, a in zip(forms, dates, accns)
+                    if f == "4" and d >= fecha_limite
+                ]
+                log.info("  [SEC] " + ticker + ": " + str(len(form4s)) + " Form4 en 90d")
+
+                # 2. Descargar y parsear cada Form 4
+                # Estrategia de naming (verificado empíricamente con SEC EDGAR):
+                #   - Intento 1: form4.xml          → nombre estandar Big Tech (200 OK)
+                #   - Intento 2: wk-form4.xml       → algunos filers Workiva
+                #   - Intento 3: parsear -index.htm → fallback universal
+                # El endpoint -index.json devuelve 404 para la mayoria de filers.
+                cik_num = cik.lstrip("0")   # sin ceros iniciales para la ruta
+                for filing_date, accn in form4s:
+                    try:
+                        accn_raw = _accn_to_path(accn)
+                        base_url = (
+                            "https://www.sec.gov/Archives/edgar/data/"
+                            + cik_num + "/" + accn_raw + "/"
+                        )
+
+                        # INTENTO 1 y 2: nombres conocidos directamente
+                        xml_text = None
+                        for candidate in ["form4.xml", "wk-form4.xml"]:
+                            try:
+                                r = _req.get(
+                                    base_url + candidate,
+                                    headers=HEADERS, timeout=TIMEOUT
+                                )
+                                _time.sleep(DELAY_S)
+                                if r.status_code == 200 and len(r.content) > 100:
+                                    xml_text = r.text
+                                    break
+                            except Exception:
+                                _time.sleep(DELAY_S)
+                                continue
+
+                        # INTENTO 3: parsear -index.htm para encontrar el .xml
+                        if not xml_text:
+                            try:
+                                import re as _re
+                                htm_url = base_url + accn + "-index.htm"
+                                rh = _req.get(htm_url, headers=HEADERS, timeout=TIMEOUT)
+                                _time.sleep(DELAY_S)
+                                if rh.status_code == 200:
+                                    # Buscar hrefs que terminen en .xml
+                                    # y no sean schemas (.xsd) ni el -index
+                                    matches = _re.findall(
+                                        r'href="([^"]+\.xml)"',
+                                        rh.text, _re.IGNORECASE
+                                    )
+                                    for m in matches:
+                                        if "schema" in m.lower() or ".xsd" in m.lower():
+                                            continue
+                                        # m puede ser ruta relativa o absoluta
+                                        xml_url = m if m.startswith("http") else base_url + m.lstrip("/").split("/")[-1]
+                                        rx = _req.get(xml_url, headers=HEADERS, timeout=TIMEOUT)
+                                        _time.sleep(DELAY_S)
+                                        if rx.status_code == 200 and len(rx.content) > 100:
+                                            xml_text = rx.text
+                                            break
+                            except Exception:
+                                pass
+
+                        if not xml_text:
+                            log.debug("  [SEC] " + ticker + "/" + accn + ": XML no encontrado")
+                            continue
+
+                        c, v, shc, shv = _parse_form4_xml(xml_text, ticker)
+                        emp_compras += c
+                        emp_ventas  += v
+                        emp_shc     += shc
+                        emp_shv     += shv
+                        emp_forms_procesados += 1
+
+                    except Exception as e_form:
+                        log.debug("  [SEC] " + ticker + "/" + accn
+                                  + ": " + str(e_form))
+                        _time.sleep(DELAY_S)
+                        continue
+
+                empresas_ok   += 1
+                compras_total += emp_compras
+                ventas_total  += emp_ventas
+                shares_compras += emp_shc
+                shares_ventas  += emp_shv
+                detalle.append({
+                    "ticker":    ticker,
+                    "forms":     emp_forms_procesados,
+                    "compras":   emp_compras,
+                    "ventas":    emp_ventas,
+                    "sh_compras": round(emp_shc),
+                    "sh_ventas":  round(emp_shv),
+                })
+                log.info(
+                    "    " + ticker + ": P=" + str(emp_compras)
+                    + " S=" + str(emp_ventas)
+                    + " (forms=" + str(emp_forms_procesados) + ")"
+                )
+
+            except Exception as e_emp:
+                log.warning("  [SEC] " + ticker + " error: " + str(e_emp))
+                empresas_error.append(ticker)
+                _time.sleep(DELAY_S)
                 continue
 
+        # 3. Calcular ratio y señal
+        # ratio = compras / ventas (denominador minimo 1 para evitar division por cero)
         ratio_insider = round(compras_total / max(ventas_total, 1), 2)
 
-        if compras_total > ventas_total * 1.5:
+        # Señal basada en ratio P/S:
+        #   > 0.30  → insiders comprando relativamente, ALCISTA
+        #   < 0.10  → insiders solo vendiendo, BAJISTA
+        #   0.10-0.30 → actividad neutral
+        # (Referencia: ratio historico medio Big Tech ~0.05-0.15)
+        if compras_total > 0 and ratio_insider > 0.30:
             senal = "alcista"
-            desc  = "Insiders Big Tech acumulando - " + str(compras_total) + " compras vs " + str(ventas_total) + " ventas (90d)"
-        elif ventas_total > compras_total * 2:
+            desc  = (
+                "Insiders Big Tech acumulando — "
+                + str(compras_total) + " compras vs "
+                + str(ventas_total)  + " ventas (90d)"
+                + " · " + "{:,.0f}".format(shares_compras) + " acc compradas"
+            )
+        elif ventas_total > 0 and ratio_insider < 0.10:
             senal = "bajista"
-            desc  = "Insiders Big Tech vendiendo - " + str(ventas_total) + " ventas vs " + str(compras_total) + " compras (90d)"
+            desc  = (
+                "Insiders Big Tech vendiendo — "
+                + str(ventas_total)  + " ventas vs "
+                + str(compras_total) + " compras (90d)"
+                + " · " + "{:,.0f}".format(shares_ventas) + " acc vendidas"
+            )
+        elif compras_total == 0 and ventas_total == 0:
+            senal = "neutro"
+            desc  = "Sin transacciones de insiders detectadas en 90d"
         else:
             senal = "neutro"
-            desc  = "Actividad insider neutral - " + str(compras_total) + " compras / " + str(ventas_total) + " ventas (90d)"
+            desc  = (
+                "Actividad insider neutral — "
+                + str(compras_total) + " compras / "
+                + str(ventas_total)  + " ventas (90d)"
+            )
 
-        log.info("  [SEC Form4] " + str(empresas_ok) + " empresas procesadas | ratio=" + str(ratio_insider) + " | " + senal.upper())
+        if empresas_error:
+            desc += " (errores: " + ",".join(empresas_error) + ")"
+
+        log.info(
+            "  [SEC Form4] " + str(empresas_ok) + "/" + str(len(BIG_TECH))
+            + " empresas OK | compras=" + str(compras_total)
+            + " ventas=" + str(ventas_total)
+            + " ratio=" + str(ratio_insider)
+            + " | " + senal.upper()
+        )
 
         return {
-            "compras_90d": compras_total,
-            "ventas_90d":  ventas_total,
-            "ratio":       ratio_insider,
-            "empresas_ok": empresas_ok,
-            "senal":       senal,
-            "desc":        desc,
-            "fuente":      "sec_edgar_form4",
-            "nota":        "Datos con retraso de hasta 2 dias habiles (normativa SEC)",
-            "error":       None
+            "compras_90d":    compras_total,
+            "ventas_90d":     ventas_total,
+            "shares_compradas": round(shares_compras),
+            "shares_vendidas":  round(shares_ventas),
+            "ratio":          ratio_insider,
+            "empresas_ok":    empresas_ok,
+            "senal":          senal,
+            "desc":           desc,
+            "fuente":         "sec_edgar_form4_api",
+            "nota":           "Datos con retraso de hasta 2 dias habiles (normativa SEC). Solo transacciones P (compra) y S (venta) en mercado abierto.",
+            "detalle":        detalle,
+            "error":          None,
         }
 
-    except ImportError:
-        log.warning("  [SEC] sec-edgar-downloader no instalado - saltando")
-        return {"error": "libreria_no_instalada", "senal": "neutro"}
     except Exception as e:
-        log.error("  [SEC] Fallo: " + str(e))
+        log.error("  [SEC] Fallo general: " + str(e))
         return {"error": str(e), "senal": "neutro"}
 
 
@@ -2102,19 +2333,42 @@ def calcular_opciones_qqq(precios: dict) -> dict:
         # ── FASE 7 A7: SKEW DE OPCIONES ───────────────────────────────────────
         def calcular_skew_opciones(calls_s, puts_s, precio_s):
             try:
+                # Buscar put OTM -5% y call OTM +5% con ventana progresiva
                 strike_put_otm  = precio_s * 0.95
                 strike_call_otm = precio_s * 1.05
-                put_otm  = puts_s[abs(puts_s["strike"]  - strike_put_otm)  < precio_s * 0.02]
-                call_otm = calls_s[abs(calls_s["strike"] - strike_call_otm) < precio_s * 0.02]
-                if put_otm.empty or call_otm.empty:
+
+                # Ventana progresiva: primero estrecha (1%), luego ancha (3%)
+                put_otm  = None
+                call_otm = None
+                for tolerancia in [0.01, 0.02, 0.03]:
+                    ventana = precio_s * tolerancia
+                    _p = puts_s[abs(puts_s["strike"]  - strike_put_otm)  < ventana]
+                    _c = calls_s[abs(calls_s["strike"] - strike_call_otm) < ventana]
+                    if not _p.empty and not _c.empty:
+                        put_otm  = _p
+                        call_otm = _c
+                        break
+
+                if put_otm is None or put_otm.empty or call_otm is None or call_otm.empty:
                     return None
                 if "impliedVolatility" not in put_otm.columns:
                     return None
-                iv_put  = float(put_otm.sort_values("openInterest", ascending=False).iloc[0]["impliedVolatility"])
-                iv_call = float(call_otm.sort_values("openInterest", ascending=False).iloc[0]["impliedVolatility"])
-                if iv_call == 0:
+
+                # Ordenar por openInterest desc para tomar el contrato más líquido
+                row_put  = put_otm.sort_values("openInterest", ascending=False).iloc[0]
+                row_call = call_otm.sort_values("openInterest", ascending=False).iloc[0]
+
+                iv_put  = float(row_put["impliedVolatility"])
+                iv_call = float(row_call["impliedVolatility"])
+
+                # Filtrar IVs anómalas (yfinance a veces devuelve 0 o valores > 5)
+                if iv_call <= 0.01 or iv_call > 5.0 or iv_put <= 0.01 or iv_put > 5.0:
                     return None
+
                 skew_val = round(iv_put / iv_call, 3)
+                strike_put_usado  = float(row_put["strike"])
+                strike_call_usado = float(row_call["strike"])
+
                 if skew_val > 1.5:
                     senal_sk = "cisne_negro"
                     desc_sk  = "SKEW=" + str(skew_val) + " - cobertura institucional extrema contra colapso"
@@ -2127,8 +2381,16 @@ def calcular_opciones_qqq(precios: dict) -> dict:
                 else:
                     senal_sk = "normal"
                     desc_sk  = "SKEW=" + str(skew_val) + " - cobertura normal"
-                return {"valor": skew_val, "put_iv": round(iv_put, 4), "call_iv": round(iv_call, 4),
-                        "senal": senal_sk, "desc": desc_sk}
+
+                return {
+                    "valor": skew_val,
+                    "put_iv": round(iv_put, 4),
+                    "call_iv": round(iv_call, 4),
+                    "strike_put": strike_put_usado,
+                    "strike_call": strike_call_usado,
+                    "senal": senal_sk,
+                    "desc": desc_sk
+                }
             except Exception:
                 return None
 
@@ -2161,6 +2423,10 @@ def calcular_opciones_qqq(precios: dict) -> dict:
             pass
 
         ratio_0dte = round(vol_0dte / vol_total, 3) if vol_total > 0 else None
+        import calendar as _cal
+        dia_semana = datetime.datetime.now().weekday()  # 0=lun, 5=sab, 6=dom
+        es_dia_trading = dia_semana < 5  # L-V
+
         if ratio_0dte is not None:
             if ratio_0dte > 0.45:
                 senal_0dte = "extremo"
@@ -2172,15 +2438,20 @@ def calcular_opciones_qqq(precios: dict) -> dict:
                 senal_0dte = "normal"
                 desc_0dte  = "0DTE=" + str(round(ratio_0dte * 100, 1)) + "% - actividad normal"
         else:
-            senal_0dte = "sin_datos"
-            desc_0dte  = "Sin vencimientos hoy"
+            if not es_dia_trading:
+                senal_0dte = "sin_sesion"
+                desc_0dte  = "Fin de semana — sin sesion"
+            else:
+                senal_0dte = "sin_datos"
+                desc_0dte  = "Sin vencimientos hoy"
 
         dte_dict = {
-            "valor":     ratio_0dte,
-            "vol_0dte":  vol_0dte,
-            "vol_total": vol_total,
-            "senal":     senal_0dte,
-            "desc":      desc_0dte,
+            "valor":          ratio_0dte,
+            "vol_0dte":       vol_0dte,
+            "vol_total":      vol_total,
+            "senal":          senal_0dte,
+            "desc":           desc_0dte,
+            "es_dia_trading": es_dia_trading,
         }
 
         v1 = resultados_venc[0] if len(resultados_venc) > 0 else None
