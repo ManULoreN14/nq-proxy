@@ -1,6 +1,6 @@
 {
   "version": "7.0-fase7",
-  "ts": "2026-06-06T22:27:33.301998",
+  "ts": "2026-06-06T22:49:03.938624",
   "precio": {
     "ndx": 28957.5996,
     "qqq": 705.06,
@@ -542,7 +542,7 @@
     "fuente_verificacion": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm"
   },
   "opciones": {
-    "error": "name 'SCRIPT_DIR' is not defined",
+    "error": "type object 'datetime.datetime' has no attribute 'datetime'",
     "gex": {
       "estado": "neutro",
       "valor": 0,
@@ -575,7 +575,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (81% similitud). Contexto: VIX=21.5, RSI=48. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-06T22:20:34.346377"
+    "ts_calculo": "2026-06-06T22:43:41.610856"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001444,
