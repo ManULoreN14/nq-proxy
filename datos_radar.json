@@ -1,6 +1,6 @@
 {
   "version": "7.0-fase7",
-  "ts": "2026-06-06T11:21:33.250135",
+  "ts": "2026-06-06T11:25:57.152691",
   "precio": {
     "ndx": 28957.5996,
     "qqq": 705.06,
@@ -1025,7 +1025,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (81% similitud). Contexto: VIX=21.5, RSI=48. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-06T11:21:33.230061"
+    "ts_calculo": "2026-06-06T11:23:27.342566"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001444,
@@ -1042,9 +1042,9 @@
     "fuente": "fase5_amplitud_v5",
     "error": null,
     "ndx100_breadth": {
+      "error": "sin_datos",
       "senal": "neutro",
-      "score": 0.0,
-      "error": "saltado_noinstitucional"
+      "score": 0.0
     }
   },
   "cta_levels": {
@@ -1062,8 +1062,83 @@
     "error": null
   },
   "sec_insiders": {
+    "compras_90d": 0,
+    "ventas_90d": 0,
+    "shares_compradas": 0,
+    "shares_vendidas": 0,
+    "ratio": 0.0,
+    "empresas_ok": 8,
     "senal": "neutro",
-    "error": "saltado_noinstitucional"
+    "desc": "Sin transacciones de insiders detectadas en 90d",
+    "fuente": "sec_edgar_form4_api",
+    "nota": "Datos con retraso de hasta 2 dias habiles (normativa SEC). Solo transacciones P (compra) y S (venta) en mercado abierto.",
+    "detalle": [
+      {
+        "ticker": "AAPL",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      },
+      {
+        "ticker": "MSFT",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      },
+      {
+        "ticker": "NVDA",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      },
+      {
+        "ticker": "AMZN",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      },
+      {
+        "ticker": "META",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      },
+      {
+        "ticker": "GOOGL",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      },
+      {
+        "ticker": "TSLA",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      },
+      {
+        "ticker": "AVGO",
+        "forms": 0,
+        "compras": 0,
+        "ventas": 0,
+        "sh_compras": 0,
+        "sh_ventas": 0
+      }
+    ],
+    "error": null
   },
   "fase_activa": 7,
   "proximas_fases": "Fase8=SEC_13F_Form4_Completo+PBoC_Directo"
