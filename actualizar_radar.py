@@ -2324,31 +2324,32 @@ def calcular_opciones_qqq(precios: dict) -> dict:
             dist_gamma_flip_pct = round((gamma_flip_level - precio_qqq) / precio_qqq * 100, 2)
 
         # ── LECTURA DE GEX MANUAL (gex_manual.json) ───────────────────────
-        # Si existe gex_manual.json (generado por gex_parser.py), lo usa
-        # como fuente primaria, sobreescribiendo el calculado por yfinance.
-        gex_manual_path = SCRIPT_DIR / "gex_manual.json"
+        # Si existe gex_manual.json (generado por gex_parser.py), prevalece
+        # sobre el calculado por yfinance. Tambien se extraen Max Pain y top OI
+        # para auto-rellenar los inputs del Radar 2-5D mas adelante.
+        gex_manual_payload = None
+        gex_manual_path = BASE_DIR / "gex_manual.json"
         try:
             if gex_manual_path.exists():
-                with open(gex_manual_path, "r") as _f:
+                with open(gex_manual_path, "r", encoding="utf-8") as _f:
                     _gm = json.load(_f)
-                # Solo usar si se generó hace menos de 24h
                 _gen = _gm.get("generado", "")
                 if _gen:
-                    from datetime import timezone as _tz
-                    _dt = datetime.datetime.fromisoformat(_gen.replace("Z",""))
-                    _age_h = (datetime.datetime.now() - _dt).total_seconds() / 3600
+                    _dt = datetime.fromisoformat(_gen.replace("Z", ""))
+                    _age_h = (datetime.now() - _dt).total_seconds() / 3600
                 else:
                     _age_h = 0
                 if _age_h < 24:
-                    gex_real_total   = _gm.get("valor_total")             # en dólares
-                    gamma_flip_level = _gm.get("gamma_flip_level")
+                    gex_manual_payload = _gm
+                    gex_real_total      = _gm.get("valor_total")
+                    gamma_flip_level    = _gm.get("gamma_flip_level")
                     dist_gamma_flip_pct = _gm.get("dist_gamma_flip_pct")
-                    fuente_gex = "gex_parser_local"
-                    log.info(f"  [GEX] Cargado desde gex_manual.json | total={gex_real_total} | flip={gamma_flip_level} | generado hace {_age_h:.1f}h")
+                    fuente_gex          = "gex_parser_local"
+                    log.info(f"  [GEX] Cargado de gex_manual.json | total={gex_real_total} | flip={gamma_flip_level} | edad={_age_h:.1f}h")
                 else:
-                    log.info(f"  [GEX] gex_manual.json demasiado antiguo ({_age_h:.1f}h > 24h), usando yfinance")
+                    log.info(f"  [GEX] gex_manual.json es antiguo ({_age_h:.1f}h>24h) — usando yfinance")
         except Exception as _e:
-            log.warning(f"  [GEX] No se pudo leer gex_manual.json: {_e}")
+            log.warning(f"  [GEX] Error leyendo gex_manual.json: {_e}")
 
         gex_real_dict = {
             "valor_total":        gex_real_total,
@@ -2360,42 +2361,19 @@ def calcular_opciones_qqq(precios: dict) -> dict:
         # ── FASE 7 A7: SKEW DE OPCIONES ───────────────────────────────────────
         def calcular_skew_opciones(calls_s, puts_s, precio_s):
             try:
-                # Buscar put OTM -5% y call OTM +5% con ventana progresiva
                 strike_put_otm  = precio_s * 0.95
                 strike_call_otm = precio_s * 1.05
-
-                # Ventana progresiva: primero estrecha (1%), luego ancha (3%)
-                put_otm  = None
-                call_otm = None
-                for tolerancia in [0.01, 0.02, 0.03]:
-                    ventana = precio_s * tolerancia
-                    _p = puts_s[abs(puts_s["strike"]  - strike_put_otm)  < ventana]
-                    _c = calls_s[abs(calls_s["strike"] - strike_call_otm) < ventana]
-                    if not _p.empty and not _c.empty:
-                        put_otm  = _p
-                        call_otm = _c
-                        break
-
-                if put_otm is None or put_otm.empty or call_otm is None or call_otm.empty:
+                put_otm  = puts_s[abs(puts_s["strike"]  - strike_put_otm)  < precio_s * 0.02]
+                call_otm = calls_s[abs(calls_s["strike"] - strike_call_otm) < precio_s * 0.02]
+                if put_otm.empty or call_otm.empty:
                     return None
                 if "impliedVolatility" not in put_otm.columns:
                     return None
-
-                # Ordenar por openInterest desc para tomar el contrato más líquido
-                row_put  = put_otm.sort_values("openInterest", ascending=False).iloc[0]
-                row_call = call_otm.sort_values("openInterest", ascending=False).iloc[0]
-
-                iv_put  = float(row_put["impliedVolatility"])
-                iv_call = float(row_call["impliedVolatility"])
-
-                # Filtrar IVs anómalas (yfinance a veces devuelve 0 o valores > 5)
-                if iv_call <= 0.01 or iv_call > 5.0 or iv_put <= 0.01 or iv_put > 5.0:
+                iv_put  = float(put_otm.sort_values("openInterest", ascending=False).iloc[0]["impliedVolatility"])
+                iv_call = float(call_otm.sort_values("openInterest", ascending=False).iloc[0]["impliedVolatility"])
+                if iv_call == 0:
                     return None
-
                 skew_val = round(iv_put / iv_call, 3)
-                strike_put_usado  = float(row_put["strike"])
-                strike_call_usado = float(row_call["strike"])
-
                 if skew_val > 1.5:
                     senal_sk = "cisne_negro"
                     desc_sk  = "SKEW=" + str(skew_val) + " - cobertura institucional extrema contra colapso"
@@ -2408,16 +2386,8 @@ def calcular_opciones_qqq(precios: dict) -> dict:
                 else:
                     senal_sk = "normal"
                     desc_sk  = "SKEW=" + str(skew_val) + " - cobertura normal"
-
-                return {
-                    "valor": skew_val,
-                    "put_iv": round(iv_put, 4),
-                    "call_iv": round(iv_call, 4),
-                    "strike_put": strike_put_usado,
-                    "strike_call": strike_call_usado,
-                    "senal": senal_sk,
-                    "desc": desc_sk
-                }
+                return {"valor": skew_val, "put_iv": round(iv_put, 4), "call_iv": round(iv_call, 4),
+                        "senal": senal_sk, "desc": desc_sk}
             except Exception:
                 return None
 
@@ -2450,10 +2420,6 @@ def calcular_opciones_qqq(precios: dict) -> dict:
             pass
 
         ratio_0dte = round(vol_0dte / vol_total, 3) if vol_total > 0 else None
-        import calendar as _cal
-        dia_semana = datetime.datetime.now().weekday()  # 0=lun, 5=sab, 6=dom
-        es_dia_trading = dia_semana < 5  # L-V
-
         if ratio_0dte is not None:
             if ratio_0dte > 0.45:
                 senal_0dte = "extremo"
@@ -2465,20 +2431,15 @@ def calcular_opciones_qqq(precios: dict) -> dict:
                 senal_0dte = "normal"
                 desc_0dte  = "0DTE=" + str(round(ratio_0dte * 100, 1)) + "% - actividad normal"
         else:
-            if not es_dia_trading:
-                senal_0dte = "sin_sesion"
-                desc_0dte  = "Fin de semana — sin sesion"
-            else:
-                senal_0dte = "sin_datos"
-                desc_0dte  = "Sin vencimientos hoy"
+            senal_0dte = "sin_datos"
+            desc_0dte  = "Sin vencimientos hoy"
 
         dte_dict = {
-            "valor":          ratio_0dte,
-            "vol_0dte":       vol_0dte,
-            "vol_total":      vol_total,
-            "senal":          senal_0dte,
-            "desc":           desc_0dte,
-            "es_dia_trading": es_dia_trading,
+            "valor":     ratio_0dte,
+            "vol_0dte":  vol_0dte,
+            "vol_total": vol_total,
+            "senal":     senal_0dte,
+            "desc":      desc_0dte,
         }
 
         v1 = resultados_venc[0] if len(resultados_venc) > 0 else None
@@ -2503,6 +2464,7 @@ def calcular_opciones_qqq(precios: dict) -> dict:
             "pcrOI":  pcr_oi,
             "pcrVol": pcr_vol,
             "fuente": "yahoo_options",
+            "_gex_manual_payload": gex_manual_payload,  # se usa para inyeccion posterior
         }
 
     except Exception as e:
@@ -2881,6 +2843,112 @@ def exportar_json(datos: dict) -> None:
     log.info(f"✅ datos_radar.json exportado ({size_kb:.1f} KB) → {JSON_PATH}")
 
 
+def inyectar_gex_manual(datos_json: dict) -> None:
+    """
+    Si en opciones._gex_manual_payload hay datos del parser local, los inyecta
+    en los campos que el frontend espera para auto-rellenar:
+      - datos_radar.json:  raiz.maxpain  (modulo Max Pain)
+      - manengis_tactico.json: derivados.top_call_strikes / top_put_strikes /
+                                vencimientos / precio_qqq
+                               variables_crudas.max_pain
+    De esta forma se rellenan automaticamente los inputs:
+      oi-precio, oi-maxpain, oi-resist, oi-soporte, sdx-gex y
+      el modulo Paredes de Opciones del Radar 2-5D.
+    """
+    try:
+        opciones = datos_json.get("opciones") or {}
+        gm = opciones.get("_gex_manual_payload")
+        if not gm:
+            log.info("  [INYECT] No hay gex_manual_payload — saltando inyección Max Pain/OI")
+            return
+        # Limpiar el payload temporal del JSON final
+        opciones.pop("_gex_manual_payload", None)
+
+        precio_actual = datos_json.get("precio", {}).get("qqq") or gm.get("precio_referencia")
+        venc_prox = gm.get("vencimiento_proximo") or {}
+
+        # ── 1. Construir datos_json.maxpain (modulo Max Pain del frontend) ──
+        max_pain   = venc_prox.get("max_pain")
+        dist_mp    = venc_prox.get("dist_max_pain_pct")
+        expiracion = venc_prox.get("expiry")
+        if max_pain is not None and precio_actual:
+            if dist_mp is not None and dist_mp > 4:
+                senal_mp = "acumulacion"
+                desc_mp  = f"Max Pain {max_pain:.0f} (+{dist_mp:.2f}%) — gravedad atrae precio arriba"
+            elif dist_mp is not None and dist_mp < -4:
+                senal_mp = "distribucion"
+                desc_mp  = f"Max Pain {max_pain:.0f} ({dist_mp:.2f}%) — gravedad atrae precio abajo"
+            else:
+                senal_mp = "neutro"
+                desc_mp  = f"Max Pain {max_pain:.0f} — precio cerca, zona equilibrio"
+            datos_json["maxpain"] = {
+                "valor":       round(float(max_pain), 0),
+                "precio":      round(float(precio_actual), 2),
+                "distPct":     dist_mp,
+                "expiracion":  expiracion,
+                "señal":       senal_mp,
+                "descripcion": desc_mp,
+                "fuente":      "gex_parser_local",
+            }
+            log.info(f"  [INYECT] datos_radar.maxpain = {max_pain} ({dist_mp:+.2f}%) | {senal_mp}")
+
+        # ── 2. Actualizar manengis_tactico.json (campos derivados + max_pain) ──
+        manengis_path = BASE_DIR / "manengis_tactico.json"
+        if manengis_path.exists():
+            try:
+                with open(manengis_path, "r", encoding="utf-8") as f:
+                    m = json.load(f)
+
+                # Asegurar estructura
+                m.setdefault("variables_crudas", {})
+                m.setdefault("derivados", {})
+
+                # Inyectar max_pain en variables_crudas
+                if max_pain is not None:
+                    m["variables_crudas"]["max_pain"] = round(float(max_pain), 2)
+
+                # Inyectar precio_qqq y vencimientos en derivados
+                if precio_actual:
+                    m["derivados"]["precio_qqq"] = round(float(precio_actual), 2)
+                if gm.get("maxpain_por_vencimiento"):
+                    m["derivados"]["vencimientos"] = list(gm["maxpain_por_vencimiento"].keys())
+
+                # Inyectar top_call_strikes y top_put_strikes (del vencimiento proximo)
+                top_calls = venc_prox.get("top_calls") or []
+                top_puts  = venc_prox.get("top_puts")  or []
+                if top_calls:
+                    m["derivados"]["top_call_strikes"] = [
+                        {"strike": float(c["strike"]), "oi": int(c["oi"]), "dist": float(c["dist"])}
+                        for c in top_calls
+                    ]
+                if top_puts:
+                    m["derivados"]["top_put_strikes"] = [
+                        {"strike": float(p["strike"]), "oi": int(p["oi"]), "dist": float(p["dist"])}
+                        for p in top_puts
+                    ]
+
+                # Inyectar resistencia y soporte principal
+                if venc_prox.get("resistencia_principal"):
+                    m["derivados"]["resistencia_principal"] = venc_prox["resistencia_principal"]
+                if venc_prox.get("soporte_principal"):
+                    m["derivados"]["soporte_principal"] = venc_prox["soporte_principal"]
+                if venc_prox.get("rango_semana"):
+                    m["derivados"]["rango_semana"] = venc_prox["rango_semana"]
+
+                # Guardar manengis_tactico.json actualizado
+                with open(manengis_path, "w", encoding="utf-8") as f:
+                    json.dump(m, f, ensure_ascii=False, indent=2)
+                log.info(f"  [INYECT] manengis_tactico.json actualizado | top_calls={len(top_calls)} | top_puts={len(top_puts)}")
+            except Exception as _e:
+                log.warning(f"  [INYECT] No se pudo actualizar manengis_tactico.json: {_e}")
+        else:
+            log.info(f"  [INYECT] manengis_tactico.json no existe en {manengis_path} — saltando")
+
+    except Exception as e:
+        log.warning(f"  [INYECT] Error inyectando gex_manual: {e}")
+
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  GIT AUTO-PUSH
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2894,7 +2962,7 @@ def git_push() -> bool:
     )
 
     comandos = [
-        ["git", "-C", str(BASE_DIR), "add", "datos_radar.json"],
+        ["git", "-C", str(BASE_DIR), "add", "datos_radar.json", "manengis_tactico.json"],
         ["git", "-C", str(BASE_DIR), "commit", "-m", commit_msg],
         ["git", "-C", str(BASE_DIR), "push", "origin", "main"],
     ]
@@ -4089,6 +4157,9 @@ def main():
         "fase_activa": 7,
         "proximas_fases": "Fase8=SEC_13F_Form4_Completo+PBoC_Directo",
     }
+
+    # ── INYECCIÓN gex_manual.json → maxpain + derivados (auto-rellena Radar 2-5D) ──
+    inyectar_gex_manual(datos_json)
 
     exportar_json(datos_json)
 
