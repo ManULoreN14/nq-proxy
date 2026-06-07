@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generado": "2026-06-06T20:13:29.582549+00:00",
+  "generado": "2026-06-07T20:12:51.446378+00:00",
   "fuente": "manengis-python-local",
   "modo": "full",
   "variables_crudas": {
@@ -11,24 +11,24 @@
     "ema50": 672.55,
     "atr14": 11.75,
     "roc5d": -4.5,
-    "max_pain": 741.0,
-    "max_pain_dist_pct": 5.1,
-    "put_call_ratio": 1.498,
-    "gex_neto_m": 0.0,
+    "max_pain": 495.0,
+    "max_pain_dist_pct": -29.79,
+    "put_call_ratio": 1.97,
+    "gex_neto_m": NaN,
     "gex_flip": null,
-    "call_oi_total": 118038,
-    "put_oi_total": 176778,
+    "call_oi_total": 121306,
+    "put_oi_total": 239030,
     "vix3m": 21.82,
     "vix_ts_ratio": 0.9858,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_plano",
-    "skew_ratio": 1.297,
-    "skew_estado": "skew_normal",
-    "skew_iv_put_otm": 0.4397,
-    "skew_iv_call_otm": 0.3389,
-    "sentiment_score": -14.9,
+    "skew_ratio": 1.302,
+    "skew_estado": "miedo_cola_alto",
+    "skew_iv_put_otm": 0.5288,
+    "skew_iv_call_otm": 0.4063,
+    "sentiment_score": -24.0,
     "gdelt_tono": 0,
-    "gdelt_articulos": 25,
+    "gdelt_articulos": 26,
     "sentiment_model": "FinBERT",
     "cot_lev_net": -53650,
     "cot_am_net": 79091,
@@ -47,7 +47,7 @@
     "fear_greed_estado": "neutral",
     "regimen_mercado": "transicion",
     "regimen_confianza": null,
-    "risk_score": 6.0,
+    "risk_score": 6.7,
     "fedfunds": 3.63,
     "us2y": 4.05,
     "us10y": 4.47,
@@ -60,23 +60,23 @@
     "curva_invertida": false
   },
   "sentimiento": {
-    "score": -14.9,
+    "score": -24.0,
     "model": "FinBERT",
-    "titulares": 54,
-    "positivos": 13,
-    "negativos": 22,
-    "neutros": 19,
+    "titulares": 65,
+    "positivos": 8,
+    "negativos": 26,
+    "neutros": 31,
     "descripcion": "Cautela",
     "titulares_muestra": [
-      "A Wall Street Institution Just Did Something to Elon Musk That No One Else Will",
-      "Bitcoin bears face $2.6B trap as BTC funding rate drops: Is a short squeeze brewing?",
-      "Google will pay SpaceX $920M per month for compute | TechCrunch",
-      "What is actually happening to Bitcoin (BTC) right now? Why the $2 trillion crypto market crash is sending Bitcoin, Ethereum, Solana, and XRP into freefall",
-      "S&P 500 Provider Won't Bend the Rules for SpaceX"
+      "Bitcoin, ether eye worst weekly rout since FTX collapse as cryptos shed $390 billion",
+      "Bitcoin dips below $61,000, triggering $172M in long liquidations",
+      "AP Business SummaryBrief at 9:46 a.m. EDT",
+      "Here's How SpaceX's IPO Will Affect S&P 500 and Nasdaq-100 Investors",
+      "'I Now Consider All Of DeFi Unsafe': Former Crypto Security Chief Sounds Alarm As AI Agents Become More Powerful"
     ],
     "gdelt_tono": 0,
     "gdelt_tono_norm": 0,
-    "gdelt_articulos": 25
+    "gdelt_articulos": 26
   },
   "earnings": {
     "alerta_volatilidad": false,
@@ -85,37 +85,37 @@
       {
         "ticker": "TSLA",
         "fecha": "2026-07-22 00:00 UTC",
-        "horas": 1083.8
+        "horas": 1059.8
       },
       {
         "ticker": "GOOGL",
         "fecha": "2026-07-23 00:00 UTC",
-        "horas": 1107.8
+        "horas": 1083.8
       },
       {
         "ticker": "MSFT",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1251.8
+        "horas": 1227.8
       },
       {
         "ticker": "META",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1251.8
+        "horas": 1227.8
       },
       {
         "ticker": "AAPL",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1275.8
+        "horas": 1251.8
       },
       {
         "ticker": "AMZN",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1275.8
+        "horas": 1251.8
       },
       {
         "ticker": "NVDA",
         "fecha": "2026-08-26 00:00 UTC",
-        "horas": 1923.8
+        "horas": 1899.8
       }
     ],
     "ventana_horas": 72
@@ -128,12 +128,12 @@
       "2026-06-10",
       "2026-06-11"
     ],
-    "max_pain": 741.0,
-    "max_pain_dist_pct": 5.1,
-    "put_call_ratio": 1.498,
-    "call_oi_total": 118038,
-    "put_oi_total": 176778,
-    "gex_neto_m": 0.0,
+    "max_pain": 495.0,
+    "max_pain_dist_pct": -29.79,
+    "put_call_ratio": 1.97,
+    "call_oi_total": 121306,
+    "put_oi_total": 239030,
+    "gex_neto_m": NaN,
     "gex_flip": null,
     "top_call_strikes": [
       {
@@ -159,6 +159,14 @@
     ],
     "top_put_strikes": [
       {
+        "strike": 550.0,
+        "oi": 6137.0
+      },
+      {
+        "strike": 530.0,
+        "oi": 4500.0
+      },
+      {
         "strike": 722.0,
         "oi": 1138.0
       },
@@ -169,14 +177,6 @@
       {
         "strike": 725.0,
         "oi": 535.0
-      },
-      {
-        "strike": 744.0,
-        "oi": 535.0
-      },
-      {
-        "strike": 730.0,
-        "oi": 523.0
       }
     ],
     "roc5d": -4.5,
@@ -201,22 +201,23 @@
     "precio": 705.06
   },
   "risk_compuesto": {
-    "valor": 6.0,
+    "valor": 6.7,
     "estado": "Riesgo Elevado",
     "factores": [
-      "PCR alto=1.498 -> cobertura/miedo"
+      "Sesgo negativo en noticias",
+      "PCR alto=1.97 -> cobertura/miedo"
     ]
   },
   "velocidad": {
     "deltas": {
       "vix": {
         "1d": {
-          "abs": 6.31,
-          "pct": 41.51
+          "abs": 0.0,
+          "pct": 0.0
         },
         "2d": {
-          "abs": 5.53,
-          "pct": 34.61
+          "abs": 6.31,
+          "pct": 41.51
         },
         "5d": {
           "abs": 5.77,
@@ -225,40 +226,40 @@
       },
       "pcr": {
         "1d": {
-          "abs": -1.27,
-          "pct": -45.82
+          "abs": 0.47,
+          "pct": 31.51
         },
         "2d": {
-          "abs": -1.08,
-          "pct": -41.98
+          "abs": -0.8,
+          "pct": -28.75
         },
         "5d": {
-          "abs": -0.55,
-          "pct": -26.68
+          "abs": 1.97,
+          "pct": null
         }
       },
       "gex_neto_m": {
         "1d": {
-          "abs": 0.0,
+          "abs": NaN,
           "pct": null
         },
         "2d": {
-          "abs": 0.0,
+          "abs": NaN,
           "pct": null
         },
         "5d": {
-          "abs": 0.0,
+          "abs": NaN,
           "pct": null
         }
       },
       "rsi": {
         "1d": {
-          "abs": -25.03,
-          "pct": -34.11
+          "abs": 0.0,
+          "pct": 0.0
         },
         "2d": {
-          "abs": -28.84,
-          "pct": -37.37
+          "abs": -25.03,
+          "pct": -34.11
         },
         "5d": {
           "abs": -28.0,
@@ -270,7 +271,7 @@
       {
         "tipo": "vix_aceleracion",
         "severidad": "alta",
-        "detalle": "VIX +34.61% en 2 sesiones (umbral 15.0%)"
+        "detalle": "VIX +41.51% en 2 sesiones (umbral 15.0%)"
       }
     ],
     "flags": {
@@ -279,7 +280,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": true
     },
-    "descripcion": "VIX +34.61% en 2 sesiones (umbral 15.0%)"
+    "descripcion": "VIX +41.51% en 2 sesiones (umbral 15.0%)"
   },
   "breadth": {
     "tickers_validos": 7,
@@ -399,14 +400,14 @@
   },
   "skew": {
     "vencimiento": "2026-06-08",
-    "iv_put_otm": 0.4397,
-    "iv_call_otm": 0.3389,
-    "skew": 0.1008,
-    "skew_ratio": 1.297,
-    "estado": "skew_normal",
+    "iv_put_otm": 0.5288,
+    "iv_call_otm": 0.4063,
+    "skew": 0.1225,
+    "skew_ratio": 1.302,
+    "estado": "miedo_cola_alto",
     "n_puts": 10,
     "n_calls": 46,
-    "descripcion": "Skew normal en 2026-06-08: puts a 44.0% vs calls a 33.9% (ratio 1.297). Sesgo de cobertura habitual en indices, sin estres anormal."
+    "descripcion": "Skew ALTO en 2026-06-08: puts OTM a 52.9% IV vs calls OTM a 40.6% (ratio 1.302). Institucionales pagan prima fuerte por proteccion a la baja: miedo de cola."
   },
   "barrida_estructural": {
     "nivel_barrida": 558.28,
@@ -636,6 +637,16 @@
       "exposicion_pct": 40,
       "precio_qqq": 705.06,
       "vix": 21.51
+    },
+    {
+      "fecha": "2026-06-07",
+      "risk_score": 6.7,
+      "fear_greed_score": 47.6,
+      "regimen_mercado": "transicion",
+      "exposicion_semaforo": "rojo",
+      "exposicion_pct": 40,
+      "precio_qqq": 705.06,
+      "vix": 21.51
     }
   ],
   "fred": {
@@ -749,7 +760,7 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-06T20:13:31Z",
+    "generado": "2026-06-07T20:12:52Z",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.74,
