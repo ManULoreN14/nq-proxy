@@ -726,6 +726,12 @@
     "zona_barrida": false
   },
   "pcr": {
-    "error": "pcr_cboe: 403 Client Error: Forbidden for url: https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv"
+    "equity": 0.67,
+    "total": 0.97,
+    "index": 1.13,
+    "spx": 1.32,
+    "señal": "neutro",
+    "fecha": "05 June 2026",
+    "fuente": "cboe_txt_manual"
   }
 }
