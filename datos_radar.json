@@ -1,6 +1,6 @@
 {
   "version": "7.0-fase7",
-  "ts": "2026-06-08T22:28:52.418101",
+  "ts": "2026-06-08T22:51:46.509189",
   "precio": {
     "ndx": 28957.5996,
     "qqq": 705.06,
@@ -463,10 +463,10 @@
   "macro": {
     "curva": {
       "t3m": 3.78,
-      "t2y": 4.05,
-      "t5y": 4.18,
-      "t10y": 4.47,
-      "t30y": 4.97,
+      "t2y": 4.17,
+      "t5y": 4.29,
+      "t10y": 4.55,
+      "t30y": 5.01,
       "sp10_2": 0.38,
       "sp10_3m": 0.77,
       "invertida2y": false,
@@ -535,10 +535,10 @@
         "trend": "down"
       },
       "tipoReal10y": {
-        "v": 2.11,
+        "v": 2.19,
         "prev": 2.11,
-        "fecha": "2026-06-04",
-        "trend": "down"
+        "fecha": "2026-06-05",
+        "trend": "up"
       },
       "sofrSpread": 0.0,
       "wlcflpcl": {
@@ -558,10 +558,10 @@
       "desc": "Liquidez Neta = WALCL - TGA - RRP = 5,835,780M"
     },
     "tiposRealesOro": {
-      "tipoReal": 2.11,
+      "tipoReal": 2.19,
       "señal": "drenaje_liquidez",
       "alerta": true,
-      "desc": "⚠️ Tipos reales elevados (2.11%) — DRENAJE DE LIQUIDEZ, coste oportunidad alto para QQQ",
+      "desc": "⚠️ Tipos reales elevados (2.19%) — DRENAJE DE LIQUIDEZ, coste oportunidad alto para QQQ",
       "oroPrice": 4337.1001
     },
     "dxy": {
@@ -586,7 +586,7 @@
     "componentes": {
       "tecnico": 3,
       "macro": -0.5,
-      "cot": 1.5,
+      "cot": 3.0,
       "vix": 2.0,
       "flujos": 0.0,
       "giro": 0.0,
@@ -594,84 +594,67 @@
     },
     "horizontes": {
       "d2": {
-        "score": 1.4,
+        "score": 1.6,
         "estado": "alcista_mod",
-        "conf": 14,
+        "conf": 16,
         "pesos": "28%T+23%V+13%F+10%G+10%M+10%C+6%A"
       },
       "d5": {
-        "score": 1.3,
+        "score": 1.5,
         "estado": "alcista_mod",
-        "conf": 13,
+        "conf": 15,
         "pesos": "23%T+18%V+14%M+14%C+13%F+9%G+9%A"
       },
       "w1": {
-        "score": 1.1,
+        "score": 1.4,
         "estado": "alcista_mod",
-        "conf": 11,
+        "conf": 14,
         "pesos": "19%M+19%C+18%T+14%V+13%F+9%G+8%A"
       },
       "w2": {
-        "score": 1.0,
+        "score": 1.4,
         "estado": "alcista_mod",
-        "conf": 10,
+        "conf": 14,
         "pesos": "23%M+23%C+18%T+13%F+9%A+9%V+5%G"
       },
       "w3": {
-        "score": 0.9,
-        "estado": "neutro",
-        "conf": 10,
+        "score": 1.3,
+        "estado": "alcista_mod",
+        "conf": 13,
         "pesos": "28%M+28%C+13%T+11%F+8%A+7%V+5%G"
       },
       "w4": {
-        "score": 0.7,
-        "estado": "neutro",
-        "conf": 10,
+        "score": 1.2,
+        "estado": "alcista_mod",
+        "conf": 12,
         "pesos": "32%M+32%C+10%A+9%F+8%T+5%G+4%V"
       }
     }
   },
   "cot": {
     "fecha": "2026-06-02",
-    "largos": 87192,
-    "cortos": 102141,
-    "neto": -14949,
-    "netoDealers": 13812,
-    "pctLargo": 46.1,
-    "pctDealers": 52.0,
-    "cambioNeto": -8864,
-    "cambioNetoDealers": 14374,
-    "trend4w": 1036,
-    "señal": "neutro",
-    "desc": "Specs 46.1% largos — posicionamiento neutral",
-    "señalDealers": "acumulacion",
-    "historial": [
-      {
-        "fecha": "2026-06-02",
-        "neto": -14949,
-        "largos": 87192,
-        "cortos": 102141
-      },
-      {
-        "fecha": "2026-05-26",
-        "neto": -6085,
-        "largos": 85248,
-        "cortos": 91333
-      },
-      {
-        "fecha": "2026-05-19",
-        "neto": -1420,
-        "largos": 87137,
-        "cortos": 88557
-      },
-      {
-        "fecha": "2026-05-12",
-        "neto": -15985,
-        "largos": 71239,
-        "cortos": 87224
-      }
-    ],
-    "fuente": "cftc_socrata_api",
+    "fecha_reporte": "June 2, 2026",
+    "largos": 26725,
+    "cortos": 238608,
+    "neto": -211883,
+    "leveraged_long": 26725,
+    "leveraged_short": 238608,
+    "dealers_largo": 154867,
+    "dealers_corto": 11943,
+    "netoDealers": 142924,
+    "asset_largo": 13658,
+    "asset_corto": 1773,
+    "pctLargo": 10.1,
+    "pctDealers": 92.8,
+    "open_interest": 308653,
+    "cambioNeto": -1971,
+    "cambioNetoDealers": 14343,
+    "trend4w": null,
+    "señal": "alcista",
+    "señalDealers": "neutro",
+    "desc": "Specs 10.1% largos — capitulación, señal contraria alcista",
+    "historial": [],
+    "fuente": "cftc_txt_manual",
     "fuente_verificacion": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm"
   },
   "opciones": {
@@ -685,19 +668,19 @@
           {
             "strike": 725.0,
             "oi": 15199,
-            "vol": 214606,
+            "vol": 215057,
             "dist": 2.83
           },
           {
             "strike": 720.0,
             "oi": 14177,
-            "vol": 490627,
+            "vol": 491256,
             "dist": 2.12
           },
           {
             "strike": 724.0,
             "oi": 10379,
-            "vol": 154885,
+            "vol": 155128,
             "dist": 2.69
           },
           {
@@ -709,7 +692,7 @@
           {
             "strike": 715.0,
             "oi": 7811,
-            "vol": 91267,
+            "vol": 95293,
             "dist": 1.41
           }
         ],
@@ -717,13 +700,13 @@
           {
             "strike": 705.0,
             "oi": 13396,
-            "vol": 56099,
+            "vol": 57051,
             "dist": -0.01
           },
           {
             "strike": 720.0,
             "oi": 13329,
-            "vol": 207191,
+            "vol": 210938,
             "dist": 2.12
           },
           {
@@ -735,13 +718,13 @@
           {
             "strike": 700.0,
             "oi": 8492,
-            "vol": 46849,
+            "vol": 46978,
             "dist": -0.72
           },
           {
             "strike": 690.0,
             "oi": 7267,
-            "vol": 19536,
+            "vol": 19539,
             "dist": -2.14
           }
         ],
@@ -756,19 +739,19 @@
           {
             "strike": 750.0,
             "oi": 4851,
-            "vol": 712,
+            "vol": 936,
             "dist": 6.37
           },
           {
             "strike": 730.0,
             "oi": 3301,
-            "vol": 16640,
+            "vol": 17390,
             "dist": 3.54
           },
           {
             "strike": 720.0,
             "oi": 3056,
-            "vol": 43913,
+            "vol": 52522,
             "dist": 2.12
           },
           {
@@ -780,7 +763,7 @@
           {
             "strike": 722.0,
             "oi": 2718,
-            "vol": 22594,
+            "vol": 23820,
             "dist": 2.4
           }
         ],
@@ -788,31 +771,31 @@
           {
             "strike": 680.0,
             "oi": 4622,
-            "vol": 5229,
+            "vol": 5685,
             "dist": -3.55
           },
           {
             "strike": 695.0,
             "oi": 3236,
-            "vol": 5403,
+            "vol": 8548,
             "dist": -1.43
           },
           {
             "strike": 690.0,
             "oi": 2905,
-            "vol": 7218,
+            "vol": 7590,
             "dist": -2.14
           },
           {
             "strike": 720.0,
             "oi": 2789,
-            "vol": 30155,
+            "vol": 30624,
             "dist": 2.12
           },
           {
             "strike": 675.0,
             "oi": 2494,
-            "vol": 14404,
+            "vol": 14892,
             "dist": -4.26
           }
         ],
@@ -827,31 +810,31 @@
           {
             "strike": 745.0,
             "oi": 6413,
-            "vol": 2262,
+            "vol": 2285,
             "dist": 5.66
           },
           {
             "strike": 730.0,
             "oi": 2735,
-            "vol": 5589,
+            "vol": 8602,
             "dist": 3.54
           },
           {
             "strike": 744.0,
             "oi": 2006,
-            "vol": 779,
+            "vol": 785,
             "dist": 5.52
           },
           {
             "strike": 740.0,
             "oi": 1999,
-            "vol": 3147,
+            "vol": 3404,
             "dist": 4.96
           },
           {
             "strike": 720.0,
             "oi": 1873,
-            "vol": 6656,
+            "vol": 6897,
             "dist": 2.12
           }
         ],
@@ -859,31 +842,31 @@
           {
             "strike": 700.0,
             "oi": 6776,
-            "vol": 7235,
+            "vol": 8559,
             "dist": -0.72
           },
           {
             "strike": 670.0,
             "oi": 5515,
-            "vol": 1799,
+            "vol": 2867,
             "dist": -4.97
           },
           {
             "strike": 710.0,
             "oi": 4462,
-            "vol": 7038,
+            "vol": 7369,
             "dist": 0.7
           },
           {
             "strike": 730.0,
             "oi": 4183,
-            "vol": 488,
+            "vol": 874,
             "dist": 3.54
           },
           {
             "strike": 704.0,
             "oi": 4141,
-            "vol": 1068,
+            "vol": 1093,
             "dist": -0.15
           }
         ],
@@ -899,19 +882,19 @@
         {
           "strike": 725.0,
           "oi": 15199,
-          "vol": 214606,
+          "vol": 215057,
           "dist": 2.83
         },
         {
           "strike": 720.0,
           "oi": 14177,
-          "vol": 490627,
+          "vol": 491256,
           "dist": 2.12
         },
         {
           "strike": 724.0,
           "oi": 10379,
-          "vol": 154885,
+          "vol": 155128,
           "dist": 2.69
         },
         {
@@ -923,7 +906,7 @@
         {
           "strike": 715.0,
           "oi": 7811,
-          "vol": 91267,
+          "vol": 95293,
           "dist": 1.41
         }
       ],
@@ -931,13 +914,13 @@
         {
           "strike": 705.0,
           "oi": 13396,
-          "vol": 56099,
+          "vol": 57051,
           "dist": -0.01
         },
         {
           "strike": 720.0,
           "oi": 13329,
-          "vol": 207191,
+          "vol": 210938,
           "dist": 2.12
         },
         {
@@ -949,13 +932,13 @@
         {
           "strike": 700.0,
           "oi": 8492,
-          "vol": 46849,
+          "vol": 46978,
           "dist": -0.72
         },
         {
           "strike": 690.0,
           "oi": 7267,
-          "vol": 19536,
+          "vol": 19539,
           "dist": -2.14
         }
       ],
@@ -970,19 +953,19 @@
         {
           "strike": 750.0,
           "oi": 4851,
-          "vol": 712,
+          "vol": 936,
           "dist": 6.37
         },
         {
           "strike": 730.0,
           "oi": 3301,
-          "vol": 16640,
+          "vol": 17390,
           "dist": 3.54
         },
         {
           "strike": 720.0,
           "oi": 3056,
-          "vol": 43913,
+          "vol": 52522,
           "dist": 2.12
         },
         {
@@ -994,7 +977,7 @@
         {
           "strike": 722.0,
           "oi": 2718,
-          "vol": 22594,
+          "vol": 23820,
           "dist": 2.4
         }
       ],
@@ -1002,31 +985,31 @@
         {
           "strike": 680.0,
           "oi": 4622,
-          "vol": 5229,
+          "vol": 5685,
           "dist": -3.55
         },
         {
           "strike": 695.0,
           "oi": 3236,
-          "vol": 5403,
+          "vol": 8548,
           "dist": -1.43
         },
         {
           "strike": 690.0,
           "oi": 2905,
-          "vol": 7218,
+          "vol": 7590,
           "dist": -2.14
         },
         {
           "strike": 720.0,
           "oi": 2789,
-          "vol": 30155,
+          "vol": 30624,
           "dist": 2.12
         },
         {
           "strike": 675.0,
           "oi": 2494,
-          "vol": 14404,
+          "vol": 14892,
           "dist": -4.26
         }
       ],
@@ -1041,31 +1024,31 @@
         {
           "strike": 745.0,
           "oi": 6413,
-          "vol": 2262,
+          "vol": 2285,
           "dist": 5.66
         },
         {
           "strike": 730.0,
           "oi": 2735,
-          "vol": 5589,
+          "vol": 8602,
           "dist": 3.54
         },
         {
           "strike": 744.0,
           "oi": 2006,
-          "vol": 779,
+          "vol": 785,
           "dist": 5.52
         },
         {
           "strike": 740.0,
           "oi": 1999,
-          "vol": 3147,
+          "vol": 3404,
           "dist": 4.96
         },
         {
           "strike": 720.0,
           "oi": 1873,
-          "vol": 6656,
+          "vol": 6897,
           "dist": 2.12
         }
       ],
@@ -1073,31 +1056,31 @@
         {
           "strike": 700.0,
           "oi": 6776,
-          "vol": 7235,
+          "vol": 8559,
           "dist": -0.72
         },
         {
           "strike": 670.0,
           "oi": 5515,
-          "vol": 1799,
+          "vol": 2867,
           "dist": -4.97
         },
         {
           "strike": 710.0,
           "oi": 4462,
-          "vol": 7038,
+          "vol": 7369,
           "dist": 0.7
         },
         {
           "strike": 730.0,
           "oi": 4183,
-          "vol": 488,
+          "vol": 874,
           "dist": 3.54
         },
         {
           "strike": 704.0,
           "oi": 4141,
-          "vol": 1068,
+          "vol": 1093,
           "dist": -0.15
         }
       ],
@@ -1124,14 +1107,14 @@
       "desc": "SKEW=1.098 - cobertura normal"
     },
     "ratio_0dte": {
-      "valor": 0.759,
-      "vol_0dte": 6090076,
-      "vol_total": 8024861,
+      "valor": 0.743,
+      "vol_0dte": 6195661,
+      "vol_total": 8338715,
       "senal": "extremo",
-      "desc": "0DTE=75.9% - delta hedging forzado al cierre, amplificacion movimientos"
+      "desc": "0DTE=74.3% - delta hedging forzado al cierre, amplificacion movimientos"
     },
     "pcrOI": 1.419,
-    "pcrVol": 0.984,
+    "pcrVol": 0.998,
     "fuente": "yahoo_options"
   },
   "pcr": {
@@ -1157,7 +1140,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (81% similitud). Contexto: VIX=21.5, RSI=48. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-08T22:17:12.995921"
+    "ts_calculo": "2026-06-08T22:41:29.658060"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001444,
