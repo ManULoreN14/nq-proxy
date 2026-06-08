@@ -1,6 +1,6 @@
 {
   "version": "7.0-fase7",
-  "ts": "2026-06-08T22:51:46.509189",
+  "ts": "2026-06-08T22:55:02.062893",
   "precio": {
     "ndx": 28957.5996,
     "qqq": 705.06,
@@ -154,147 +154,14 @@
     }
   },
   "vixTS": {
-    "spot": 21.57,
-    "vix3m": 21.41,
-    "spread1": -1.92,
-    "spread1Pct": -8.9,
-    "backwardation": true,
+    "spot": 21.51,
+    "vix3m": 21.82,
+    "spread1": 0.31,
+    "spread1Pct": 1.4,
+    "backwardation": false,
     "vixPercentil": 68,
-    "señal": "alcista",
-    "desc": "VIX backwardation — spot=21.57 > front=19.65 (spread=-1.92) — estrés agudo, rebote probable 2-5d",
-    "front_month": {
-      "symbol": "VX/M6",
-      "expiry": "06/17/2026",
-      "expiry_date": "2026-06-17",
-      "precio": 19.65,
-      "last": 19.65,
-      "settlement": 19.1698,
-      "dte": 9,
-      "is_weekly": false,
-      "using_settlement": false
-    },
-    "second_month": {
-      "symbol": "VX/N6",
-      "expiry": "07/22/2026",
-      "expiry_date": "2026-07-22",
-      "precio": 20.75,
-      "last": 20.75,
-      "settlement": 20.4832,
-      "dte": 44,
-      "is_weekly": false,
-      "using_settlement": false
-    },
-    "slope_1m2m": 0.943,
-    "curva": [
-      {
-        "symbol": "VX23/M6",
-        "expiry": "06/10/2026",
-        "expiry_date": "2026-06-10",
-        "precio": 19.1698,
-        "last": null,
-        "settlement": 19.1698,
-        "dte": 2,
-        "is_weekly": true,
-        "using_settlement": true
-      },
-      {
-        "symbol": "VX/M6",
-        "expiry": "06/17/2026",
-        "expiry_date": "2026-06-17",
-        "precio": 19.65,
-        "last": 19.65,
-        "settlement": 19.1698,
-        "dte": 9,
-        "is_weekly": false,
-        "using_settlement": false
-      },
-      {
-        "symbol": "VX25/M6",
-        "expiry": "06/24/2026",
-        "expiry_date": "2026-06-24",
-        "precio": 19.1698,
-        "last": null,
-        "settlement": 19.1698,
-        "dte": 16,
-        "is_weekly": true,
-        "using_settlement": true
-      },
-      {
-        "symbol": "VX26/N6",
-        "expiry": "07/01/2026",
-        "expiry_date": "2026-07-01",
-        "precio": 19.1698,
-        "last": null,
-        "settlement": 19.1698,
-        "dte": 23,
-        "is_weekly": true,
-        "using_settlement": true
-      },
-      {
-        "symbol": "VX27/N6",
-        "expiry": "07/08/2026",
-        "expiry_date": "2026-07-08",
-        "precio": 19.1698,
-        "last": null,
-        "settlement": 19.1698,
-        "dte": 30,
-        "is_weekly": true,
-        "using_settlement": true
-      },
-      {
-        "symbol": "VX28/N6",
-        "expiry": "07/15/2026",
-        "expiry_date": "2026-07-15",
-        "precio": 19.1698,
-        "last": null,
-        "settlement": 19.1698,
-        "dte": 37,
-        "is_weekly": true,
-        "using_settlement": true
-      },
-      {
-        "symbol": "VX/N6",
-        "expiry": "07/22/2026",
-        "expiry_date": "2026-07-22",
-        "precio": 20.75,
-        "last": 20.75,
-        "settlement": 20.4832,
-        "dte": 44,
-        "is_weekly": false,
-        "using_settlement": false
-      },
-      {
-        "symbol": "VX/Q6",
-        "expiry": "08/19/2026",
-        "expiry_date": "2026-08-19",
-        "precio": 21.41,
-        "last": 21.41,
-        "settlement": 21.1793,
-        "dte": 72,
-        "is_weekly": false,
-        "using_settlement": false
-      }
-    ],
-    "n_contratos": 14,
-    "fuente": "vix_txt_manual",
-    "usando_settlement": true
-  },
-  "vixTermStructure": {
-    "spot": 21.57,
-    "vx1": 19.65,
-    "vx2": 20.75,
-    "vx1_symbol": "VX/M6",
-    "vx2_symbol": "VX/N6",
-    "vx1_expiry": "06/17/2026",
-    "vx2_expiry": "07/22/2026",
-    "spread1": -1.92,
-    "spread1Pct": -8.9,
-    "backwardation": true,
-    "slope_1m2m": 0.943,
-    "señal": "alcista",
-    "desc": "VIX backwardation — spot=21.57 > front=19.65 (spread=-1.92) — estrés agudo, rebote probable 2-5d",
-    "fuente": "vix_txt_manual",
-    "usando_settlement": true
+    "señal": "neutro",
+    "desc": "Term structure normal"
   },
   "giro": {
     "d": {
@@ -467,8 +334,8 @@
       "t5y": 4.29,
       "t10y": 4.55,
       "t30y": 5.01,
-      "sp10_2": 0.38,
-      "sp10_3m": 0.77,
+      "sp10_2": 0.41,
+      "sp10_3m": 0.76,
       "invertida2y": false,
       "invertida3m": false,
       "señalRecesion": "baja"
@@ -517,21 +384,21 @@
         "trend": "up"
       },
       "t5yie": {
-        "v": 2.48,
+        "v": 2.47,
         "prev": 2.48,
-        "fecha": "2026-06-05",
+        "fecha": "2026-06-08",
         "trend": "down"
       },
       "t10yie": {
-        "v": 2.36,
+        "v": 2.35,
         "prev": 2.36,
-        "fecha": "2026-06-05",
+        "fecha": "2026-06-08",
         "trend": "down"
       },
       "t5y5y": {
-        "v": 2.24,
+        "v": 2.23,
         "prev": 2.24,
-        "fecha": "2026-06-05",
+        "fecha": "2026-06-08",
         "trend": "down"
       },
       "tipoReal10y": {
@@ -586,75 +453,92 @@
     "componentes": {
       "tecnico": 3,
       "macro": -0.5,
-      "cot": 3.0,
-      "vix": 2.0,
+      "cot": 1.5,
+      "vix": 1.5,
       "flujos": 0.0,
       "giro": 0.0,
       "amplitud": 0.8
     },
     "horizontes": {
       "d2": {
-        "score": 1.6,
-        "estado": "alcista_mod",
-        "conf": 16,
-        "pesos": "28%T+23%V+13%F+10%G+10%M+10%C+6%A"
-      },
-      "d5": {
-        "score": 1.5,
-        "estado": "alcista_mod",
-        "conf": 15,
-        "pesos": "23%T+18%V+14%M+14%C+13%F+9%G+9%A"
-      },
-      "w1": {
-        "score": 1.4,
-        "estado": "alcista_mod",
-        "conf": 14,
-        "pesos": "19%M+19%C+18%T+14%V+13%F+9%G+8%A"
-      },
-      "w2": {
-        "score": 1.4,
-        "estado": "alcista_mod",
-        "conf": 14,
-        "pesos": "23%M+23%C+18%T+13%F+9%A+9%V+5%G"
-      },
-      "w3": {
         "score": 1.3,
         "estado": "alcista_mod",
         "conf": 13,
-        "pesos": "28%M+28%C+13%T+11%F+8%A+7%V+5%G"
+        "pesos": "28%T+23%V+13%F+10%G+10%M+10%C+6%A"
       },
-      "w4": {
+      "d5": {
         "score": 1.2,
         "estado": "alcista_mod",
         "conf": 12,
+        "pesos": "23%T+18%V+14%M+14%C+13%F+9%G+9%A"
+      },
+      "w1": {
+        "score": 1.0,
+        "estado": "alcista_mod",
+        "conf": 10,
+        "pesos": "19%M+19%C+18%T+14%V+13%F+9%G+8%A"
+      },
+      "w2": {
+        "score": 1.0,
+        "estado": "alcista_mod",
+        "conf": 10,
+        "pesos": "23%M+23%C+18%T+13%F+9%A+9%V+5%G"
+      },
+      "w3": {
+        "score": 0.8,
+        "estado": "neutro",
+        "conf": 10,
+        "pesos": "28%M+28%C+13%T+11%F+8%A+7%V+5%G"
+      },
+      "w4": {
+        "score": 0.7,
+        "estado": "neutro",
+        "conf": 10,
         "pesos": "32%M+32%C+10%A+9%F+8%T+5%G+4%V"
       }
     }
   },
   "cot": {
     "fecha": "2026-06-02",
-    "fecha_reporte": "June 2, 2026",
-    "largos": 26725,
-    "cortos": 238608,
-    "neto": -211883,
-    "leveraged_long": 26725,
-    "leveraged_short": 238608,
-    "dealers_largo": 154867,
-    "dealers_corto": 11943,
-    "netoDealers": 142924,
-    "asset_largo": 13658,
-    "asset_corto": 1773,
-    "pctLargo": 10.1,
-    "pctDealers": 92.8,
-    "open_interest": 308653,
-    "cambioNeto": -1971,
-    "cambioNetoDealers": 14343,
-    "trend4w": null,
-    "señal": "alcista",
-    "señalDealers": "neutro",
-    "desc": "Specs 10.1% largos — capitulación, señal contraria alcista",
-    "historial": [],
-    "fuente": "cftc_txt_manual",
+    "largos": 87192,
+    "cortos": 102141,
+    "neto": -14949,
+    "netoDealers": 13812,
+    "pctLargo": 46.1,
+    "pctDealers": 52.0,
+    "cambioNeto": -8864,
+    "cambioNetoDealers": 14374,
+    "trend4w": 1036,
+    "señal": "neutro",
+    "desc": "Specs 46.1% largos — posicionamiento neutral",
+    "señalDealers": "acumulacion",
+    "historial": [
+      {
+        "fecha": "2026-06-02",
+        "neto": -14949,
+        "largos": 87192,
+        "cortos": 102141
+      },
+      {
+        "fecha": "2026-05-26",
+        "neto": -6085,
+        "largos": 85248,
+        "cortos": 91333
+      },
+      {
+        "fecha": "2026-05-19",
+        "neto": -1420,
+        "largos": 87137,
+        "cortos": 88557
+      },
+      {
+        "fecha": "2026-05-12",
+        "neto": -15985,
+        "largos": 71239,
+        "cortos": 87224
+      }
+    ],
+    "fuente": "cftc_socrata_api",
     "fuente_verificacion": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm"
   },
   "opciones": {
@@ -668,13 +552,13 @@
           {
             "strike": 725.0,
             "oi": 15199,
-            "vol": 215057,
+            "vol": 215059,
             "dist": 2.83
           },
           {
             "strike": 720.0,
             "oi": 14177,
-            "vol": 491256,
+            "vol": 491278,
             "dist": 2.12
           },
           {
@@ -692,7 +576,7 @@
           {
             "strike": 715.0,
             "oi": 7811,
-            "vol": 95293,
+            "vol": 95408,
             "dist": 1.41
           }
         ],
@@ -706,7 +590,7 @@
           {
             "strike": 720.0,
             "oi": 13329,
-            "vol": 210938,
+            "vol": 210961,
             "dist": 2.12
           },
           {
@@ -718,7 +602,7 @@
           {
             "strike": 700.0,
             "oi": 8492,
-            "vol": 46978,
+            "vol": 46979,
             "dist": -0.72
           },
           {
@@ -739,19 +623,19 @@
           {
             "strike": 750.0,
             "oi": 4851,
-            "vol": 936,
+            "vol": 951,
             "dist": 6.37
           },
           {
             "strike": 730.0,
             "oi": 3301,
-            "vol": 17390,
+            "vol": 17651,
             "dist": 3.54
           },
           {
             "strike": 720.0,
             "oi": 3056,
-            "vol": 52522,
+            "vol": 52671,
             "dist": 2.12
           },
           {
@@ -763,7 +647,7 @@
           {
             "strike": 722.0,
             "oi": 2718,
-            "vol": 23820,
+            "vol": 24600,
             "dist": 2.4
           }
         ],
@@ -771,31 +655,31 @@
           {
             "strike": 680.0,
             "oi": 4622,
-            "vol": 5685,
+            "vol": 5708,
             "dist": -3.55
           },
           {
             "strike": 695.0,
             "oi": 3236,
-            "vol": 8548,
+            "vol": 8700,
             "dist": -1.43
           },
           {
             "strike": 690.0,
             "oi": 2905,
-            "vol": 7590,
+            "vol": 7659,
             "dist": -2.14
           },
           {
             "strike": 720.0,
             "oi": 2789,
-            "vol": 30624,
+            "vol": 30721,
             "dist": 2.12
           },
           {
             "strike": 675.0,
             "oi": 2494,
-            "vol": 14892,
+            "vol": 14893,
             "dist": -4.26
           }
         ],
@@ -816,7 +700,7 @@
           {
             "strike": 730.0,
             "oi": 2735,
-            "vol": 8602,
+            "vol": 8620,
             "dist": 3.54
           },
           {
@@ -834,7 +718,7 @@
           {
             "strike": 720.0,
             "oi": 1873,
-            "vol": 6897,
+            "vol": 6931,
             "dist": 2.12
           }
         ],
@@ -842,19 +726,19 @@
           {
             "strike": 700.0,
             "oi": 6776,
-            "vol": 8559,
+            "vol": 8668,
             "dist": -0.72
           },
           {
             "strike": 670.0,
             "oi": 5515,
-            "vol": 2867,
+            "vol": 2868,
             "dist": -4.97
           },
           {
             "strike": 710.0,
             "oi": 4462,
-            "vol": 7369,
+            "vol": 7437,
             "dist": 0.7
           },
           {
@@ -866,7 +750,7 @@
           {
             "strike": 704.0,
             "oi": 4141,
-            "vol": 1093,
+            "vol": 1128,
             "dist": -0.15
           }
         ],
@@ -882,13 +766,13 @@
         {
           "strike": 725.0,
           "oi": 15199,
-          "vol": 215057,
+          "vol": 215059,
           "dist": 2.83
         },
         {
           "strike": 720.0,
           "oi": 14177,
-          "vol": 491256,
+          "vol": 491278,
           "dist": 2.12
         },
         {
@@ -906,7 +790,7 @@
         {
           "strike": 715.0,
           "oi": 7811,
-          "vol": 95293,
+          "vol": 95408,
           "dist": 1.41
         }
       ],
@@ -920,7 +804,7 @@
         {
           "strike": 720.0,
           "oi": 13329,
-          "vol": 210938,
+          "vol": 210961,
           "dist": 2.12
         },
         {
@@ -932,7 +816,7 @@
         {
           "strike": 700.0,
           "oi": 8492,
-          "vol": 46978,
+          "vol": 46979,
           "dist": -0.72
         },
         {
@@ -953,19 +837,19 @@
         {
           "strike": 750.0,
           "oi": 4851,
-          "vol": 936,
+          "vol": 951,
           "dist": 6.37
         },
         {
           "strike": 730.0,
           "oi": 3301,
-          "vol": 17390,
+          "vol": 17651,
           "dist": 3.54
         },
         {
           "strike": 720.0,
           "oi": 3056,
-          "vol": 52522,
+          "vol": 52671,
           "dist": 2.12
         },
         {
@@ -977,7 +861,7 @@
         {
           "strike": 722.0,
           "oi": 2718,
-          "vol": 23820,
+          "vol": 24600,
           "dist": 2.4
         }
       ],
@@ -985,31 +869,31 @@
         {
           "strike": 680.0,
           "oi": 4622,
-          "vol": 5685,
+          "vol": 5708,
           "dist": -3.55
         },
         {
           "strike": 695.0,
           "oi": 3236,
-          "vol": 8548,
+          "vol": 8700,
           "dist": -1.43
         },
         {
           "strike": 690.0,
           "oi": 2905,
-          "vol": 7590,
+          "vol": 7659,
           "dist": -2.14
         },
         {
           "strike": 720.0,
           "oi": 2789,
-          "vol": 30624,
+          "vol": 30721,
           "dist": 2.12
         },
         {
           "strike": 675.0,
           "oi": 2494,
-          "vol": 14892,
+          "vol": 14893,
           "dist": -4.26
         }
       ],
@@ -1030,7 +914,7 @@
         {
           "strike": 730.0,
           "oi": 2735,
-          "vol": 8602,
+          "vol": 8620,
           "dist": 3.54
         },
         {
@@ -1048,7 +932,7 @@
         {
           "strike": 720.0,
           "oi": 1873,
-          "vol": 6897,
+          "vol": 6931,
           "dist": 2.12
         }
       ],
@@ -1056,19 +940,19 @@
         {
           "strike": 700.0,
           "oi": 6776,
-          "vol": 8559,
+          "vol": 8668,
           "dist": -0.72
         },
         {
           "strike": 670.0,
           "oi": 5515,
-          "vol": 2867,
+          "vol": 2868,
           "dist": -4.97
         },
         {
           "strike": 710.0,
           "oi": 4462,
-          "vol": 7369,
+          "vol": 7437,
           "dist": 0.7
         },
         {
@@ -1080,7 +964,7 @@
         {
           "strike": 704.0,
           "oi": 4141,
-          "vol": 1093,
+          "vol": 1128,
           "dist": -0.15
         }
       ],
@@ -1107,27 +991,28 @@
       "desc": "SKEW=1.098 - cobertura normal"
     },
     "ratio_0dte": {
-      "valor": 0.743,
-      "vol_0dte": 6195661,
-      "vol_total": 8338715,
+      "valor": 0.742,
+      "vol_0dte": 6199553,
+      "vol_total": 8359867,
       "senal": "extremo",
-      "desc": "0DTE=74.3% - delta hedging forzado al cierre, amplificacion movimientos"
+      "desc": "0DTE=74.2% - delta hedging forzado al cierre, amplificacion movimientos"
     },
     "pcrOI": 1.419,
-    "pcrVol": 0.998,
+    "pcrVol": 1.005,
     "fuente": "yahoo_options"
   },
   "pcr": {
-    "total": 0.97,
-    "equity": 0.67,
-    "index": 1.13,
-    "spx": 1.32,
-    "señal": "neutro",
-    "desc": "PCR=0.97 — rango normal",
-    "fuente": "cboe_txt_manual",
-    "fecha": "05 June 2026",
-    "edad_dias": 3,
-    "fuente_verificacion": "https://www.cboe.com/data/volatility-and-put-call-ratio-data/"
+    "equity": null,
+    "index": null,
+    "total": 1.419,
+    "trend": null,
+    "historial": [],
+    "señal": "alcista_contrario",
+    "desc": "PCR=1.419 — miedo extremo, señal contraria alcista (QQQ only — proxy Nasdaq, ligero sesgo large-cap tech)",
+    "fuente": "yahoo_qqq_options",
+    "sesgo": "(QQQ only — proxy Nasdaq, ligero sesgo large-cap tech)",
+    "fuente_verificacion": "https://www.cboe.com/data/volatility-and-put-call-ratio-data/",
+    "fuente_alternativa": "https://finance.yahoo.com/quote/QQQ/options/"
   },
   "comparativa_correcciones": {
     "micro_3pct": 80,
@@ -1140,7 +1025,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (81% similitud). Contexto: VIX=21.5, RSI=48. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-08T22:41:29.658060"
+    "ts_calculo": "2026-06-08T22:51:37.329554"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001444,
