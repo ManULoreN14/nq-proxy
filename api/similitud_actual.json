@@ -1,0 +1,119 @@
+{
+  "version": "1.0",
+  "generado": "2026-06-07T20:12:52Z",
+  "fecha_referencia": "2026-06-04",
+  "fingerprint_hoy": {
+    "dist_pct": -0.74,
+    "rsi": 75.45,
+    "vix": 15.2,
+    "vix_change_3d_pct": -5.3,
+    "roc5d": 0.68,
+    "breadth_pct": 57.1
+  },
+  "config": {
+    "k_vecinos": 50,
+    "horizonte_dias": 20,
+    "n_dias_base": 2282,
+    "pesos": {
+      "dist_pct": 2.0,
+      "vix": 1.5,
+      "vix_change_3d_pct": 1.5,
+      "rsi": 1.0,
+      "roc5d": 1.0,
+      "breadth_pct": 1.2
+    },
+    "similitud_minima_fiable": 0.3
+  },
+  "distribucion": {
+    "ruido": {
+      "porcentaje": 70.0,
+      "n": 35,
+      "descripcion": "Sin caída significativa (<3%)"
+    },
+    "leve": {
+      "porcentaje": 22.0,
+      "n": 11,
+      "descripcion": "Corrección leve (3-5%)"
+    },
+    "moderada": {
+      "porcentaje": 4.0,
+      "n": 2,
+      "descripcion": "Corrección moderada (5-10%)"
+    },
+    "fuerte": {
+      "porcentaje": 4.0,
+      "n": 2,
+      "descripcion": "Corrección fuerte (10-20%)"
+    },
+    "crash": {
+      "porcentaje": 0.0,
+      "n": 0,
+      "descripcion": "Crash o caída severa (>20%)"
+    }
+  },
+  "fiable": true,
+  "mejor_similitud": 0.5527,
+  "vecinos_top10": [
+    {
+      "fecha": "2019-05-03",
+      "similitud": 0.5527,
+      "categoria": "fuerte",
+      "caida_max_20d": -10.98
+    },
+    {
+      "fecha": "2025-06-09",
+      "similitud": 0.551,
+      "categoria": "ruido",
+      "caida_max_20d": -0.73
+    },
+    {
+      "fecha": "2025-09-30",
+      "similitud": 0.5444,
+      "categoria": "ruido",
+      "caida_max_20d": -1.81
+    },
+    {
+      "fecha": "2019-02-15",
+      "similitud": 0.5435,
+      "categoria": "ruido",
+      "caida_max_20d": -0.45
+    },
+    {
+      "fecha": "2025-07-18",
+      "similitud": 0.5169,
+      "categoria": "ruido",
+      "caida_max_20d": -1.31
+    },
+    {
+      "fecha": "2023-12-26",
+      "similitud": 0.5118,
+      "categoria": "leve",
+      "caida_max_20d": -3.55
+    },
+    {
+      "fecha": "2023-12-01",
+      "similitud": 0.5109,
+      "categoria": "ruido",
+      "caida_max_20d": -1.25
+    },
+    {
+      "fecha": "2019-02-21",
+      "similitud": 0.5084,
+      "categoria": "ruido",
+      "caida_max_20d": -0.26
+    },
+    {
+      "fecha": "2024-06-05",
+      "similitud": 0.5075,
+      "categoria": "ruido",
+      "caida_max_20d": -0.12
+    },
+    {
+      "fecha": "2025-07-24",
+      "similitud": 0.5073,
+      "categoria": "ruido",
+      "caida_max_20d": -1.97
+    }
+  ],
+  "interpretacion": "La mayoría (92%) de momentos similares se resolvió sin caídas significativas. Contexto históricamente benigno."
+}
