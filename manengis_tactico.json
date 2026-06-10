@@ -11,7 +11,7 @@
     "ema50": 674.69,
     "atr14": 14.09,
     "roc5d": -5.14,
-    "max_pain": 720.0,
+    "max_pain": 717.0,
     "max_pain_dist_pct": 1.72,
     "put_call_ratio": 1.746,
     "gex_neto_m": 0.0,
@@ -123,10 +123,40 @@
   "derivados": {
     "precio_qqq": 707.83,
     "vencimientos": [
-      "2026-06-09",
-      "2026-06-10",
-      "2026-06-11",
-      "2026-06-12"
+      "Tue Jun 09 2026",
+      "Wed Jun 10 2026",
+      "Thu Jun 11 2026",
+      "Fri Jun 12 2026",
+      "Mon Jun 15 2026",
+      "Tue Jun 16 2026",
+      "Wed Jun 17 2026",
+      "Thu Jun 18 2026",
+      "Mon Jun 22 2026",
+      "Tue Jun 23 2026",
+      "Wed Jun 24 2026",
+      "Fri Jun 26 2026",
+      "Tue Jun 30 2026",
+      "Thu Jul 02 2026",
+      "Fri Jul 10 2026",
+      "Fri Jul 17 2026",
+      "Fri Jul 24 2026",
+      "Fri Jul 31 2026",
+      "Fri Aug 21 2026",
+      "Mon Aug 31 2026",
+      "Fri Sep 18 2026",
+      "Wed Sep 30 2026",
+      "Fri Oct 16 2026",
+      "Fri Dec 18 2026",
+      "Thu Dec 31 2026",
+      "Fri Jan 15 2027",
+      "Fri Mar 19 2027",
+      "Wed Mar 31 2027",
+      "Thu Jun 17 2027",
+      "Fri Sep 17 2027",
+      "Fri Dec 17 2027",
+      "Fri Jan 21 2028",
+      "Fri Jun 16 2028",
+      "Fri Dec 15 2028"
     ],
     "max_pain": 720.0,
     "max_pain_dist_pct": 1.72,
@@ -137,50 +167,75 @@
     "gex_flip": null,
     "top_call_strikes": [
       {
-        "strike": 740.0,
-        "oi": 16013.0
+        "strike": 720.0,
+        "oi": 8214,
+        "dist": 1.84
       },
       {
         "strike": 750.0,
-        "oi": 12937.0
+        "oi": 5009,
+        "dist": 6.08
+      },
+      {
+        "strike": 724.0,
+        "oi": 4725,
+        "dist": 2.4
+      },
+      {
+        "strike": 716.0,
+        "oi": 4629,
+        "dist": 1.27
       },
       {
         "strike": 730.0,
-        "oi": 12889.0
-      },
-      {
-        "strike": 720.0,
-        "oi": 12379.0
-      },
-      {
-        "strike": 745.0,
-        "oi": 9427.0
+        "oi": 3904,
+        "dist": 3.25
       }
     ],
     "top_put_strikes": [
       {
-        "strike": 430.0,
-        "oi": 40866.0
+        "strike": 500.0,
+        "oi": 15563,
+        "dist": -29.28
       },
       {
-        "strike": 470.0,
-        "oi": 35394.0
+        "strike": 675.0,
+        "oi": 13118,
+        "dist": -4.53
       },
       {
-        "strike": 625.0,
-        "oi": 20831.0
+        "strike": 505.0,
+        "oi": 12725,
+        "dist": -28.57
       },
       {
         "strike": 700.0,
-        "oi": 20767.0
+        "oi": 8310,
+        "dist": -0.99
       },
       {
-        "strike": 710.0,
-        "oi": 18398.0
+        "strike": 515.0,
+        "oi": 7626,
+        "dist": -27.16
       }
     ],
     "roc5d": -5.14,
-    "precio_hace5d": 746.16
+    "precio_hace5d": 746.16,
+    "resistencia_principal": {
+      "strike": 720.0,
+      "oi": 8214,
+      "dist": 1.84
+    },
+    "soporte_principal": {
+      "strike": 675.0,
+      "oi": 13118,
+      "dist": -4.53
+    },
+    "rango_semana": {
+      "techo": 720.0,
+      "suelo": 700.0,
+      "amplitudPct": 2.83
+    }
   },
   "cot": {
     "fecha_reporte": "2026-06-02",
@@ -243,8 +298,8 @@
           "pct": null
         },
         "2d": {
-          "abs": NaN,
-          "pct": NaN
+          "abs": null,
+          "pct": null
         },
         "5d": {
           "abs": 0.0,
@@ -885,5 +940,30 @@
       }
     ],
     "interpretacion": "La mayoría (92%) de momentos similares se resolvió sin caídas significativas. Contexto históricamente benigno."
+  },
+  "pcr": {
+    "equity": 0.62,
+    "total": 0.96,
+    "index": 1.11,
+    "spx": 1.26,
+    "señal": "neutro",
+    "fecha": "09 June 2026",
+    "fuente": "cboe_txt_manual"
+  },
+  "vixTermStructure": {
+    "spot": 19.87,
+    "vx1": 19.45,
+    "vx2": 20.7,
+    "vx1_symbol": "VX/M6",
+    "vx2_symbol": "VX/N6",
+    "vx1_expiry": "06/17/2026",
+    "spread1": -0.42,
+    "spread1Pct": -2.1,
+    "backwardation": true,
+    "slope_1m2m": 1.071,
+    "señal": "alcista",
+    "desc": "VIX backwardation — spot=19.87 > front=19.45 (spread=-0.42) — estrés agudo, rebote probable 2-5d",
+    "fuente": "vix_txt_manual",
+    "usando_settlement": true
   }
 }
