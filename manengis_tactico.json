@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "generado": "2026-06-13T20:13:01.710416+00:00",
+  "generado": "2026-06-14T20:13:10.857712+00:00",
   "fuente": "manengis-python-local",
   "modo": "full",
   "variables_crudas": {
@@ -24,11 +24,11 @@
     "vix_ts_estado": "contango_normal",
     "skew_ratio": 1.492,
     "skew_estado": "miedo_cola_alto",
-    "skew_iv_put_otm": 0.3575,
-    "skew_iv_call_otm": 0.2396,
-    "sentiment_score": 16.1,
+    "skew_iv_put_otm": 0.3916,
+    "skew_iv_call_otm": 0.2625,
+    "sentiment_score": 9.5,
     "gdelt_tono": 0,
-    "gdelt_articulos": 14,
+    "gdelt_articulos": 0,
     "sentiment_model": "FinBERT",
     "cot_lev_net": -34306,
     "cot_am_net": 83367,
@@ -60,23 +60,23 @@
     "curva_invertida": false
   },
   "sentimiento": {
-    "score": 16.1,
+    "score": 9.5,
     "model": "FinBERT",
-    "titulares": 67,
-    "positivos": 22,
-    "negativos": 9,
-    "neutros": 36,
-    "descripcion": "Sesgo positivo",
+    "titulares": 45,
+    "positivos": 13,
+    "negativos": 8,
+    "neutros": 24,
+    "descripcion": "Neutral",
     "titulares_muestra": [
-      "Rocket Lab added to Nasdaq-100 - putting it in the same club as SpaceX",
-      "US stocks: SpaceX shares close 19% higher in historic market debut, value surges past $2 trillion",
-      "CoreWeave and Nebius shares jump on Nasdaq 100 inclusion",
-      "Strategy’s Michael Saylor commits to raising capital with STRC above par",
-      "London Tech Week 2026: the AI billions, the US build-out, and a royal first"
+      "Phase 3 Data Show TransCon® PTH Replicated Systemic Actions of Endogenous PTH Through Week 182 in Adults with Hypoparathyroidism",
+      "Is X-Energy (XE) One of the Best Young Stocks with the Highest Upside Potential?",
+      "Elon Musk's SpaceX IPO has investors sweating about 401(k)s — but Vanguard's CIO says the panic gets one thing wrong",
+      "Is Echostar a Way to Get SpaceX at $80-113 Per Share ?",
+      "US Market Outlook: Bourses bounce back"
     ],
     "gdelt_tono": 0,
     "gdelt_tono_norm": 0,
-    "gdelt_articulos": 14
+    "gdelt_articulos": 0
   },
   "earnings": {
     "alerta_volatilidad": false,
@@ -85,37 +85,37 @@
       {
         "ticker": "TSLA",
         "fecha": "2026-07-22 00:00 UTC",
-        "horas": 915.8
+        "horas": 891.8
       },
       {
         "ticker": "GOOGL",
         "fecha": "2026-07-23 00:00 UTC",
-        "horas": 939.8
+        "horas": 915.8
       },
       {
         "ticker": "MSFT",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1083.8
+        "horas": 1059.8
       },
       {
         "ticker": "META",
         "fecha": "2026-07-29 00:00 UTC",
-        "horas": 1083.8
+        "horas": 1059.8
       },
       {
         "ticker": "AAPL",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1107.8
+        "horas": 1083.8
       },
       {
         "ticker": "AMZN",
         "fecha": "2026-07-30 00:00 UTC",
-        "horas": 1107.8
+        "horas": 1083.8
       },
       {
         "ticker": "NVDA",
         "fecha": "2026-08-26 00:00 UTC",
-        "horas": 1755.8
+        "horas": 1731.8
       }
     ],
     "ventana_horas": 72
@@ -211,30 +211,30 @@
     "deltas": {
       "vix": {
         "1d": {
+          "abs": 0.0,
+          "pct": 0.0
+        },
+        "2d": {
           "abs": -1.74,
           "pct": -8.96
         },
-        "2d": {
-          "abs": -4.3,
-          "pct": -19.56
-        },
         "5d": {
-          "abs": -3.83,
-          "pct": -17.81
+          "abs": -1.05,
+          "pct": -5.61
         }
       },
       "pcr": {
         "1d": {
+          "abs": 0.0,
+          "pct": 0.0
+        },
+        "2d": {
           "abs": 0.37,
           "pct": 25.91
         },
-        "2d": {
-          "abs": 0.33,
-          "pct": 22.15
-        },
         "5d": {
-          "abs": -0.17,
-          "pct": -8.48
+          "abs": 0.42,
+          "pct": 30.37
         }
       },
       "gex_neto_m": {
@@ -247,22 +247,22 @@
           "pct": null
         },
         "5d": {
-          "abs": NaN,
-          "pct": NaN
+          "abs": 0.0,
+          "pct": null
         }
       },
       "rsi": {
         "1d": {
+          "abs": 0.0,
+          "pct": 0.0
+        },
+        "2d": {
           "abs": 1.59,
           "pct": 2.97
         },
-        "2d": {
-          "abs": 11.92,
-          "pct": 27.55
-        },
         "5d": {
-          "abs": 6.84,
-          "pct": 14.15
+          "abs": 1.66,
+          "pct": 3.1
         }
       }
     },
@@ -273,7 +273,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion de riesgo. VIX -1.74 vs ayer."
+    "descripcion": "Sin aceleracion de riesgo. VIX +0.0 vs ayer."
   },
   "breadth": {
     "tickers_validos": 7,
@@ -389,14 +389,14 @@
   },
   "skew": {
     "vencimiento": "2026-06-18",
-    "iv_put_otm": 0.3575,
-    "iv_call_otm": 0.2396,
-    "skew": 0.1179,
+    "iv_put_otm": 0.3916,
+    "iv_call_otm": 0.2625,
+    "skew": 0.1291,
     "skew_ratio": 1.492,
     "estado": "miedo_cola_alto",
     "n_puts": 57,
     "n_calls": 48,
-    "descripcion": "Skew ALTO en 2026-06-18: puts OTM a 35.8% IV vs calls OTM a 24.0% (ratio 1.492). Institucionales pagan prima fuerte por proteccion a la baja: miedo de cola."
+    "descripcion": "Skew ALTO en 2026-06-18: puts OTM a 39.2% IV vs calls OTM a 26.2% (ratio 1.492). Institucionales pagan prima fuerte por proteccion a la baja: miedo de cola."
   },
   "barrida_estructural": {
     "nivel_barrida": 558.28,
@@ -686,6 +686,16 @@
       "exposicion_pct": 60,
       "precio_qqq": 721.34,
       "vix": 17.68
+    },
+    {
+      "fecha": "2026-06-14",
+      "risk_score": 6.0,
+      "fear_greed_score": 51.2,
+      "regimen_mercado": "tendencia_alcista",
+      "exposicion_semaforo": "amarillo",
+      "exposicion_pct": 60,
+      "precio_qqq": 721.34,
+      "vix": 17.68
     }
   ],
   "fred": {
@@ -799,7 +809,7 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-13T20:13:03Z",
+    "generado": "2026-06-14T20:13:12Z",
     "fecha_referencia": "2026-06-11",
     "fingerprint_hoy": {
       "dist_pct": -3.89,
