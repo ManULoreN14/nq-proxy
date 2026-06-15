@@ -2915,6 +2915,13 @@ def mapear_cot_csv_al_legacy(cot_csv: dict, cot_legacy: dict = None) -> dict:
     base = dict(cot_legacy) if cot_legacy else {}
     # NOTA: el COT del CSV usa Lev_Money (hedge funds). El legacy usaba NonComm.
     # Lev_Money es el subgrupo MAS importante de NonComm -> es upgrade, no perdida.
+
+    # trend4w (legacy/score_cot_fn/index.html) es NUMERICO: cambio en contratos
+    # netos a 4 semanas (curr - hace 4 semanas), NO la etiqueta "subiendo/bajando"
+    # de tendencia_4s (esa es un string y va en su propio campo, ver mas abajo).
+    hist52 = cot_csv.get("historico_52s") or []
+    trend4w_num = (hist52[-1]["lev_net"] - hist52[-5]["lev_net"]) if len(hist52) >= 5 else None
+
     base.update({
         "fecha":         cot_csv.get("fecha"),
         "largos":        cot_csv.get("lev_largos"),
@@ -2922,7 +2929,8 @@ def mapear_cot_csv_al_legacy(cot_csv: dict, cot_legacy: dict = None) -> dict:
         "neto":          cot_csv.get("lev_neto"),
         "pctLargo":      cot_csv.get("lev_pct_largos"),
         "cambioNeto":    cot_csv.get("cambio_semana_neto"),
-        "trend4w":       cot_csv.get("tendencia_4s"),
+        "trend4w":       trend4w_num,
+        "tendencia_4s":  cot_csv.get("tendencia_4s"),  # string subiendo/bajando/estable -> icono frontend
         "señal":         cot_csv.get("señal"),
         "desc":          cot_csv.get("señal_texto"),
         "señalDealers":  "neutro",  # CSV no clasifica dealers como "acumulacion/distribucion"
