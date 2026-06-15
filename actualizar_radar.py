@@ -133,6 +133,7 @@ SIMBOLOS = {
     "VIX":  "^VIX",
     "VXN":  "^VXN",
     "VIX3M":"^VIX3M",
+    "VIX9D":"^VIX9D",
     "TNX":  "^TNX",
     "IRX":  "^IRX",
     "FVX":  "^FVX",
@@ -1370,6 +1371,7 @@ def calcular_vix_ts(df_maestro: pd.DataFrame) -> dict:
 
     vix_spot = last_val("VIX_close")
     vix3m    = last_val("VIX3M_close")
+    vix9d    = last_val("VIX9D_close")
 
     spread1     = round(vix3m - vix_spot, 2) if vix_spot and vix3m else None
     spread1_pct = round(spread1 / vix_spot * 100, 1) if spread1 and vix_spot else None
@@ -1396,6 +1398,9 @@ def calcular_vix_ts(df_maestro: pd.DataFrame) -> dict:
     return {
         "spot":          vix_spot,
         "vix3m":         vix3m,
+        "vix9d":         vix9d,
+        "vx1":           vix9d,   # proxy automatico VX1 (~1 mes) -- madurez constante 9D (^VIX9D)
+        "vx2":           vix3m,   # proxy automatico VX2 (~2 meses) -- madurez constante 3M (^VIX3M)
         "spread1":       spread1,
         "spread1Pct":    spread1_pct,
         "backwardation": back,
@@ -4698,29 +4703,63 @@ def inyectar_gex_manual(datos_json: dict) -> None:
                     }
                     log.info(f"  [INYECT] manengis_tactico.json pcr inyectado: equity={m['pcr']['equity']} total={m['pcr']['total']} fecha={m['pcr']['fecha']}")
 
-                # ── Inyectar vixTermStructure con vx1/vx2 de VIX.txt ────────────
-                # El frontend Táctico busca data.vixTermStructure.{spot, vx1, vx2}
-                # parsear_vix_ts_txt lee VIX.txt con los futuros reales de Cboe
+                # ── Inyectar vixTermStructure: base AUTOMATICA (VIX9D/VIX3M) ────
+                # El frontend Táctico busca data.vixTermStructure.{spot, vx1, vx2}.
+                # calcular_vix_ts() corre siempre (sin VIX.txt) usando ^VIX/^VIX9D/
+                # ^VIX3M, que ya estan en historico_maestro.csv -> spot/vx1/vx2
+                # se auto-rellenan desde hoy. Incluye vixPercentil (contexto
+                # historico) y señal/desc con clasificacion 2-5d.
+                vts_auto = datos_json.get("_vix_ts_auto") or {}
+                if vts_auto.get("spot") is not None:
+                    m["vixTermStructure"] = {
+                        "spot":           vts_auto.get("spot"),
+                        "vx1":            vts_auto.get("vx1"),
+                        "vx2":            vts_auto.get("vx2"),
+                        "vx1_symbol":     "^VIX9D",
+                        "vx2_symbol":     "^VIX3M",
+                        "vx1_expiry":     None,
+                        "spread1":        vts_auto.get("spread1"),
+                        "spread1Pct":     vts_auto.get("spread1Pct"),
+                        "backwardation":  vts_auto.get("backwardation"),
+                        "vixPercentil":   vts_auto.get("vixPercentil"),
+                        "señal":          vts_auto.get("señal"),
+                        "desc":           vts_auto.get("desc"),
+                        "fuente":         "yfinance_auto (VIX9D/VIX3M)",
+                        "usando_settlement": False,
+                    }
+                    log.info(
+                        f"  [INYECT] manengis_tactico.json vixTermStructure (auto): "
+                        f"spot={m['vixTermStructure']['spot']} "
+                        f"vx1={m['vixTermStructure']['vx1']} vx2={m['vixTermStructure']['vx2']} "
+                        f"señal={m['vixTermStructure']['señal']}"
+                    )
+
+                # ── vixTermStructure: override OPCIONAL con futuros reales de VIX.txt ──
+                # Si VIX.txt existe, sustituye vx1/vx2 (y simbolo/vencimiento) por los
+                # futuros reales de Cboe, conservando vixPercentil/señal/desc de la
+                # base automatica si VIX.txt no los aporta.
                 vts_inyectado = parsear_vix_ts_txt(BASE_DIR)
                 if vts_inyectado is not None:
-                    m["vixTermStructure"] = {
-                        "spot":           vts_inyectado.get("spot"),
+                    base = m.get("vixTermStructure") or {}
+                    base.update({
+                        "spot":           vts_inyectado.get("spot", base.get("spot")),
                         "vx1":            (vts_inyectado.get("front_month") or {}).get("precio"),
                         "vx2":            (vts_inyectado.get("second_month") or {}).get("precio"),
                         "vx1_symbol":     (vts_inyectado.get("front_month") or {}).get("symbol"),
                         "vx2_symbol":     (vts_inyectado.get("second_month") or {}).get("symbol"),
                         "vx1_expiry":     (vts_inyectado.get("front_month") or {}).get("expiry"),
-                        "spread1":        vts_inyectado.get("spread1"),
-                        "spread1Pct":     vts_inyectado.get("spread1Pct"),
-                        "backwardation":  vts_inyectado.get("backwardation"),
+                        "spread1":        vts_inyectado.get("spread1", base.get("spread1")),
+                        "spread1Pct":     vts_inyectado.get("spread1Pct", base.get("spread1Pct")),
+                        "backwardation":  vts_inyectado.get("backwardation", base.get("backwardation")),
                         "slope_1m2m":     vts_inyectado.get("slope_1m2m"),
-                        "señal":          vts_inyectado.get("señal"),
-                        "desc":           vts_inyectado.get("desc"),
+                        "señal":          vts_inyectado.get("señal", base.get("señal")),
+                        "desc":           vts_inyectado.get("desc", base.get("desc")),
                         "fuente":         "vix_txt_manual",
                         "usando_settlement": vts_inyectado.get("usando_settlement", False),
-                    }
+                    })
+                    m["vixTermStructure"] = base
                     log.info(
-                        f"  [INYECT] manengis_tactico.json vixTermStructure inyectado: "
+                        f"  [INYECT] manengis_tactico.json vixTermStructure (VIX.txt override): "
                         f"spot={m['vixTermStructure']['spot']} "
                         f"vx1={m['vixTermStructure']['vx1']} vx2={m['vixTermStructure']['vx2']}"
                     )
@@ -6121,8 +6160,13 @@ def main():
         "proximas_fases": "Fase9=HMM_clustering_regimenes+SEC_13F_completo",
     }
 
+    # vix_ts (calcular_vix_ts, automatico via ^VIX/^VIX9D/^VIX3M) se pasa a
+    # inyectar_gex_manual() para auto-rellenar vixTermStructure sin VIX.txt.
+    datos_json["_vix_ts_auto"] = vix_ts
+
     # ── INYECCIÓN gex_manual.json → maxpain + derivados (auto-rellena Radar 2-5D) ──
     inyectar_gex_manual(datos_json)
+    datos_json.pop("_vix_ts_auto", None)
 
     exportar_json(datos_json)
 
