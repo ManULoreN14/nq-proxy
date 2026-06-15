@@ -1,29 +1,29 @@
 {
   "version": "2.4",
-  "generado": "2026-06-15T14:10:28+00:00",
+  "generado": "2026-06-15T15:26:49+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
-    "precio_qqq": 740.29,
-    "precio_ndx": 30396.8574,
-    "vix": 16.32,
-    "rsi": 53.61,
-    "ema20": 717.63,
-    "ema50": 689.59,
-    "atr14": 16.47,
-    "roc5d": 3.38,
-    "vix3m": 19.69,
-    "vix_ts_ratio": 0.8288,
+    "precio_qqq": 742.8292,
+    "precio_ndx": 30509.7598,
+    "vix": 16.23,
+    "rsi": 54.44,
+    "ema20": 717.87,
+    "ema50": 689.69,
+    "atr14": 16.54,
+    "roc5d": 3.74,
+    "vix3m": 19.61,
+    "vix_ts_ratio": 0.8276,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
     "cot_lev_net": null,
     "cot_sesgo": "sin_datos",
-    "breadth_pct_ema20": 14.3,
+    "breadth_pct_ema20": 28.6,
     "breadth_pct_ema50": 57.1,
     "breadth_divergencia": true,
     "exposicion_sugerida_pct": 80,
     "exposicion_semaforo": "verde",
-    "dist_desde_max_pct": -0.79,
+    "dist_desde_max_pct": -0.45,
     "fear_greed_score": 20.0,
     "fear_greed_estado": "miedo",
     "regimen_mercado": "tendencia_alcista",
@@ -35,24 +35,25 @@
     "us30y": 4.95,
     "spread_2_10": 0.4,
     "spread_3m_10": 0.67,
-    "curva_invertida": false
+    "curva_invertida": false,
+    "max_pain": 650.0
   },
   "tecnicos": {
-    "precio": 740.29,
-    "rsi14": 53.61,
-    "ema20": 717.63,
-    "ema50": 689.59,
-    "atr14": 16.47,
-    "roc5d": 3.38
+    "precio": 742.8292,
+    "rsi14": 54.44,
+    "ema20": 717.87,
+    "ema50": 689.69,
+    "atr14": 16.54,
+    "roc5d": 3.74
   },
   "vix_term_structure": {
-    "vix": 16.32,
-    "vix3m": 19.69,
-    "ratio": 0.8288,
-    "spread": 3.37,
+    "vix": 16.23,
+    "vix3m": 19.61,
+    "ratio": 0.8276,
+    "spread": 3.38,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (16.32) < VIX3M (19.69): contango_normal"
+    "descripcion": "VIX (16.23) < VIX3M (19.61): contango_normal"
   },
   "cot": {
     "error": "No disponible"
@@ -62,65 +63,65 @@
   },
   "breadth": {
     "tickers_validos": 7,
-    "sobre_ema20": 1,
+    "sobre_ema20": 2,
     "sobre_ema50": 4,
-    "pct_sobre_ema20": 14.3,
+    "pct_sobre_ema20": 28.6,
     "pct_sobre_ema50": 57.1,
     "detalle": [
       {
         "ticker": "AAPL",
-        "precio": 295.595,
-        "ema20": 298.78,
-        "ema50": 288.06,
+        "precio": 296.75,
+        "ema20": 298.89,
+        "ema50": 288.11,
         "sobre_ema20": false,
         "sobre_ema50": true
       },
       {
         "ticker": "MSFT",
-        "precio": 399.09,
-        "ema20": 412.34,
-        "ema50": 409.14,
+        "precio": 398.505,
+        "ema20": 412.28,
+        "ema50": 409.12,
         "sobre_ema20": false,
         "sobre_ema50": false
       },
       {
         "ticker": "NVDA",
-        "precio": 208.89,
-        "ema20": 210.8,
-        "ema50": 205.47,
-        "sobre_ema20": false,
+        "precio": 211.24,
+        "ema20": 211.02,
+        "ema50": 205.56,
+        "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "GOOGL",
-        "precio": 367.69,
-        "ema20": 369.71,
-        "ema50": 360.24,
-        "sobre_ema20": false,
+        "precio": 372.08,
+        "ema20": 370.13,
+        "ema50": 360.41,
+        "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "AMZN",
-        "precio": 245.82,
-        "ema20": 252.23,
-        "ema50": 249.31,
+        "precio": 246.13,
+        "ema20": 252.26,
+        "ema50": 249.32,
         "sobre_ema20": false,
         "sobre_ema50": false
       },
       {
         "ticker": "META",
-        "precio": 592.57,
-        "ema20": 598.87,
-        "ema50": 608.04,
+        "precio": 596.33,
+        "ema20": 599.23,
+        "ema50": 608.19,
         "sobre_ema20": false,
         "sobre_ema50": false
       },
       {
         "ticker": "TSLA",
-        "precio": 411.7856,
-        "ema20": 410.1,
-        "ema50": 402.46,
-        "sobre_ema20": true,
+        "precio": 409.64,
+        "ema20": 409.9,
+        "ema50": 402.37,
+        "sobre_ema20": false,
         "sobre_ema50": true
       }
     ],
@@ -146,8 +147,8 @@
       "precio_sobre_ema20": true,
       "precio_sobre_ema50": true,
       "ema20_sobre_ema50": true,
-      "rsi": 53.61,
-      "breadth_pct_ema20": 14.3
+      "rsi": 54.44,
+      "breadth_pct_ema20": 28.6
     }
   },
   "plan_exposicion": {
@@ -156,7 +157,7 @@
     "semaforo": "verde",
     "estado": "Exposicion plena",
     "accion": "Mantener",
-    "dist_desde_max_pct": -0.79,
+    "dist_desde_max_pct": -0.45,
     "max_referencia": 746.16,
     "motivos": [
       "Breadth Mag7 debil vs precio"
@@ -164,7 +165,7 @@
     "descripcion": "Exposicion 80%. Mantener. Breadth Mag7 debil vs precio",
     "barrida_estructural": {
       "nivel_barrida": 558.28,
-      "dist_barrida_pct": 32.6,
+      "dist_barrida_pct": 33.06,
       "zona_barrida": false,
       "sesiones_ventana": 90
     }
@@ -176,7 +177,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX -26.55% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX -26.96% (3 dias)."
   },
   "fred": {
     "score": -1,
@@ -265,14 +266,14 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-15T14:10:28+00:00",
+    "generado": "2026-06-15T15:26:49+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
-      "dist_pct": -0.79,
-      "rsi": 53.61,
-      "vix": 16.32,
-      "vix_change_3d_pct": -26.55,
-      "roc5d": 3.38,
+      "dist_pct": -0.45,
+      "rsi": 54.44,
+      "vix": 16.23,
+      "vix_change_3d_pct": -26.96,
+      "roc5d": 3.74,
       "breadth_pct": 57.1
     },
     "config": {
@@ -630,8 +631,8 @@
       "regimen_mercado": "tendencia_alcista",
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
-      "precio_qqq": 740.29,
-      "vix": 16.32
+      "precio_qqq": 742.8292,
+      "vix": 16.23
     }
   ],
   "sentimiento": {
@@ -643,7 +644,90 @@
     "tickers_72h": []
   },
   "derivados": {
-    "precio_qqq": 740.29
+    "precio_qqq": 721.34,
+    "vencimientos": [
+      "Fri Jun 12 2026",
+      "Mon Jun 15 2026",
+      "Tue Jun 16 2026",
+      "Wed Jun 17 2026",
+      "Thu Jun 18 2026",
+      "Mon Jun 22 2026",
+      "Tue Jun 23 2026",
+      "Wed Jun 24 2026",
+      "Thu Jun 25 2026",
+      "Fri Jun 26 2026",
+      "Tue Jun 30 2026",
+      "Thu Jul 02 2026",
+      "Fri Jul 10 2026",
+      "Fri Jul 17 2026",
+      "Fri Jul 24 2026",
+      "Fri Jul 31 2026",
+      "Fri Aug 21 2026",
+      "Mon Aug 31 2026",
+      "Fri Sep 18 2026",
+      "Wed Sep 30 2026",
+      "Fri Oct 16 2026",
+      "Fri Dec 18 2026",
+      "Thu Dec 31 2026",
+      "Fri Jan 15 2027",
+      "Fri Mar 19 2027",
+      "Wed Mar 31 2027",
+      "Thu Jun 17 2027",
+      "Fri Sep 17 2027",
+      "Fri Dec 17 2027",
+      "Fri Jan 21 2028",
+      "Fri Jun 16 2028",
+      "Fri Dec 15 2028"
+    ],
+    "top_call_strikes": [
+      {
+        "strike": 740.0,
+        "oi": 40294,
+        "dist": 2.32
+      },
+      {
+        "strike": 750.0,
+        "oi": 30434,
+        "dist": 3.7
+      },
+      {
+        "strike": 735.0,
+        "oi": 29869,
+        "dist": 1.62
+      }
+    ],
+    "top_put_strikes": [
+      {
+        "strike": 580.0,
+        "oi": 84775,
+        "dist": -19.81
+      },
+      {
+        "strike": 590.0,
+        "oi": 84320,
+        "dist": -18.42
+      },
+      {
+        "strike": 600.0,
+        "oi": 81835,
+        "dist": -17.04
+      }
+    ],
+    "resistencia_principal": {
+      "strike": 740.0,
+      "oi": 40294,
+      "dist": 2.32
+    },
+    "soporte_principal": {
+      "strike": 580.0,
+      "oi": 84775,
+      "dist": -19.81
+    },
+    "rango_semana": {
+      "techo": 740.0,
+      "suelo": 580.0,
+      "amplitudPct": 22.12
+    }
   },
   "skew": {},
   "barrida_estructural": {
@@ -651,6 +735,12 @@
     "zona_barrida": false
   },
   "pcr": {
-    "error": "pcr_cboe: 403 Client Error: Forbidden for url: https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv"
+    "equity": null,
+    "total": 2.079,
+    "index": null,
+    "spx": null,
+    "señal": "alcista_contrario",
+    "fecha": null,
+    "fuente": "yahoo_qqq_options"
   }
 }
