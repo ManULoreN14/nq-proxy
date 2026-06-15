@@ -52,7 +52,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f manengis_tactico.json datos_radar.json
+          git add -f manengis_tactico.json datos_radar.json historico_maestro.csv
           git status
           git diff --cached --stat
           git commit -m "data: actualización automática $(date -u +'%Y-%m-%d %H:%M UTC')" || echo "Sin cambios que commitear"
