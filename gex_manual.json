@@ -1,802 +1,812 @@
 {
-  "valor_total": -194014000.0,
-  "valor_total_M": -194.01,
-  "valor_total_B": -0.194,
-  "gamma_flip_level": 215.0,
-  "dist_gamma_flip_pct": -69.51,
-  "estado": "neutro",
+  "valor_total": -4822158000.0,
+  "valor_total_M": -4822.16,
+  "valor_total_B": -4.8222,
+  "gamma_flip_level": 205.0,
+  "dist_gamma_flip_pct": -71.0,
+  "estado": "negativo_extremo",
   "fuente": "gex_parser_local",
-  "precio_referencia": 705.06,
-  "n_vencimientos": 33,
-  "n_strikes_con_gamma": 5397,
+  "precio_referencia": 707.0,
+  "n_vencimientos": 34,
+  "n_strikes_con_gamma": 5370,
   "gex_por_vencimiento": {
-    "Mon Jun 08 2026": 904.055,
-    "Tue Jun 09 2026": 95.407,
-    "Wed Jun 10 2026": -147.318,
-    "Thu Jun 11 2026": -27.69,
-    "Fri Jun 12 2026": 30.682,
-    "Mon Jun 15 2026": -31.245,
-    "Tue Jun 16 2026": -1.24,
-    "Wed Jun 17 2026": -14.613,
-    "Thu Jun 18 2026": -617.903,
-    "Mon Jun 22 2026": 0.0,
-    "Fri Jun 26 2026": -75.733,
-    "Tue Jun 30 2026": -140.951,
-    "Thu Jul 02 2026": -14.653,
-    "Fri Jul 10 2026": 2.755,
-    "Fri Jul 17 2026": -308.624,
-    "Fri Jul 24 2026": -1.767,
-    "Fri Jul 31 2026": -65.495,
-    "Fri Aug 21 2026": -236.948,
-    "Mon Aug 31 2026": -9.282,
-    "Fri Sep 18 2026": 157.747,
-    "Wed Sep 30 2026": 7.399,
-    "Fri Oct 16 2026": 0.387,
-    "Fri Dec 18 2026": -132.087,
-    "Thu Dec 31 2026": 8.124,
-    "Fri Jan 15 2027": 101.084,
-    "Fri Mar 19 2027": 137.657,
-    "Wed Mar 31 2027": 18.462,
-    "Thu Jun 17 2027": 121.35,
-    "Fri Sep 17 2027": 4.231,
-    "Fri Dec 17 2027": 22.535,
-    "Fri Jan 21 2028": 5.16,
-    "Fri Jun 16 2028": 5.256,
-    "Fri Dec 15 2028": 9.244
+    "Tue Jun 09 2026": -1249.692,
+    "Wed Jun 10 2026": -472.806,
+    "Thu Jun 11 2026": -90.126,
+    "Fri Jun 12 2026": -688.764,
+    "Mon Jun 15 2026": -33.167,
+    "Tue Jun 16 2026": -19.576,
+    "Wed Jun 17 2026": -47.353,
+    "Thu Jun 18 2026": -1187.772,
+    "Mon Jun 22 2026": -0.116,
+    "Tue Jun 23 2026": 0.0,
+    "Wed Jun 24 2026": 0.0,
+    "Fri Jun 26 2026": -159.335,
+    "Tue Jun 30 2026": -240.642,
+    "Thu Jul 02 2026": -27.647,
+    "Fri Jul 10 2026": -13.044,
+    "Fri Jul 17 2026": -440.795,
+    "Fri Jul 24 2026": -17.89,
+    "Fri Jul 31 2026": -96.095,
+    "Fri Aug 21 2026": -316.214,
+    "Mon Aug 31 2026": -12.429,
+    "Fri Sep 18 2026": 84.003,
+    "Wed Sep 30 2026": 1.872,
+    "Fri Oct 16 2026": -8.447,
+    "Fri Dec 18 2026": -194.106,
+    "Thu Dec 31 2026": 5.732,
+    "Fri Jan 15 2027": 93.523,
+    "Fri Mar 19 2027": 135.135,
+    "Wed Mar 31 2027": 17.273,
+    "Thu Jun 17 2027": 116.109,
+    "Fri Sep 17 2027": 3.943,
+    "Fri Dec 17 2027": 20.522,
+    "Fri Jan 21 2028": 3.219,
+    "Fri Jun 16 2028": 4.572,
+    "Fri Dec 15 2028": 7.955
   },
   "top10_strikes_M": [
     {
-      "expiry": "Mon Jun 08 2026",
-      "strike": 725.0,
-      "gex_M": 220.209,
-      "call_gamma": 0.0417,
-      "call_oi": 15199,
-      "put_gamma": 0.0417,
-      "put_oi": 4576
-    },
-    {
-      "expiry": "Mon Jun 08 2026",
-      "strike": 724.0,
-      "gex_M": 210.262,
-      "call_gamma": 0.0485,
-      "call_oi": 10379,
-      "put_gamma": 0.0485,
-      "put_oi": 1658
+      "expiry": "Tue Jun 09 2026",
+      "strike": 709.0,
+      "gex_M": -321.504,
+      "call_gamma": 0.1602,
+      "call_oi": 1528,
+      "put_gamma": 0.1602,
+      "put_oi": 5543
     },
     {
       "expiry": "Fri Dec 18 2026",
       "strike": 660.0,
-      "gex_M": -207.224,
-      "call_gamma": 0.0022,
-      "call_oi": 13721,
-      "put_gamma": 0.0023,
-      "put_oi": 194367
+      "gex_M": -226.44,
+      "call_gamma": 0.0024,
+      "call_oi": 13722,
+      "put_gamma": 0.0025,
+      "put_oi": 194380
+    },
+    {
+      "expiry": "Tue Jun 09 2026",
+      "strike": 705.0,
+      "gex_M": -210.475,
+      "call_gamma": 0.0712,
+      "call_oi": 304,
+      "put_gamma": 0.0712,
+      "put_oi": 6218
     },
     {
       "expiry": "Thu Jun 18 2026",
       "strike": 700.0,
-      "gex_M": -153.543,
-      "call_gamma": 0.0094,
-      "call_oi": 30250,
-      "put_gamma": 0.0096,
-      "put_oi": 61794
+      "gex_M": -199.223,
+      "call_gamma": 0.0106,
+      "call_oi": 30145,
+      "put_gamma": 0.0108,
+      "put_oi": 66491
+    },
+    {
+      "expiry": "Tue Jun 09 2026",
+      "strike": 708.0,
+      "gex_M": -171.918,
+      "call_gamma": 0.3093,
+      "call_oi": 604,
+      "put_gamma": 0.3084,
+      "put_oi": 1721
     },
     {
       "expiry": "Thu Jun 18 2026",
       "strike": 684.0,
-      "gex_M": -124.579,
-      "call_gamma": 0.0063,
+      "gex_M": -160.647,
+      "call_gamma": 0.0081,
       "call_oi": 663,
-      "put_gamma": 0.0064,
-      "put_oi": 39810
+      "put_gamma": 0.0082,
+      "put_oi": 39849
+    },
+    {
+      "expiry": "Fri Jun 12 2026",
+      "strike": 710.0,
+      "gex_M": -151.279,
+      "call_gamma": 0.0178,
+      "call_oi": 1602,
+      "put_gamma": 0.018,
+      "put_oi": 18398
+    },
+    {
+      "expiry": "Tue Jun 09 2026",
+      "strike": 707.0,
+      "gex_M": -144.2,
+      "call_gamma": 0.2758,
+      "call_oi": 284,
+      "put_gamma": 0.2758,
+      "put_oi": 1330
+    },
+    {
+      "expiry": "Fri Jun 12 2026",
+      "strike": 700.0,
+      "gex_M": -139.572,
+      "call_gamma": 0.0154,
+      "call_oi": 2905,
+      "put_gamma": 0.0156,
+      "put_oi": 20767
     },
     {
       "expiry": "Thu Jun 18 2026",
-      "strike": 735.0,
-      "gex_M": 123.669,
-      "call_gamma": 0.0124,
-      "call_oi": 24528,
-      "put_gamma": 0.0127,
-      "put_oi": 4360
-    },
-    {
-      "expiry": "Thu Jun 18 2026",
-      "strike": 715.0,
-      "gex_M": -122.509,
-      "call_gamma": 0.0122,
-      "call_oi": 11990,
-      "put_gamma": 0.0124,
-      "put_oi": 31671
-    },
-    {
-      "expiry": "Thu Jun 18 2026",
-      "strike": 750.0,
-      "gex_M": 118.406,
-      "call_gamma": 0.0085,
-      "call_oi": 31822,
-      "put_gamma": 0.0089,
-      "put_oi": 3629
-    },
-    {
-      "expiry": "Mon Jun 08 2026",
-      "strike": 715.0,
-      "gex_M": 103.926,
-      "call_gamma": 0.0494,
-      "call_oi": 7811,
-      "put_gamma": 0.0494,
-      "put_oi": 3579
-    },
-    {
-      "expiry": "Thu Jun 18 2026",
-      "strike": 740.0,
-      "gex_M": 103.281,
-      "call_gamma": 0.0114,
-      "call_oi": 32583,
-      "put_gamma": 0.0117,
-      "put_oi": 13990
+      "strike": 680.0,
+      "gex_M": -137.079,
+      "call_gamma": 0.0074,
+      "call_oi": 21931,
+      "put_gamma": 0.0075,
+      "put_oi": 58204
     }
   ],
   "maxpain_por_vencimiento": {
-    "Mon Jun 08 2026": {
-      "max_pain": 718.0,
-      "dist_max_pain_pct": 1.84,
+    "Tue Jun 09 2026": {
+      "max_pain": 717.0,
+      "dist_max_pain_pct": 1.41,
       "top_calls": [
         {
-          "strike": 725.0,
-          "oi": 15199,
-          "dist": 2.83
+          "strike": 720.0,
+          "oi": 8214,
+          "dist": 1.84
         },
         {
-          "strike": 720.0,
-          "oi": 14177,
-          "dist": 2.12
+          "strike": 750.0,
+          "oi": 5009,
+          "dist": 6.08
         },
         {
           "strike": 724.0,
-          "oi": 10379,
-          "dist": 2.69
+          "oi": 4725,
+          "dist": 2.4
         },
         {
-          "strike": 750.0,
-          "oi": 7906,
-          "dist": 6.37
-        },
-        {
-          "strike": 715.0,
-          "oi": 7811,
-          "dist": 1.41
-        }
-      ],
-      "top_puts": [
-        {
-          "strike": 545.0,
-          "oi": 15828,
-          "dist": -22.7
-        },
-        {
-          "strike": 705.0,
-          "oi": 13396,
-          "dist": -0.01
-        },
-        {
-          "strike": 720.0,
-          "oi": 13329,
-          "dist": 2.12
-        },
-        {
-          "strike": 500.0,
-          "oi": 10427,
-          "dist": -29.08
-        },
-        {
-          "strike": 680.0,
-          "oi": 8511,
-          "dist": -3.55
-        }
-      ],
-      "resistencia_principal": {
-        "strike": 725.0,
-        "oi": 15199,
-        "dist": 2.83
-      },
-      "soporte_principal": {
-        "strike": 705.0,
-        "oi": 13396,
-        "dist": -0.01
-      },
-      "rango_semana": {
-        "techo": 725.0,
-        "suelo": 705.0,
-        "amplitudPct": 2.84
-      }
-    },
-    "Tue Jun 09 2026": {
-      "max_pain": 720.0,
-      "dist_max_pain_pct": 2.12,
-      "top_calls": [
-        {
-          "strike": 750.0,
-          "oi": 4851,
-          "dist": 6.37
+          "strike": 716.0,
+          "oi": 4629,
+          "dist": 1.27
         },
         {
           "strike": 730.0,
-          "oi": 3301,
-          "dist": 3.54
-        },
-        {
-          "strike": 720.0,
-          "oi": 3056,
-          "dist": 2.12
-        },
-        {
-          "strike": 763.0,
-          "oi": 2877,
-          "dist": 8.22
-        },
-        {
-          "strike": 722.0,
-          "oi": 2718,
-          "dist": 2.4
+          "oi": 3904,
+          "dist": 3.25
         }
       ],
       "top_puts": [
         {
           "strike": 500.0,
           "oi": 15563,
-          "dist": -29.08
+          "dist": -29.28
+        },
+        {
+          "strike": 675.0,
+          "oi": 13118,
+          "dist": -4.53
         },
         {
           "strike": 505.0,
           "oi": 12725,
-          "dist": -28.37
+          "dist": -28.57
+        },
+        {
+          "strike": 700.0,
+          "oi": 8310,
+          "dist": -0.99
         },
         {
           "strike": 515.0,
-          "oi": 7625,
-          "dist": -26.96
-        },
-        {
-          "strike": 525.0,
-          "oi": 7500,
-          "dist": -25.54
-        },
-        {
-          "strike": 680.0,
-          "oi": 4622,
-          "dist": -3.55
+          "oi": 7626,
+          "dist": -27.16
         }
       ],
       "resistencia_principal": {
-        "strike": 730.0,
-        "oi": 3301,
-        "dist": 3.54
+        "strike": 720.0,
+        "oi": 8214,
+        "dist": 1.84
       },
       "soporte_principal": {
-        "strike": 680.0,
-        "oi": 4622,
-        "dist": -3.55
+        "strike": 675.0,
+        "oi": 13118,
+        "dist": -4.53
       },
       "rango_semana": {
         "techo": 720.0,
-        "suelo": 680.0,
-        "amplitudPct": 5.67
+        "suelo": 700.0,
+        "amplitudPct": 2.83
       }
     },
     "Wed Jun 10 2026": {
-      "max_pain": 726.0,
-      "dist_max_pain_pct": 2.97,
+      "max_pain": 723.0,
+      "dist_max_pain_pct": 2.26,
       "top_calls": [
         {
           "strike": 745.0,
-          "oi": 6413,
-          "dist": 5.66
+          "oi": 8025,
+          "dist": 5.37
         },
         {
           "strike": 730.0,
-          "oi": 2735,
-          "dist": 3.54
+          "oi": 4889,
+          "dist": 3.25
         },
         {
-          "strike": 744.0,
-          "oi": 2006,
-          "dist": 5.52
+          "strike": 735.0,
+          "oi": 3180,
+          "dist": 3.96
         },
         {
           "strike": 740.0,
-          "oi": 1999,
-          "dist": 4.96
+          "oi": 2363,
+          "dist": 4.67
         },
         {
-          "strike": 720.0,
-          "oi": 1873,
-          "dist": 2.12
+          "strike": 750.0,
+          "oi": 2238,
+          "dist": 6.08
         }
       ],
       "top_puts": [
         {
           "strike": 700.0,
-          "oi": 6776,
-          "dist": -0.72
+          "oi": 9854,
+          "dist": -0.99
         },
         {
-          "strike": 670.0,
-          "oi": 5515,
-          "dist": -4.97
+          "strike": 520.0,
+          "oi": 6628,
+          "dist": -26.45
         },
         {
           "strike": 710.0,
-          "oi": 4462,
-          "dist": 0.7
+          "oi": 5542,
+          "dist": 0.42
+        },
+        {
+          "strike": 670.0,
+          "oi": 5227,
+          "dist": -5.23
         },
         {
           "strike": 730.0,
-          "oi": 4183,
-          "dist": 3.54
-        },
-        {
-          "strike": 704.0,
-          "oi": 4141,
-          "dist": -0.15
+          "oi": 4759,
+          "dist": 3.25
         }
       ],
       "resistencia_principal": {
         "strike": 730.0,
-        "oi": 2735,
-        "dist": 3.54
+        "oi": 4889,
+        "dist": 3.25
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 6776,
-        "dist": -0.72
+        "oi": 9854,
+        "dist": -0.99
       },
       "rango_semana": {
-        "techo": 720.0,
+        "techo": 730.0,
         "suelo": 700.0,
-        "amplitudPct": 2.84
+        "amplitudPct": 4.24
       }
     },
     "Thu Jun 11 2026": {
-      "max_pain": 729.0,
-      "dist_max_pain_pct": 3.4,
+      "max_pain": 725.0,
+      "dist_max_pain_pct": 2.55,
       "top_calls": [
         {
           "strike": 748.0,
-          "oi": 5182,
-          "dist": 6.09
+          "oi": 5273,
+          "dist": 5.8
+        },
+        {
+          "strike": 730.0,
+          "oi": 4039,
+          "dist": 3.25
         },
         {
           "strike": 775.0,
           "oi": 3758,
-          "dist": 9.92
+          "dist": 9.62
         },
         {
           "strike": 765.0,
-          "oi": 2965,
-          "dist": 8.5
+          "oi": 2968,
+          "dist": 8.2
         },
         {
-          "strike": 745.0,
-          "oi": 1651,
-          "dist": 5.66
-        },
-        {
-          "strike": 759.0,
-          "oi": 1029,
-          "dist": 7.65
+          "strike": 740.0,
+          "oi": 2963,
+          "dist": 4.67
         }
       ],
       "top_puts": [
         {
           "strike": 550.0,
-          "oi": 6149,
-          "dist": -21.99
+          "oi": 6147,
+          "dist": -22.21
         },
         {
           "strike": 530.0,
           "oi": 4501,
-          "dist": -24.83
-        },
-        {
-          "strike": 722.0,
-          "oi": 1130,
-          "dist": 2.4
+          "dist": -25.04
         },
         {
           "strike": 665.0,
-          "oi": 870,
-          "dist": -5.68
+          "oi": 2208,
+          "dist": -5.94
         },
         {
-          "strike": 726.0,
-          "oi": 854,
-          "dist": 2.97
+          "strike": 560.0,
+          "oi": 1915,
+          "dist": -20.79
+        },
+        {
+          "strike": 715.0,
+          "oi": 1352,
+          "dist": 1.13
         }
       ],
       "resistencia_principal": {
-        "strike": 748.0,
-        "oi": 5182,
-        "dist": 6.09
+        "strike": 730.0,
+        "oi": 4039,
+        "dist": 3.25
       },
       "soporte_principal": {
         "strike": 550.0,
-        "oi": 6149,
-        "dist": -21.99
+        "oi": 6147,
+        "dist": -22.21
       },
       "rango_semana": {
-        "techo": 748.0,
+        "techo": 730.0,
         "suelo": 550.0,
-        "amplitudPct": 28.08
+        "amplitudPct": 25.46
       }
     },
     "Fri Jun 12 2026": {
       "max_pain": 720.0,
-      "dist_max_pain_pct": 2.12,
+      "dist_max_pain_pct": 1.84,
       "top_calls": [
         {
           "strike": 740.0,
-          "oi": 14010,
-          "dist": 4.96
-        },
-        {
-          "strike": 720.0,
-          "oi": 13395,
-          "dist": 2.12
-        },
-        {
-          "strike": 730.0,
-          "oi": 11403,
-          "dist": 3.54
+          "oi": 16013,
+          "dist": 4.67
         },
         {
           "strike": 750.0,
-          "oi": 10540,
-          "dist": 6.37
+          "oi": 12937,
+          "dist": 6.08
+        },
+        {
+          "strike": 730.0,
+          "oi": 12889,
+          "dist": 3.25
+        },
+        {
+          "strike": 720.0,
+          "oi": 12379,
+          "dist": 1.84
         },
         {
           "strike": 745.0,
-          "oi": 9100,
-          "dist": 5.66
+          "oi": 9427,
+          "dist": 5.37
         }
       ],
       "top_puts": [
         {
           "strike": 430.0,
-          "oi": 40421,
-          "dist": -39.01
+          "oi": 40866,
+          "dist": -39.18
         },
         {
-          "strike": 690.0,
-          "oi": 11288,
-          "dist": -2.14
+          "strike": 470.0,
+          "oi": 35394,
+          "dist": -33.52
+        },
+        {
+          "strike": 625.0,
+          "oi": 20831,
+          "dist": -11.6
         },
         {
           "strike": 700.0,
-          "oi": 9799,
-          "dist": -0.72
+          "oi": 20767,
+          "dist": -0.99
         },
         {
           "strike": 710.0,
-          "oi": 8839,
-          "dist": 0.7
-        },
-        {
-          "strike": 740.0,
-          "oi": 8517,
-          "dist": 4.96
+          "oi": 18398,
+          "dist": 0.42
         }
       ],
       "resistencia_principal": {
         "strike": 740.0,
-        "oi": 14010,
-        "dist": 4.96
+        "oi": 16013,
+        "dist": 4.67
       },
       "soporte_principal": {
-        "strike": 690.0,
-        "oi": 11288,
-        "dist": -2.14
+        "strike": 700.0,
+        "oi": 20767,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 720.0,
-        "suelo": 690.0,
-        "amplitudPct": 4.25
+        "suelo": 700.0,
+        "amplitudPct": 2.83
       }
     },
     "Mon Jun 15 2026": {
-      "max_pain": 735.0,
-      "dist_max_pain_pct": 4.25,
+      "max_pain": 731.0,
+      "dist_max_pain_pct": 3.39,
       "top_calls": [
         {
-          "strike": 740.0,
-          "oi": 1021,
-          "dist": 4.96
-        },
-        {
-          "strike": 745.0,
-          "oi": 827,
-          "dist": 5.66
-        },
-        {
           "strike": 730.0,
-          "oi": 791,
-          "dist": 3.54
+          "oi": 1239,
+          "dist": 3.25
+        },
+        {
+          "strike": 740.0,
+          "oi": 1085,
+          "dist": 4.67
         },
         {
           "strike": 750.0,
-          "oi": 790,
-          "dist": 6.37
+          "oi": 1012,
+          "dist": 6.08
         },
         {
-          "strike": 742.0,
-          "oi": 742,
-          "dist": 5.24
+          "strike": 755.0,
+          "oi": 972,
+          "dist": 6.79
+        },
+        {
+          "strike": 745.0,
+          "oi": 858,
+          "dist": 5.37
         }
       ],
       "top_puts": [
         {
           "strike": 734.0,
-          "oi": 1892,
-          "dist": 4.1
+          "oi": 1890,
+          "dist": 3.82
         },
         {
           "strike": 725.0,
-          "oi": 983,
-          "dist": 2.83
+          "oi": 1022,
+          "dist": 2.55
         },
         {
           "strike": 685.0,
-          "oi": 830,
-          "dist": -2.85
+          "oi": 1010,
+          "dist": -3.11
+        },
+        {
+          "strike": 720.0,
+          "oi": 777,
+          "dist": 1.84
         },
         {
           "strike": 738.0,
-          "oi": 784,
-          "dist": 4.67
-        },
-        {
-          "strike": 745.0,
-          "oi": 719,
-          "dist": 5.66
+          "oi": 776,
+          "dist": 4.38
         }
       ],
       "resistencia_principal": {
-        "strike": 740.0,
-        "oi": 1021,
-        "dist": 4.96
+        "strike": 730.0,
+        "oi": 1239,
+        "dist": 3.25
       },
       "soporte_principal": {
         "strike": 685.0,
-        "oi": 830,
-        "dist": -2.85
+        "oi": 1010,
+        "dist": -3.11
       },
       "rango_semana": {
-        "techo": 740.0,
+        "techo": 730.0,
         "suelo": 685.0,
-        "amplitudPct": 7.8
+        "amplitudPct": 6.36
       }
     },
     "Tue Jun 16 2026": {
-      "max_pain": 730.0,
-      "dist_max_pain_pct": 3.54,
+      "max_pain": 725.0,
+      "dist_max_pain_pct": 2.55,
       "top_calls": [
         {
           "strike": 750.0,
-          "oi": 676,
-          "dist": 6.37
-        },
-        {
-          "strike": 745.0,
-          "oi": 507,
-          "dist": 5.66
-        },
-        {
-          "strike": 725.0,
-          "oi": 483,
-          "dist": 2.83
+          "oi": 729,
+          "dist": 6.08
         },
         {
           "strike": 759.0,
-          "oi": 467,
-          "dist": 7.65
+          "oi": 557,
+          "dist": 7.36
         },
         {
-          "strike": 770.0,
-          "oi": 387,
-          "dist": 9.21
+          "strike": 725.0,
+          "oi": 508,
+          "dist": 2.55
+        },
+        {
+          "strike": 745.0,
+          "oi": 500,
+          "dist": 5.37
+        },
+        {
+          "strike": 755.0,
+          "oi": 435,
+          "dist": 6.79
         }
       ],
       "top_puts": [
         {
-          "strike": 735.0,
-          "oi": 661,
-          "dist": 4.25
+          "strike": 670.0,
+          "oi": 1714,
+          "dist": -5.23
+        },
+        {
+          "strike": 675.0,
+          "oi": 1052,
+          "dist": -4.53
         },
         {
           "strike": 690.0,
-          "oi": 624,
-          "dist": -2.14
+          "oi": 1014,
+          "dist": -2.4
+        },
+        {
+          "strike": 735.0,
+          "oi": 662,
+          "dist": 3.96
         },
         {
           "strike": 720.0,
-          "oi": 411,
-          "dist": 2.12
-        },
-        {
-          "strike": 710.0,
-          "oi": 354,
-          "dist": 0.7
-        },
-        {
-          "strike": 660.0,
-          "oi": 339,
-          "dist": -6.39
+          "oi": 552,
+          "dist": 1.84
         }
       ],
       "resistencia_principal": {
         "strike": 725.0,
-        "oi": 483,
-        "dist": 2.83
+        "oi": 508,
+        "dist": 2.55
       },
       "soporte_principal": {
-        "strike": 690.0,
-        "oi": 624,
-        "dist": -2.14
+        "strike": 675.0,
+        "oi": 1052,
+        "dist": -4.53
       },
       "rango_semana": {
         "techo": 725.0,
         "suelo": 690.0,
-        "amplitudPct": 4.96
+        "amplitudPct": 4.95
       }
     },
     "Wed Jun 17 2026": {
-      "max_pain": 729.0,
-      "dist_max_pain_pct": 3.4,
+      "max_pain": 725.0,
+      "dist_max_pain_pct": 2.55,
       "top_calls": [
         {
           "strike": 800.0,
           "oi": 808,
-          "dist": 13.47
-        },
-        {
-          "strike": 745.0,
-          "oi": 603,
-          "dist": 5.66
+          "dist": 13.15
         },
         {
           "strike": 750.0,
-          "oi": 568,
-          "dist": 6.37
+          "oi": 613,
+          "dist": 6.08
         },
         {
-          "strike": 760.0,
-          "oi": 429,
-          "dist": 7.79
+          "strike": 745.0,
+          "oi": 536,
+          "dist": 5.37
+        },
+        {
+          "strike": 732.0,
+          "oi": 510,
+          "dist": 3.54
         },
         {
           "strike": 752.0,
-          "oi": 393,
-          "dist": 6.66
+          "oi": 507,
+          "dist": 6.36
         }
       ],
       "top_puts": [
         {
           "strike": 650.0,
-          "oi": 8600,
-          "dist": -7.81
+          "oi": 4891,
+          "dist": -8.06
+        },
+        {
+          "strike": 707.0,
+          "oi": 2293,
+          "dist": 0.0
+        },
+        {
+          "strike": 712.0,
+          "oi": 2225,
+          "dist": 0.71
         },
         {
           "strike": 660.0,
-          "oi": 2040,
-          "dist": -6.39
+          "oi": 2062,
+          "dist": -6.65
         },
         {
           "strike": 715.0,
-          "oi": 627,
-          "dist": 1.41
-        },
-        {
-          "strike": 690.0,
-          "oi": 604,
-          "dist": -2.14
-        },
-        {
-          "strike": 700.0,
-          "oi": 460,
-          "dist": -0.72
+          "oi": 674,
+          "dist": 1.13
         }
       ],
       "resistencia_principal": {
-        "strike": 800.0,
-        "oi": 808,
-        "dist": 13.47
+        "strike": 732.0,
+        "oi": 510,
+        "dist": 3.54
       },
       "soporte_principal": {
-        "strike": 690.0,
-        "oi": 604,
-        "dist": -2.14
+        "strike": 707.0,
+        "oi": 2293,
+        "dist": 0.0
       },
       "rango_semana": {
-        "techo": 800.0,
-        "suelo": 690.0,
-        "amplitudPct": 15.6
+        "techo": 732.0,
+        "suelo": 707.0,
+        "amplitudPct": 3.54
       }
     },
     "Thu Jun 18 2026": {
       "max_pain": 684.0,
-      "dist_max_pain_pct": -2.99,
+      "dist_max_pain_pct": -3.25,
       "top_calls": [
         {
           "strike": 695.0,
-          "oi": 33834,
-          "dist": -1.43
+          "oi": 33824,
+          "dist": -1.7
         },
         {
           "strike": 740.0,
-          "oi": 32583,
-          "dist": 4.96
+          "oi": 32655,
+          "dist": 4.67
         },
         {
           "strike": 750.0,
-          "oi": 31822,
-          "dist": 6.37
+          "oi": 32391,
+          "dist": 6.08
         },
         {
           "strike": 620.0,
-          "oi": 30535,
-          "dist": -12.06
+          "oi": 30527,
+          "dist": -12.31
         },
         {
           "strike": 700.0,
-          "oi": 30250,
-          "dist": -0.72
+          "oi": 30145,
+          "dist": -0.99
         }
       ],
       "top_puts": [
         {
           "strike": 580.0,
-          "oi": 84999,
-          "dist": -17.74
+          "oi": 85008,
+          "dist": -17.96
         },
         {
           "strike": 590.0,
-          "oi": 84695,
-          "dist": -16.32
+          "oi": 84769,
+          "dist": -16.55
         },
         {
           "strike": 600.0,
-          "oi": 82547,
-          "dist": -14.9
+          "oi": 82139,
+          "dist": -15.13
         },
         {
           "strike": 650.0,
-          "oi": 67710,
-          "dist": -7.81
+          "oi": 68241,
+          "dist": -8.06
         },
         {
           "strike": 700.0,
-          "oi": 61794,
-          "dist": -0.72
+          "oi": 66491,
+          "dist": -0.99
         }
       ],
       "resistencia_principal": {
         "strike": 740.0,
-        "oi": 32583,
-        "dist": 4.96
+        "oi": 32655,
+        "dist": 4.67
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 61794,
-        "dist": -0.72
+        "oi": 66491,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 740.0,
         "suelo": 700.0,
-        "amplitudPct": 5.67
+        "amplitudPct": 5.66
       }
     },
     "Mon Jun 22 2026": {
+      "max_pain": 715.0,
+      "dist_max_pain_pct": 1.13,
+      "top_calls": [
+        {
+          "strike": 760.0,
+          "oi": 1534,
+          "dist": 7.5
+        },
+        {
+          "strike": 740.0,
+          "oi": 888,
+          "dist": 4.67
+        },
+        {
+          "strike": 735.0,
+          "oi": 593,
+          "dist": 3.96
+        },
+        {
+          "strike": 785.0,
+          "oi": 500,
+          "dist": 11.03
+        },
+        {
+          "strike": 720.0,
+          "oi": 381,
+          "dist": 1.84
+        }
+      ],
+      "top_puts": [
+        {
+          "strike": 700.0,
+          "oi": 597,
+          "dist": -0.99
+        },
+        {
+          "strike": 655.0,
+          "oi": 576,
+          "dist": -7.36
+        },
+        {
+          "strike": 710.0,
+          "oi": 416,
+          "dist": 0.42
+        },
+        {
+          "strike": 715.0,
+          "oi": 415,
+          "dist": 1.13
+        },
+        {
+          "strike": 660.0,
+          "oi": 374,
+          "dist": -6.65
+        }
+      ],
+      "resistencia_principal": {
+        "strike": 740.0,
+        "oi": 888,
+        "dist": 4.67
+      },
+      "soporte_principal": {
+        "strike": 700.0,
+        "oi": 597,
+        "dist": -0.99
+      },
+      "rango_semana": {
+        "techo": 720.0,
+        "suelo": 700.0,
+        "amplitudPct": 2.83
+      }
+    },
+    "Tue Jun 23 2026": {
+      "max_pain": 495.0,
+      "dist_max_pain_pct": -29.99,
+      "top_calls": [],
+      "top_puts": [],
+      "resistencia_principal": null,
+      "soporte_principal": null,
+      "rango_semana": null
+    },
+    "Wed Jun 24 2026": {
       "max_pain": 655.0,
-      "dist_max_pain_pct": -7.1,
+      "dist_max_pain_pct": -7.36,
       "top_calls": [],
       "top_puts": [],
       "resistencia_principal": null,
@@ -805,1757 +815,1757 @@
     },
     "Fri Jun 26 2026": {
       "max_pain": 725.0,
-      "dist_max_pain_pct": 2.83,
+      "dist_max_pain_pct": 2.55,
       "top_calls": [
         {
           "strike": 739.0,
-          "oi": 4611,
-          "dist": 4.81
+          "oi": 4298,
+          "dist": 4.53
         },
         {
           "strike": 725.0,
-          "oi": 3671,
-          "dist": 2.83
+          "oi": 3690,
+          "dist": 2.55
         },
         {
           "strike": 740.0,
-          "oi": 2349,
-          "dist": 4.96
+          "oi": 2328,
+          "dist": 4.67
         },
         {
           "strike": 760.0,
-          "oi": 2282,
-          "dist": 7.79
+          "oi": 2321,
+          "dist": 7.5
         },
         {
           "strike": 750.0,
-          "oi": 2202,
-          "dist": 6.37
+          "oi": 2015,
+          "dist": 6.08
         }
       ],
       "top_puts": [
         {
-          "strike": 715.0,
-          "oi": 4578,
-          "dist": 1.41
-        },
-        {
-          "strike": 655.0,
-          "oi": 4436,
-          "dist": -7.1
-        },
-        {
           "strike": 700.0,
-          "oi": 4388,
-          "dist": -0.72
-        },
-        {
-          "strike": 720.0,
-          "oi": 4363,
-          "dist": 2.12
+          "oi": 5241,
+          "dist": -0.99
         },
         {
           "strike": 650.0,
-          "oi": 4072,
-          "dist": -7.81
+          "oi": 4649,
+          "dist": -8.06
+        },
+        {
+          "strike": 655.0,
+          "oi": 4485,
+          "dist": -7.36
+        },
+        {
+          "strike": 720.0,
+          "oi": 4423,
+          "dist": 1.84
+        },
+        {
+          "strike": 715.0,
+          "oi": 4288,
+          "dist": 1.13
         }
       ],
       "resistencia_principal": {
         "strike": 739.0,
-        "oi": 4611,
-        "dist": 4.81
+        "oi": 4298,
+        "dist": 4.53
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 4388,
-        "dist": -0.72
+        "oi": 5241,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 725.0,
         "suelo": 700.0,
-        "amplitudPct": 3.55
+        "amplitudPct": 3.54
       }
     },
     "Tue Jun 30 2026": {
-      "max_pain": 670.0,
-      "dist_max_pain_pct": -4.97,
+      "max_pain": 673.0,
+      "dist_max_pain_pct": -4.81,
       "top_calls": [
         {
           "strike": 820.0,
-          "oi": 19450,
-          "dist": 16.3
+          "oi": 19605,
+          "dist": 15.98
         },
         {
           "strike": 640.0,
-          "oi": 17929,
-          "dist": -9.23
+          "oi": 17923,
+          "dist": -9.48
         },
         {
           "strike": 765.0,
-          "oi": 10111,
-          "dist": 8.5
+          "oi": 10387,
+          "dist": 8.2
         },
         {
           "strike": 625.0,
           "oi": 9316,
-          "dist": -11.36
+          "dist": -11.6
         },
         {
           "strike": 655.0,
-          "oi": 8725,
-          "dist": -7.1
+          "oi": 8723,
+          "dist": -7.36
         }
       ],
       "top_puts": [
         {
-          "strike": 640.0,
-          "oi": 17906,
-          "dist": -9.23
+          "strike": 705.0,
+          "oi": 21638,
+          "dist": -0.28
         },
         {
-          "strike": 705.0,
-          "oi": 17692,
-          "dist": -0.01
+          "strike": 640.0,
+          "oi": 17841,
+          "dist": -9.48
         },
         {
           "strike": 625.0,
-          "oi": 13037,
-          "dist": -11.36
+          "oi": 13030,
+          "dist": -11.6
         },
         {
           "strike": 700.0,
-          "oi": 11623,
-          "dist": -0.72
+          "oi": 12598,
+          "dist": -0.99
         },
         {
           "strike": 650.0,
-          "oi": 11168,
-          "dist": -7.81
+          "oi": 11283,
+          "dist": -8.06
         }
       ],
       "resistencia_principal": {
         "strike": 820.0,
-        "oi": 19450,
-        "dist": 16.3
+        "oi": 19605,
+        "dist": 15.98
       },
       "soporte_principal": {
         "strike": 705.0,
-        "oi": 17692,
-        "dist": -0.01
+        "oi": 21638,
+        "dist": -0.28
       },
       "rango_semana": {
         "techo": 820.0,
         "suelo": 705.0,
-        "amplitudPct": 16.31
+        "amplitudPct": 16.27
       }
     },
     "Thu Jul 02 2026": {
-      "max_pain": 725.0,
-      "dist_max_pain_pct": 2.83,
+      "max_pain": 724.0,
+      "dist_max_pain_pct": 2.4,
       "top_calls": [
         {
           "strike": 745.0,
-          "oi": 1679,
-          "dist": 5.66
+          "oi": 1781,
+          "dist": 5.37
         },
         {
           "strike": 716.0,
-          "oi": 1387,
-          "dist": 1.55
-        },
-        {
-          "strike": 780.0,
-          "oi": 1323,
-          "dist": 10.63
+          "oi": 1424,
+          "dist": 1.27
         },
         {
           "strike": 770.0,
-          "oi": 1321,
-          "dist": 9.21
+          "oi": 1310,
+          "dist": 8.91
+        },
+        {
+          "strike": 780.0,
+          "oi": 1292,
+          "dist": 10.33
         },
         {
           "strike": 750.0,
-          "oi": 1169,
-          "dist": 6.37
+          "oi": 1211,
+          "dist": 6.08
         }
       ],
       "top_puts": [
         {
           "strike": 700.0,
-          "oi": 2460,
-          "dist": -0.72
+          "oi": 2701,
+          "dist": -0.99
         },
         {
           "strike": 680.0,
-          "oi": 1700,
-          "dist": -3.55
+          "oi": 1655,
+          "dist": -3.82
         },
         {
           "strike": 690.0,
-          "oi": 1643,
-          "dist": -2.14
+          "oi": 1616,
+          "dist": -2.4
         },
         {
           "strike": 650.0,
-          "oi": 1619,
-          "dist": -7.81
+          "oi": 1486,
+          "dist": -8.06
         },
         {
           "strike": 740.0,
-          "oi": 1212,
-          "dist": 4.96
+          "oi": 1115,
+          "dist": 4.67
         }
       ],
       "resistencia_principal": {
         "strike": 716.0,
-        "oi": 1387,
-        "dist": 1.55
+        "oi": 1424,
+        "dist": 1.27
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 2460,
-        "dist": -0.72
+        "oi": 2701,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 716.0,
         "suelo": 700.0,
-        "amplitudPct": 2.27
+        "amplitudPct": 2.26
       }
     },
     "Fri Jul 10 2026": {
-      "max_pain": 730.0,
-      "dist_max_pain_pct": 3.54,
+      "max_pain": 727.0,
+      "dist_max_pain_pct": 2.83,
       "top_calls": [
         {
           "strike": 830.0,
-          "oi": 2015,
-          "dist": 17.72
+          "oi": 2017,
+          "dist": 17.4
         },
         {
           "strike": 840.0,
-          "oi": 1653,
-          "dist": 19.14
+          "oi": 1672,
+          "dist": 18.81
         },
         {
-          "strike": 740.0,
-          "oi": 992,
-          "dist": 4.96
+          "strike": 795.0,
+          "oi": 1435,
+          "dist": 12.45
         },
         {
           "strike": 770.0,
-          "oi": 979,
-          "dist": 9.21
+          "oi": 962,
+          "dist": 8.91
         },
         {
-          "strike": 773.0,
-          "oi": 884,
-          "dist": 9.64
+          "strike": 800.0,
+          "oi": 925,
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
           "strike": 700.0,
-          "oi": 926,
-          "dist": -0.72
+          "oi": 1768,
+          "dist": -0.99
         },
         {
-          "strike": 655.0,
-          "oi": 769,
-          "dist": -7.1
+          "strike": 665.0,
+          "oi": 1104,
+          "dist": -5.94
+        },
+        {
+          "strike": 615.0,
+          "oi": 915,
+          "dist": -13.01
         },
         {
           "strike": 660.0,
-          "oi": 732,
-          "dist": -6.39
+          "oi": 775,
+          "dist": -6.65
         },
         {
-          "strike": 690.0,
-          "oi": 688,
-          "dist": -2.14
-        },
-        {
-          "strike": 640.0,
-          "oi": 685,
-          "dist": -9.23
+          "strike": 605.0,
+          "oi": 770,
+          "dist": -14.43
         }
       ],
       "resistencia_principal": {
-        "strike": 740.0,
-        "oi": 992,
-        "dist": 4.96
+        "strike": 830.0,
+        "oi": 2017,
+        "dist": 17.4
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 926,
-        "dist": -0.72
+        "oi": 1768,
+        "dist": -0.99
       },
       "rango_semana": {
-        "techo": 740.0,
+        "techo": 830.0,
         "suelo": 700.0,
-        "amplitudPct": 5.67
+        "amplitudPct": 18.39
       }
     },
     "Fri Jul 17 2026": {
       "max_pain": 710.0,
-      "dist_max_pain_pct": 0.7,
+      "dist_max_pain_pct": 0.42,
       "top_calls": [
         {
           "strike": 800.0,
-          "oi": 27744,
-          "dist": 13.47
+          "oi": 27912,
+          "dist": 13.15
         },
         {
           "strike": 750.0,
-          "oi": 13786,
-          "dist": 6.37
+          "oi": 13978,
+          "dist": 6.08
         },
         {
           "strike": 685.0,
-          "oi": 13265,
-          "dist": -2.85
+          "oi": 13257,
+          "dist": -3.11
         },
         {
           "strike": 760.0,
-          "oi": 11760,
-          "dist": 7.79
+          "oi": 11883,
+          "dist": 7.5
         },
         {
           "strike": 700.0,
-          "oi": 10013,
-          "dist": -0.72
+          "oi": 10005,
+          "dist": -0.99
         }
       ],
       "top_puts": [
         {
           "strike": 630.0,
-          "oi": 39606,
-          "dist": -10.65
+          "oi": 39562,
+          "dist": -10.89
         },
         {
           "strike": 700.0,
-          "oi": 37639,
-          "dist": -0.72
+          "oi": 37699,
+          "dist": -0.99
         },
         {
           "strike": 675.0,
-          "oi": 26528,
-          "dist": -4.26
+          "oi": 26961,
+          "dist": -4.53
         },
         {
           "strike": 650.0,
-          "oi": 25130,
-          "dist": -7.81
+          "oi": 25994,
+          "dist": -8.06
         },
         {
           "strike": 670.0,
-          "oi": 21847,
-          "dist": -4.97
+          "oi": 22807,
+          "dist": -5.23
         }
       ],
       "resistencia_principal": {
         "strike": 800.0,
-        "oi": 27744,
-        "dist": 13.47
+        "oi": 27912,
+        "dist": 13.15
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 37639,
-        "dist": -0.72
+        "oi": 37699,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 800.0,
         "suelo": 700.0,
-        "amplitudPct": 14.18
+        "amplitudPct": 14.14
       }
     },
     "Fri Jul 24 2026": {
-      "max_pain": 721.0,
-      "dist_max_pain_pct": 2.26,
+      "max_pain": 720.0,
+      "dist_max_pain_pct": 1.84,
       "top_calls": [
         {
+          "strike": 800.0,
+          "oi": 238,
+          "dist": 13.15
+        },
+        {
           "strike": 780.0,
-          "oi": 129,
-          "dist": 10.63
+          "oi": 171,
+          "dist": 10.33
         },
         {
-          "strike": 725.0,
-          "oi": 71,
-          "dist": 2.83
+          "strike": 750.0,
+          "oi": 164,
+          "dist": 6.08
         },
         {
-          "strike": 720.0,
-          "oi": 64,
-          "dist": 2.12
+          "strike": 795.0,
+          "oi": 160,
+          "dist": 12.45
         },
         {
-          "strike": 730.0,
-          "oi": 28,
-          "dist": 3.54
-        },
-        {
-          "strike": 715.0,
-          "oi": 26,
-          "dist": 1.41
+          "strike": 740.0,
+          "oi": 126,
+          "dist": 4.67
         }
       ],
       "top_puts": [
         {
+          "strike": 707.0,
+          "oi": 1864,
+          "dist": 0.0
+        },
+        {
+          "strike": 712.0,
+          "oi": 1859,
+          "dist": 0.71
+        },
+        {
           "strike": 480.0,
-          "oi": 1317,
-          "dist": -31.92
+          "oi": 1319,
+          "dist": -32.11
         },
         {
-          "strike": 485.0,
-          "oi": 608,
-          "dist": -31.21
+          "strike": 710.0,
+          "oi": 676,
+          "dist": 0.42
         },
         {
-          "strike": 700.0,
-          "oi": 183,
-          "dist": -0.72
-        },
-        {
-          "strike": 665.0,
-          "oi": 104,
-          "dist": -5.68
-        },
-        {
-          "strike": 650.0,
-          "oi": 100,
-          "dist": -7.81
+          "strike": 705.0,
+          "oi": 657,
+          "dist": -0.28
         }
       ],
       "resistencia_principal": {
-        "strike": 725.0,
-        "oi": 71,
-        "dist": 2.83
+        "strike": 740.0,
+        "oi": 126,
+        "dist": 4.67
       },
       "soporte_principal": {
-        "strike": 700.0,
-        "oi": 183,
-        "dist": -0.72
+        "strike": 707.0,
+        "oi": 1864,
+        "dist": 0.0
       },
       "rango_semana": {
-        "techo": 725.0,
-        "suelo": 700.0,
-        "amplitudPct": 3.55
+        "techo": 740.0,
+        "suelo": 707.0,
+        "amplitudPct": 4.67
       }
     },
     "Fri Jul 31 2026": {
-      "max_pain": 718.0,
+      "max_pain": 720.0,
       "dist_max_pain_pct": 1.84,
       "top_calls": [
         {
           "strike": 865.0,
-          "oi": 7410,
-          "dist": 22.68
+          "oi": 7407,
+          "dist": 22.35
         },
         {
           "strike": 775.0,
-          "oi": 6279,
-          "dist": 9.92
+          "oi": 6418,
+          "dist": 9.62
         },
         {
           "strike": 810.0,
-          "oi": 3619,
-          "dist": 14.88
+          "oi": 3648,
+          "dist": 14.57
         },
         {
           "strike": 770.0,
-          "oi": 3182,
-          "dist": 9.21
+          "oi": 3186,
+          "dist": 8.91
         },
         {
           "strike": 800.0,
-          "oi": 3086,
-          "dist": 13.47
+          "oi": 3046,
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
           "strike": 650.0,
-          "oi": 25712,
-          "dist": -7.81
+          "oi": 26805,
+          "dist": -8.06
         },
         {
           "strike": 620.0,
-          "oi": 20625,
-          "dist": -12.06
-        },
-        {
-          "strike": 660.0,
-          "oi": 4512,
-          "dist": -6.39
+          "oi": 20629,
+          "dist": -12.31
         },
         {
           "strike": 560.0,
-          "oi": 4285,
-          "dist": -20.57
+          "oi": 4763,
+          "dist": -20.79
+        },
+        {
+          "strike": 660.0,
+          "oi": 4532,
+          "dist": -6.65
         },
         {
           "strike": 700.0,
-          "oi": 4111,
-          "dist": -0.72
+          "oi": 4215,
+          "dist": -0.99
         }
       ],
       "resistencia_principal": {
         "strike": 865.0,
-        "oi": 7410,
-        "dist": 22.68
+        "oi": 7407,
+        "dist": 22.35
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 4111,
-        "dist": -0.72
+        "oi": 4215,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 865.0,
         "suelo": 700.0,
-        "amplitudPct": 23.4
+        "amplitudPct": 23.34
       }
     },
     "Fri Aug 21 2026": {
-      "max_pain": 700.0,
-      "dist_max_pain_pct": -0.72,
+      "max_pain": 705.0,
+      "dist_max_pain_pct": -0.28,
       "top_calls": [
         {
           "strike": 850.0,
-          "oi": 14924,
-          "dist": 20.56
+          "oi": 14900,
+          "dist": 20.23
         },
         {
           "strike": 825.0,
-          "oi": 11707,
-          "dist": 17.01
+          "oi": 11673,
+          "dist": 16.69
         },
         {
           "strike": 785.0,
-          "oi": 10248,
-          "dist": 11.34
+          "oi": 10228,
+          "dist": 11.03
         },
         {
           "strike": 900.0,
-          "oi": 8994,
-          "dist": 27.65
+          "oi": 9767,
+          "dist": 27.3
         },
         {
-          "strike": 875.0,
-          "oi": 7590,
-          "dist": 24.1
+          "strike": 800.0,
+          "oi": 8611,
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
           "strike": 700.0,
-          "oi": 35219,
-          "dist": -0.72
+          "oi": 35342,
+          "dist": -0.99
         },
         {
           "strike": 650.0,
-          "oi": 31207,
-          "dist": -7.81
-        },
-        {
-          "strike": 660.0,
-          "oi": 20962,
-          "dist": -6.39
+          "oi": 30339,
+          "dist": -8.06
         },
         {
           "strike": 680.0,
-          "oi": 20376,
-          "dist": -3.55
+          "oi": 29989,
+          "dist": -3.82
+        },
+        {
+          "strike": 660.0,
+          "oi": 21026,
+          "dist": -6.65
         },
         {
           "strike": 530.0,
-          "oi": 19649,
-          "dist": -24.83
+          "oi": 19648,
+          "dist": -25.04
         }
       ],
       "resistencia_principal": {
         "strike": 850.0,
-        "oi": 14924,
-        "dist": 20.56
+        "oi": 14900,
+        "dist": 20.23
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 35219,
-        "dist": -0.72
+        "oi": 35342,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 850.0,
         "suelo": 700.0,
-        "amplitudPct": 21.27
+        "amplitudPct": 21.22
       }
     },
     "Mon Aug 31 2026": {
       "max_pain": 725.0,
-      "dist_max_pain_pct": 2.83,
+      "dist_max_pain_pct": 2.55,
       "top_calls": [
         {
           "strike": 950.0,
-          "oi": 4134,
-          "dist": 34.74
+          "oi": 4136,
+          "dist": 34.37
         },
         {
           "strike": 800.0,
-          "oi": 2799,
-          "dist": 13.47
+          "oi": 2826,
+          "dist": 13.15
         },
         {
           "strike": 742.0,
-          "oi": 647,
-          "dist": 5.24
+          "oi": 2453,
+          "dist": 4.95
+        },
+        {
+          "strike": 720.0,
+          "oi": 463,
+          "dist": 1.84
         },
         {
           "strike": 795.0,
-          "oi": 352,
-          "dist": 12.76
-        },
-        {
-          "strike": 750.0,
-          "oi": 333,
-          "dist": 6.37
+          "oi": 340,
+          "dist": 12.45
         }
       ],
       "top_puts": [
         {
           "strike": 690.0,
-          "oi": 6878,
-          "dist": -2.14
+          "oi": 6887,
+          "dist": -2.4
         },
         {
           "strike": 650.0,
-          "oi": 3779,
-          "dist": -7.81
+          "oi": 3796,
+          "dist": -8.06
         },
         {
           "strike": 700.0,
-          "oi": 457,
-          "dist": -0.72
+          "oi": 910,
+          "dist": -0.99
+        },
+        {
+          "strike": 640.0,
+          "oi": 520,
+          "dist": -9.48
         },
         {
           "strike": 720.0,
-          "oi": 354,
-          "dist": 2.12
-        },
-        {
-          "strike": 510.0,
-          "oi": 327,
-          "dist": -27.67
+          "oi": 446,
+          "dist": 1.84
         }
       ],
       "resistencia_principal": {
-        "strike": 950.0,
-        "oi": 4134,
-        "dist": 34.74
+        "strike": 742.0,
+        "oi": 2453,
+        "dist": 4.95
       },
       "soporte_principal": {
         "strike": 690.0,
-        "oi": 6878,
-        "dist": -2.14
+        "oi": 6887,
+        "dist": -2.4
       },
       "rango_semana": {
-        "techo": 950.0,
+        "techo": 720.0,
         "suelo": 690.0,
-        "amplitudPct": 36.88
+        "amplitudPct": 4.24
       }
     },
     "Fri Sep 18 2026": {
       "max_pain": 660.0,
-      "dist_max_pain_pct": -6.39,
+      "dist_max_pain_pct": -6.65,
       "top_calls": [
         {
           "strike": 790.0,
-          "oi": 34347,
-          "dist": 12.05
+          "oi": 37990,
+          "dist": 11.74
         },
         {
           "strike": 805.0,
-          "oi": 30660,
-          "dist": 14.17
+          "oi": 30615,
+          "dist": 13.86
         },
         {
           "strike": 710.0,
-          "oi": 26220,
-          "dist": 0.7
+          "oi": 26209,
+          "dist": 0.42
         },
         {
           "strike": 900.0,
-          "oi": 23396,
-          "dist": 27.65
+          "oi": 22753,
+          "dist": 27.3
         },
         {
-          "strike": 800.0,
-          "oi": 21078,
-          "dist": 13.47
+          "strike": 840.0,
+          "oi": 21164,
+          "dist": 18.81
         }
       ],
       "top_puts": [
         {
           "strike": 570.0,
-          "oi": 62672,
-          "dist": -19.16
+          "oi": 62617,
+          "dist": -19.38
         },
         {
           "strike": 600.0,
-          "oi": 50827,
-          "dist": -14.9
+          "oi": 50904,
+          "dist": -15.13
         },
         {
           "strike": 700.0,
-          "oi": 38066,
-          "dist": -0.72
+          "oi": 39746,
+          "dist": -0.99
+        },
+        {
+          "strike": 660.0,
+          "oi": 37943,
+          "dist": -6.65
         },
         {
           "strike": 550.0,
-          "oi": 33519,
-          "dist": -21.99
-        },
-        {
-          "strike": 590.0,
-          "oi": 32042,
-          "dist": -16.32
+          "oi": 33561,
+          "dist": -22.21
         }
       ],
       "resistencia_principal": {
         "strike": 710.0,
-        "oi": 26220,
-        "dist": 0.7
+        "oi": 26209,
+        "dist": 0.42
       },
       "soporte_principal": {
         "strike": 700.0,
-        "oi": 38066,
-        "dist": -0.72
+        "oi": 39746,
+        "dist": -0.99
       },
       "rango_semana": {
         "techo": 710.0,
         "suelo": 700.0,
-        "amplitudPct": 1.42
+        "amplitudPct": 1.41
       }
     },
     "Wed Sep 30 2026": {
       "max_pain": 665.0,
-      "dist_max_pain_pct": -5.68,
+      "dist_max_pain_pct": -5.94,
       "top_calls": [
         {
           "strike": 820.0,
-          "oi": 6817,
-          "dist": 16.3
+          "oi": 6844,
+          "dist": 15.98
         },
         {
           "strike": 750.0,
-          "oi": 3043,
-          "dist": 6.37
+          "oi": 3042,
+          "dist": 6.08
         },
         {
           "strike": 700.0,
           "oi": 2777,
-          "dist": -0.72
+          "dist": -0.99
         },
         {
           "strike": 725.0,
           "oi": 1996,
-          "dist": 2.83
+          "dist": 2.55
         },
         {
           "strike": 660.0,
-          "oi": 1285,
-          "dist": -6.39
+          "oi": 1293,
+          "dist": -6.65
         }
       ],
       "top_puts": [
         {
           "strike": 575.0,
-          "oi": 6704,
-          "dist": -18.45
+          "oi": 6705,
+          "dist": -18.67
         },
         {
           "strike": 550.0,
-          "oi": 6496,
-          "dist": -21.99
+          "oi": 6473,
+          "dist": -22.21
         },
         {
           "strike": 555.0,
           "oi": 5382,
-          "dist": -21.28
+          "dist": -21.5
         },
         {
           "strike": 500.0,
-          "oi": 3018,
-          "dist": -29.08
+          "oi": 3022,
+          "dist": -29.28
         },
         {
           "strike": 565.0,
-          "oi": 2567,
-          "dist": -19.86
+          "oi": 2569,
+          "dist": -20.08
         }
       ],
       "resistencia_principal": {
         "strike": 725.0,
         "oi": 1996,
-        "dist": 2.83
+        "dist": 2.55
       },
       "soporte_principal": {
         "strike": 575.0,
-        "oi": 6704,
-        "dist": -18.45
+        "oi": 6705,
+        "dist": -18.67
       },
       "rango_semana": {
         "techo": 725.0,
         "suelo": 575.0,
-        "amplitudPct": 21.27
+        "amplitudPct": 21.22
       }
     },
     "Fri Oct 16 2026": {
       "max_pain": 700.0,
-      "dist_max_pain_pct": -0.72,
+      "dist_max_pain_pct": -0.99,
       "top_calls": [
         {
           "strike": 900.0,
-          "oi": 15617,
-          "dist": 27.65
+          "oi": 15608,
+          "dist": 27.3
         },
         {
           "strike": 850.0,
-          "oi": 3956,
-          "dist": 20.56
+          "oi": 5045,
+          "dist": 20.23
         },
         {
           "strike": 800.0,
-          "oi": 3552,
-          "dist": 13.47
+          "oi": 3593,
+          "dist": 13.15
+        },
+        {
+          "strike": 750.0,
+          "oi": 3470,
+          "dist": 6.08
         },
         {
           "strike": 700.0,
-          "oi": 2473,
-          "dist": -0.72
-        },
-        {
-          "strike": 625.0,
-          "oi": 2149,
-          "dist": -11.36
+          "oi": 2484,
+          "dist": -0.99
         }
       ],
       "top_puts": [
         {
           "strike": 680.0,
-          "oi": 6063,
-          "dist": -3.55
+          "oi": 6073,
+          "dist": -3.82
         },
         {
           "strike": 740.0,
-          "oi": 5731,
-          "dist": 4.96
+          "oi": 5738,
+          "dist": 4.67
         },
         {
           "strike": 630.0,
-          "oi": 5635,
-          "dist": -10.65
+          "oi": 5632,
+          "dist": -10.89
         },
         {
           "strike": 525.0,
-          "oi": 4444,
-          "dist": -25.54
+          "oi": 4445,
+          "dist": -25.74
         },
         {
           "strike": 600.0,
-          "oi": 4192,
-          "dist": -14.9
+          "oi": 4276,
+          "dist": -15.13
         }
       ],
       "resistencia_principal": {
         "strike": 900.0,
-        "oi": 15617,
-        "dist": 27.65
+        "oi": 15608,
+        "dist": 27.3
       },
       "soporte_principal": {
         "strike": 680.0,
-        "oi": 6063,
-        "dist": -3.55
+        "oi": 6073,
+        "dist": -3.82
       },
       "rango_semana": {
         "techo": 900.0,
         "suelo": 680.0,
-        "amplitudPct": 31.2
+        "amplitudPct": 31.12
       }
     },
     "Fri Dec 18 2026": {
       "max_pain": 660.0,
-      "dist_max_pain_pct": -6.39,
+      "dist_max_pain_pct": -6.65,
       "top_calls": [
         {
           "strike": 860.0,
-          "oi": 16780,
-          "dist": 21.98
+          "oi": 16781,
+          "dist": 21.64
         },
         {
           "strike": 880.0,
           "oi": 15000,
-          "dist": 24.81
+          "dist": 24.47
         },
         {
           "strike": 810.0,
-          "oi": 14591,
-          "dist": 14.88
+          "oi": 14594,
+          "dist": 14.57
         },
         {
           "strike": 700.0,
-          "oi": 14147,
-          "dist": -0.72
+          "oi": 14131,
+          "dist": -0.99
         },
         {
-          "strike": 950.0,
-          "oi": 13764,
-          "dist": 34.74
+          "strike": 800.0,
+          "oi": 14055,
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
           "strike": 660.0,
-          "oi": 194367,
-          "dist": -6.39
+          "oi": 194380,
+          "dist": -6.65
         },
         {
           "strike": 680.0,
-          "oi": 42893,
-          "dist": -3.55
+          "oi": 42981,
+          "dist": -3.82
         },
         {
           "strike": 530.0,
           "oi": 23486,
-          "dist": -24.83
+          "dist": -25.04
         },
         {
           "strike": 600.0,
-          "oi": 22854,
-          "dist": -14.9
+          "oi": 22775,
+          "dist": -15.13
         },
         {
           "strike": 400.0,
-          "oi": 20831,
-          "dist": -43.27
+          "oi": 20837,
+          "dist": -43.42
         }
       ],
       "resistencia_principal": {
         "strike": 860.0,
-        "oi": 16780,
-        "dist": 21.98
+        "oi": 16781,
+        "dist": 21.64
       },
       "soporte_principal": {
         "strike": 680.0,
-        "oi": 42893,
-        "dist": -3.55
+        "oi": 42981,
+        "dist": -3.82
       },
       "rango_semana": {
         "techo": 860.0,
         "suelo": 680.0,
-        "amplitudPct": 25.53
+        "amplitudPct": 25.46
       }
     },
     "Thu Dec 31 2026": {
       "max_pain": 680.0,
-      "dist_max_pain_pct": -3.55,
+      "dist_max_pain_pct": -3.82,
       "top_calls": [
         {
           "strike": 735.0,
-          "oi": 7315,
-          "dist": 4.25
+          "oi": 7314,
+          "dist": 3.96
         },
         {
           "strike": 800.0,
-          "oi": 6411,
-          "dist": 13.47
+          "oi": 6441,
+          "dist": 13.15
         },
         {
           "strike": 655.0,
           "oi": 5054,
-          "dist": -7.1
+          "dist": -7.36
         },
         {
           "strike": 665.0,
           "oi": 4500,
-          "dist": -5.68
+          "dist": -5.94
         },
         {
           "strike": 740.0,
           "oi": 4405,
-          "dist": 4.96
+          "dist": 4.67
         }
       ],
       "top_puts": [
         {
           "strike": 750.0,
-          "oi": 11094,
-          "dist": 6.37
+          "oi": 11095,
+          "dist": 6.08
         },
         {
           "strike": 550.0,
-          "oi": 6628,
-          "dist": -21.99
+          "oi": 6611,
+          "dist": -22.21
         },
         {
           "strike": 735.0,
-          "oi": 6347,
-          "dist": 4.25
+          "oi": 6345,
+          "dist": 3.96
         },
         {
           "strike": 540.0,
           "oi": 4379,
-          "dist": -23.41
+          "dist": -23.62
         },
         {
           "strike": 665.0,
-          "oi": 4144,
-          "dist": -5.68
+          "oi": 4142,
+          "dist": -5.94
         }
       ],
       "resistencia_principal": {
         "strike": 735.0,
-        "oi": 7315,
-        "dist": 4.25
+        "oi": 7314,
+        "dist": 3.96
       },
       "soporte_principal": {
         "strike": 750.0,
-        "oi": 11094,
-        "dist": 6.37
+        "oi": 11095,
+        "dist": 6.08
       },
       "rango_semana": {
         "techo": 735.0,
         "suelo": 750.0,
-        "amplitudPct": -2.13
+        "amplitudPct": -2.12
       }
     },
     "Fri Jan 15 2027": {
       "max_pain": 630.0,
-      "dist_max_pain_pct": -10.65,
+      "dist_max_pain_pct": -10.89,
       "top_calls": [
         {
           "strike": 950.0,
-          "oi": 17082,
-          "dist": 34.74
+          "oi": 17083,
+          "dist": 34.37
         },
         {
           "strike": 900.0,
-          "oi": 11736,
-          "dist": 27.65
+          "oi": 11757,
+          "dist": 27.3
         },
         {
           "strike": 690.0,
           "oi": 10205,
-          "dist": -2.14
+          "dist": -2.4
         },
         {
           "strike": 600.0,
-          "oi": 9253,
-          "dist": -14.9
+          "oi": 9235,
+          "dist": -15.13
         },
         {
           "strike": 700.0,
-          "oi": 8706,
-          "dist": -0.72
+          "oi": 8683,
+          "dist": -0.99
         }
       ],
       "top_puts": [
         {
           "strike": 500.0,
-          "oi": 17674,
-          "dist": -29.08
-        },
-        {
-          "strike": 550.0,
-          "oi": 15276,
-          "dist": -21.99
+          "oi": 17688,
+          "dist": -29.28
         },
         {
           "strike": 600.0,
-          "oi": 15037,
-          "dist": -14.9
+          "oi": 15082,
+          "dist": -15.13
+        },
+        {
+          "strike": 550.0,
+          "oi": 15015,
+          "dist": -22.21
         },
         {
           "strike": 580.0,
-          "oi": 9869,
-          "dist": -17.74
+          "oi": 9870,
+          "dist": -17.96
         },
         {
           "strike": 615.0,
-          "oi": 8859,
-          "dist": -12.77
+          "oi": 8860,
+          "dist": -13.01
         }
       ],
       "resistencia_principal": {
         "strike": 950.0,
-        "oi": 17082,
-        "dist": 34.74
+        "oi": 17083,
+        "dist": 34.37
       },
       "soporte_principal": {
         "strike": 500.0,
-        "oi": 17674,
-        "dist": -29.08
+        "oi": 17688,
+        "dist": -29.28
       },
       "rango_semana": {
         "techo": 950.0,
         "suelo": 500.0,
-        "amplitudPct": 63.82
+        "amplitudPct": 63.65
       }
     },
     "Fri Mar 19 2027": {
       "max_pain": 670.0,
-      "dist_max_pain_pct": -4.97,
+      "dist_max_pain_pct": -5.23,
       "top_calls": [
         {
           "strike": 815.0,
           "oi": 30120,
-          "dist": 15.59
+          "dist": 15.28
         },
         {
           "strike": 795.0,
-          "oi": 30042,
-          "dist": 12.76
+          "oi": 30053,
+          "dist": 12.45
         },
         {
           "strike": 850.0,
-          "oi": 16033,
-          "dist": 20.56
+          "oi": 16035,
+          "dist": 20.23
         },
         {
           "strike": 805.0,
-          "oi": 11082,
-          "dist": 14.17
+          "oi": 11081,
+          "dist": 13.86
         },
         {
           "strike": 800.0,
-          "oi": 4854,
-          "dist": 13.47
+          "oi": 4856,
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
-          "strike": 600.0,
-          "oi": 10941,
-          "dist": -14.9
+          "strike": 550.0,
+          "oi": 11086,
+          "dist": -22.21
         },
         {
-          "strike": 550.0,
-          "oi": 10872,
-          "dist": -21.99
+          "strike": 600.0,
+          "oi": 10927,
+          "dist": -15.13
         },
         {
           "strike": 680.0,
-          "oi": 8940,
-          "dist": -3.55
+          "oi": 8943,
+          "dist": -3.82
         },
         {
           "strike": 570.0,
-          "oi": 7635,
-          "dist": -19.16
+          "oi": 7367,
+          "dist": -19.38
         },
         {
           "strike": 500.0,
           "oi": 5453,
-          "dist": -29.08
+          "dist": -29.28
         }
       ],
       "resistencia_principal": {
         "strike": 815.0,
         "oi": 30120,
-        "dist": 15.59
+        "dist": 15.28
       },
       "soporte_principal": {
         "strike": 680.0,
-        "oi": 8940,
-        "dist": -3.55
+        "oi": 8943,
+        "dist": -3.82
       },
       "rango_semana": {
         "techo": 815.0,
         "suelo": 680.0,
-        "amplitudPct": 19.15
+        "amplitudPct": 19.09
       }
     },
     "Wed Mar 31 2027": {
       "max_pain": 660.0,
-      "dist_max_pain_pct": -6.39,
+      "dist_max_pain_pct": -6.65,
       "top_calls": [
         {
           "strike": 650.0,
-          "oi": 3644,
-          "dist": -7.81
+          "oi": 3645,
+          "dist": -8.06
         },
         {
           "strike": 810.0,
           "oi": 2192,
-          "dist": 14.88
+          "dist": 14.57
         },
         {
           "strike": 665.0,
           "oi": 2030,
-          "dist": -5.68
+          "dist": -5.94
         },
         {
           "strike": 745.0,
-          "oi": 1987,
-          "dist": 5.66
+          "oi": 1986,
+          "dist": 5.37
         },
         {
-          "strike": 740.0,
-          "oi": 1966,
-          "dist": 4.96
+          "strike": 800.0,
+          "oi": 1975,
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
           "strike": 520.0,
           "oi": 1971,
-          "dist": -26.25
+          "dist": -26.45
         },
         {
           "strike": 705.0,
           "oi": 1754,
-          "dist": -0.01
+          "dist": -0.28
         },
         {
           "strike": 740.0,
           "oi": 1393,
-          "dist": 4.96
+          "dist": 4.67
         },
         {
           "strike": 655.0,
           "oi": 1228,
-          "dist": -7.1
+          "dist": -7.36
         },
         {
-          "strike": 525.0,
-          "oi": 1068,
-          "dist": -25.54
+          "strike": 575.0,
+          "oi": 1084,
+          "dist": -18.67
         }
       ],
       "resistencia_principal": {
-        "strike": 740.0,
-        "oi": 1966,
-        "dist": 4.96
+        "strike": 650.0,
+        "oi": 3645,
+        "dist": -8.06
       },
       "soporte_principal": {
         "strike": 705.0,
         "oi": 1754,
-        "dist": -0.01
+        "dist": -0.28
       },
       "rango_semana": {
-        "techo": 740.0,
+        "techo": 650.0,
         "suelo": 705.0,
-        "amplitudPct": 4.96
+        "amplitudPct": -7.78
       }
     },
     "Thu Jun 17 2027": {
-      "max_pain": 650.0,
-      "dist_max_pain_pct": -7.81,
+      "max_pain": 660.0,
+      "dist_max_pain_pct": -6.65,
       "top_calls": [
         {
           "strike": 900.0,
-          "oi": 46108,
-          "dist": 27.65
-        },
-        {
-          "strike": 850.0,
-          "oi": 6439,
-          "dist": 20.56
-        },
-        {
-          "strike": 780.0,
-          "oi": 5947,
-          "dist": 10.63
-        },
-        {
-          "strike": 1000.0,
-          "oi": 5612,
-          "dist": 41.83
+          "oi": 46060,
+          "dist": 27.3
         },
         {
           "strike": 800.0,
-          "oi": 5271,
-          "dist": 13.47
+          "oi": 15421,
+          "dist": 13.15
+        },
+        {
+          "strike": 850.0,
+          "oi": 6430,
+          "dist": 20.23
+        },
+        {
+          "strike": 780.0,
+          "oi": 6009,
+          "dist": 10.33
+        },
+        {
+          "strike": 1000.0,
+          "oi": 5624,
+          "dist": 41.44
         }
       ],
       "top_puts": [
         {
           "strike": 550.0,
-          "oi": 15588,
-          "dist": -21.99
+          "oi": 15597,
+          "dist": -22.21
+        },
+        {
+          "strike": 725.0,
+          "oi": 10590,
+          "dist": 2.55
         },
         {
           "strike": 650.0,
-          "oi": 9473,
-          "dist": -7.81
+          "oi": 9469,
+          "dist": -8.06
         },
         {
           "strike": 400.0,
-          "oi": 6225,
-          "dist": -43.27
+          "oi": 6226,
+          "dist": -43.42
         },
         {
           "strike": 250.0,
           "oi": 5719,
-          "dist": -64.54
-        },
-        {
-          "strike": 590.0,
-          "oi": 5698,
-          "dist": -16.32
+          "dist": -64.64
         }
       ],
       "resistencia_principal": {
         "strike": 900.0,
-        "oi": 46108,
-        "dist": 27.65
+        "oi": 46060,
+        "dist": 27.3
       },
       "soporte_principal": {
         "strike": 550.0,
-        "oi": 15588,
-        "dist": -21.99
+        "oi": 15597,
+        "dist": -22.21
       },
       "rango_semana": {
         "techo": 900.0,
         "suelo": 550.0,
-        "amplitudPct": 49.64
+        "amplitudPct": 49.5
       }
     },
     "Fri Sep 17 2027": {
       "max_pain": 715.0,
-      "dist_max_pain_pct": 1.41,
+      "dist_max_pain_pct": 1.13,
       "top_calls": [
         {
           "strike": 950.0,
-          "oi": 3960,
-          "dist": 34.74
+          "oi": 3964,
+          "dist": 34.37
         },
         {
           "strike": 945.0,
-          "oi": 2597,
-          "dist": 34.03
+          "oi": 2596,
+          "dist": 33.66
         },
         {
           "strike": 765.0,
-          "oi": 2558,
-          "dist": 8.5
+          "oi": 2556,
+          "dist": 8.2
         },
         {
           "strike": 660.0,
-          "oi": 2323,
-          "dist": -6.39
+          "oi": 2325,
+          "dist": -6.65
         },
         {
-          "strike": 745.0,
-          "oi": 2036,
-          "dist": 5.66
+          "strike": 655.0,
+          "oi": 1955,
+          "dist": -7.36
         }
       ],
       "top_puts": [
         {
           "strike": 730.0,
-          "oi": 3967,
-          "dist": 3.54
+          "oi": 3969,
+          "dist": 3.25
         },
         {
           "strike": 800.0,
           "oi": 3774,
-          "dist": 13.47
+          "dist": 13.15
         },
         {
           "strike": 445.0,
           "oi": 3755,
-          "dist": -36.88
+          "dist": -37.06
         },
         {
           "strike": 590.0,
           "oi": 3347,
-          "dist": -16.32
+          "dist": -16.55
         },
         {
           "strike": 575.0,
           "oi": 3247,
-          "dist": -18.45
+          "dist": -18.67
         }
       ],
       "resistencia_principal": {
         "strike": 950.0,
-        "oi": 3960,
-        "dist": 34.74
+        "oi": 3964,
+        "dist": 34.37
       },
       "soporte_principal": {
         "strike": 730.0,
-        "oi": 3967,
-        "dist": 3.54
+        "oi": 3969,
+        "dist": 3.25
       },
       "rango_semana": {
         "techo": 950.0,
         "suelo": 730.0,
-        "amplitudPct": 31.2
+        "amplitudPct": 31.12
       }
     },
     "Fri Dec 17 2027": {
-      "max_pain": 620.0,
-      "dist_max_pain_pct": -12.06,
+      "max_pain": 625.0,
+      "dist_max_pain_pct": -11.6,
       "top_calls": [
         {
           "strike": 950.0,
-          "oi": 6378,
-          "dist": 34.74
+          "oi": 6379,
+          "dist": 34.37
         },
         {
           "strike": 600.0,
           "oi": 5055,
-          "dist": -14.9
+          "dist": -15.13
         },
         {
           "strike": 945.0,
-          "oi": 4115,
-          "dist": 34.03
-        },
-        {
-          "strike": 800.0,
-          "oi": 3812,
-          "dist": 13.47
+          "oi": 4114,
+          "dist": 33.66
         },
         {
           "strike": 900.0,
-          "oi": 3767,
-          "dist": 27.65
+          "oi": 3860,
+          "dist": 27.3
+        },
+        {
+          "strike": 800.0,
+          "oi": 3811,
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
           "strike": 500.0,
           "oi": 10560,
-          "dist": -29.08
+          "dist": -29.28
         },
         {
           "strike": 600.0,
-          "oi": 9223,
-          "dist": -14.9
+          "oi": 9224,
+          "dist": -15.13
         },
         {
           "strike": 450.0,
-          "oi": 9134,
-          "dist": -36.18
+          "oi": 9176,
+          "dist": -36.35
         },
         {
           "strike": 510.0,
-          "oi": 7902,
-          "dist": -27.67
+          "oi": 8612,
+          "dist": -27.86
         },
         {
           "strike": 550.0,
-          "oi": 5325,
-          "dist": -21.99
+          "oi": 5324,
+          "dist": -22.21
         }
       ],
       "resistencia_principal": {
         "strike": 950.0,
-        "oi": 6378,
-        "dist": 34.74
+        "oi": 6379,
+        "dist": 34.37
       },
       "soporte_principal": {
         "strike": 500.0,
         "oi": 10560,
-        "dist": -29.08
+        "dist": -29.28
       },
       "rango_semana": {
         "techo": 950.0,
         "suelo": 500.0,
-        "amplitudPct": 63.82
+        "amplitudPct": 63.65
       }
     },
     "Fri Jan 21 2028": {
       "max_pain": 630.0,
-      "dist_max_pain_pct": -10.65,
+      "dist_max_pain_pct": -10.89,
       "top_calls": [
         {
           "strike": 730.0,
-          "oi": 8114,
-          "dist": 3.54
+          "oi": 8113,
+          "dist": 3.25
         },
         {
           "strike": 700.0,
-          "oi": 4204,
-          "dist": -0.72
+          "oi": 4188,
+          "dist": -0.99
         },
         {
           "strike": 650.0,
-          "oi": 3366,
-          "dist": -7.81
+          "oi": 3348,
+          "dist": -8.06
         },
         {
           "strike": 680.0,
-          "oi": 2943,
-          "dist": -3.55
+          "oi": 2940,
+          "dist": -3.82
         },
         {
           "strike": 600.0,
-          "oi": 2420,
-          "dist": -14.9
+          "oi": 2425,
+          "dist": -15.13
         }
       ],
       "top_puts": [
         {
           "strike": 400.0,
-          "oi": 34080,
-          "dist": -43.27
+          "oi": 34087,
+          "dist": -43.42
         },
         {
           "strike": 350.0,
           "oi": 31560,
-          "dist": -50.36
+          "dist": -50.5
         },
         {
           "strike": 500.0,
-          "oi": 8493,
-          "dist": -29.08
+          "oi": 8519,
+          "dist": -29.28
         },
         {
           "strike": 440.0,
-          "oi": 5430,
-          "dist": -37.59
+          "oi": 5420,
+          "dist": -37.77
         },
         {
           "strike": 550.0,
-          "oi": 4989,
-          "dist": -21.99
+          "oi": 4996,
+          "dist": -22.21
         }
       ],
       "resistencia_principal": {
         "strike": 730.0,
-        "oi": 8114,
-        "dist": 3.54
+        "oi": 8113,
+        "dist": 3.25
       },
       "soporte_principal": {
         "strike": 400.0,
-        "oi": 34080,
-        "dist": -43.27
+        "oi": 34087,
+        "dist": -43.42
       },
       "rango_semana": {
         "techo": 730.0,
         "suelo": 400.0,
-        "amplitudPct": 46.8
+        "amplitudPct": 46.68
       }
     },
     "Fri Jun 16 2028": {
       "max_pain": 612.0,
-      "dist_max_pain_pct": -13.2,
+      "dist_max_pain_pct": -13.44,
       "top_calls": [
         {
           "strike": 800.0,
           "oi": 954,
-          "dist": 13.47
+          "dist": 13.15
         },
         {
           "strike": 775.0,
           "oi": 945,
-          "dist": 9.92
+          "dist": 9.62
         },
         {
           "strike": 695.0,
           "oi": 888,
-          "dist": -1.43
+          "dist": -1.7
         },
         {
           "strike": 750.0,
           "oi": 786,
-          "dist": 6.37
+          "dist": 6.08
         },
         {
           "strike": 575.0,
           "oi": 764,
-          "dist": -18.45
+          "dist": -18.67
         }
       ],
       "top_puts": [
         {
           "strike": 400.0,
           "oi": 3685,
-          "dist": -43.27
+          "dist": -43.42
         },
         {
           "strike": 350.0,
           "oi": 3269,
-          "dist": -50.36
+          "dist": -50.5
         },
         {
           "strike": 500.0,
           "oi": 1576,
-          "dist": -29.08
+          "dist": -29.28
         },
         {
           "strike": 550.0,
           "oi": 1370,
-          "dist": -21.99
+          "dist": -22.21
         },
         {
           "strike": 650.0,
-          "oi": 1096,
-          "dist": -7.81
+          "oi": 1097,
+          "dist": -8.06
         }
       ],
       "resistencia_principal": {
         "strike": 800.0,
         "oi": 954,
-        "dist": 13.47
+        "dist": 13.15
       },
       "soporte_principal": {
         "strike": 400.0,
         "oi": 3685,
-        "dist": -43.27
+        "dist": -43.42
       },
       "rango_semana": {
         "techo": 800.0,
         "suelo": 400.0,
-        "amplitudPct": 56.73
+        "amplitudPct": 56.58
       }
     },
     "Fri Dec 15 2028": {
       "max_pain": 700.0,
-      "dist_max_pain_pct": -0.72,
+      "dist_max_pain_pct": -0.99,
       "top_calls": [
         {
           "strike": 980.0,
-          "oi": 5159,
-          "dist": 39.0
+          "oi": 5162,
+          "dist": 38.61
         },
         {
           "strike": 1050.0,
-          "oi": 4832,
-          "dist": 48.92
+          "oi": 4833,
+          "dist": 48.51
         },
         {
           "strike": 900.0,
-          "oi": 3224,
-          "dist": 27.65
+          "oi": 3275,
+          "dist": 27.3
         },
         {
           "strike": 850.0,
-          "oi": 2830,
-          "dist": 20.56
+          "oi": 2840,
+          "dist": 20.23
         },
         {
           "strike": 800.0,
           "oi": 2618,
-          "dist": 13.47
+          "dist": 13.15
         }
       ],
       "top_puts": [
         {
-          "strike": 650.0,
-          "oi": 5231,
-          "dist": -7.81
+          "strike": 400.0,
+          "oi": 5764,
+          "dist": -43.42
         },
         {
-          "strike": 400.0,
-          "oi": 4865,
-          "dist": -43.27
+          "strike": 650.0,
+          "oi": 5231,
+          "dist": -8.06
         },
         {
           "strike": 350.0,
-          "oi": 4439,
-          "dist": -50.36
+          "oi": 5118,
+          "dist": -50.5
         },
         {
           "strike": 500.0,
-          "oi": 2670,
-          "dist": -29.08
+          "oi": 2675,
+          "dist": -29.28
         },
         {
-          "strike": 850.0,
-          "oi": 1297,
-          "dist": 20.56
+          "strike": 800.0,
+          "oi": 1299,
+          "dist": 13.15
         }
       ],
       "resistencia_principal": {
         "strike": 980.0,
-        "oi": 5159,
-        "dist": 39.0
+        "oi": 5162,
+        "dist": 38.61
       },
       "soporte_principal": {
-        "strike": 650.0,
-        "oi": 5231,
-        "dist": -7.81
+        "strike": 400.0,
+        "oi": 5764,
+        "dist": -43.42
       },
       "rango_semana": {
         "techo": 980.0,
-        "suelo": 650.0,
-        "amplitudPct": 46.8
+        "suelo": 400.0,
+        "amplitudPct": 82.04
       }
     }
   },
   "vencimiento_proximo": {
-    "expiry": "Mon Jun 08 2026",
-    "max_pain": 718.0,
-    "dist_max_pain_pct": 1.84,
+    "expiry": "Tue Jun 09 2026",
+    "max_pain": 717.0,
+    "dist_max_pain_pct": 1.41,
     "resistencia_principal": {
-      "strike": 725.0,
-      "oi": 15199,
-      "dist": 2.83
+      "strike": 720.0,
+      "oi": 8214,
+      "dist": 1.84
     },
     "soporte_principal": {
-      "strike": 705.0,
-      "oi": 13396,
-      "dist": -0.01
+      "strike": 675.0,
+      "oi": 13118,
+      "dist": -4.53
     },
     "top_calls": [
       {
-        "strike": 725.0,
-        "oi": 15199,
-        "dist": 2.83
-      },
-      {
         "strike": 720.0,
-        "oi": 14177,
-        "dist": 2.12
-      },
-      {
-        "strike": 724.0,
-        "oi": 10379,
-        "dist": 2.69
+        "oi": 8214,
+        "dist": 1.84
       },
       {
         "strike": 750.0,
-        "oi": 7906,
-        "dist": 6.37
+        "oi": 5009,
+        "dist": 6.08
       },
       {
-        "strike": 715.0,
-        "oi": 7811,
-        "dist": 1.41
+        "strike": 724.0,
+        "oi": 4725,
+        "dist": 2.4
+      },
+      {
+        "strike": 716.0,
+        "oi": 4629,
+        "dist": 1.27
+      },
+      {
+        "strike": 730.0,
+        "oi": 3904,
+        "dist": 3.25
       }
     ],
     "top_puts": [
       {
-        "strike": 545.0,
-        "oi": 15828,
-        "dist": -22.7
-      },
-      {
-        "strike": 705.0,
-        "oi": 13396,
-        "dist": -0.01
-      },
-      {
-        "strike": 720.0,
-        "oi": 13329,
-        "dist": 2.12
-      },
-      {
         "strike": 500.0,
-        "oi": 10427,
-        "dist": -29.08
+        "oi": 15563,
+        "dist": -29.28
       },
       {
-        "strike": 680.0,
-        "oi": 8511,
-        "dist": -3.55
+        "strike": 675.0,
+        "oi": 13118,
+        "dist": -4.53
+      },
+      {
+        "strike": 505.0,
+        "oi": 12725,
+        "dist": -28.57
+      },
+      {
+        "strike": 700.0,
+        "oi": 8310,
+        "dist": -0.99
+      },
+      {
+        "strike": 515.0,
+        "oi": 7626,
+        "dist": -27.16
       }
     ],
     "rango_semana": {
-      "techo": 725.0,
-      "suelo": 705.0,
-      "amplitudPct": 2.84
+      "techo": 720.0,
+      "suelo": 700.0,
+      "amplitudPct": 2.83
     }
   },
-  "generado": "2026-06-08T17:00:30.492574"
+  "generado": "2026-06-10T07:51:37.090107"
 }

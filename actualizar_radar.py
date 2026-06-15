@@ -1,9 +1,26 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║     NQ MULTI-HORIZONTE RADAR CUANTITATIVO — FASE 1-7                       ║
-║     Script: actualizar_radar.py                                              ║
-║     Ruta:   C:\\Users\\m21lo\\nq_multihorizonte\\actualizar_radar.py            ║
+║     NQ MULTI-HORIZONTE RADAR CUANTITATIVO — FASE 1-7 + CAPA CSV LOCAL       ║
+║     Script: actualizar_radar.py  (UNIFICADO v8.0)                            ║
+║     Ruta:   C:\\Users\\m21lo\\PROYECTO_NASDAQ_UNIFICADO\\actualizar_radar.py     ║
 ║     Autor:  Sistema Cuantitativo — Arquitectura Hibrida Local+Vercel         ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  INTEGRACION v8.0 (esta version unifica dos scripts):                       ║
+║    - Toda la logica de actualizar_radar.py  (Yahoo, FRED, MRM, scores...)   ║
+║    - Toda la logica de actualizar_radar_csv.py  (CSV locales: COT, VIX,      ║
+║      VVIX, SKEW, DIX, GEX, QQQ opciones Barchart)                            ║
+║                                                                              ║
+║  REGLA DE PRECEDENCIA: si un bloque se calcula desde CSV local Y desde      ║
+║  API/Yahoo (COT, VIX, opciones QQQ, PCR), PREVALECE el CSV. La logica       ║
+║  online queda como FALLBACK automatico cuando los CSV no estan disponibles. ║
+║                                                                              ║
+║  RUTA CSV LOCAL: BASE_DIR / "DATOS_CSV" / (configurable mas abajo)          ║
+║    COT/             *.txt (CFTC)                                             ║
+║    DIX.csv          (SqueezeMetrics)                                         ║
+║    VIX_History.csv  (CBOE)                                                   ║
+║    VVIX_History.csv (CBOE)                                                   ║
+║    skew-history.csv (CBOE)                                                   ║
+║    qqq_quotedata.csv(Barchart)                                               ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 FASE 1  Columna vertebral funcional:
@@ -48,10 +65,12 @@ FASE 7  Modulos avanzados:
   OK A12 Score amplitud integra ndx100_breadth + proxy_china
 
 Uso:
-  python actualizar_radar.py                   # Ejecucion normal
+  python actualizar_radar.py                   # Ejecucion normal (CSV + APIs)
   python actualizar_radar.py --init            # Forzar descarga historica completa desde 2000
   python actualizar_radar.py --nogit           # Saltar el push a GitHub
   python actualizar_radar.py --noinstitucional # Saltar modulos lentos (NDX100 breadth + SEC)
+  python actualizar_radar.py --nocsv           # Saltar capa CSV (usar solo APIs/Yahoo)
+  python actualizar_radar.py --solocsv         # Solo CSV (saltar APIs lentas: NDX100, SEC, FRED, Yahoo)
 """
 
 import os
@@ -79,7 +98,23 @@ JSON_PATH      = BASE_DIR / "datos_radar.json"
 LOG_PATH       = BASE_DIR / "radar.log"
 
 FECHA_INICIO   = "2000-01-01"
-VERSION        = "7.0-fase7"
+VERSION        = "8.0-unificado"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  RUTAS CSV LOCALES — CAPA AUTORITATIVA (prevalece sobre APIs)
+# ─────────────────────────────────────────────────────────────────────────────
+#  Estos CSV son la fuente PRINCIPAL del sistema. Cuando esten disponibles,
+#  sus datos SOBRESCRIBEN los calculados desde Yahoo/CFTC API. Si no estan,
+#  las funciones online actuan como fallback automatico.
+# ─────────────────────────────────────────────────────────────────────────────
+
+DATA_CSV_DIR = BASE_DIR / "DATOS_CSV"      # Carpeta raiz con todos los CSV
+COT_CSV_DIR  = DATA_CSV_DIR / "COT"        # Subcarpeta con los .txt del CFTC
+DIX_CSV      = DATA_CSV_DIR / "DIX.csv"           # SqueezeMetrics (date,price,dix,gex)
+VIX_CSV      = DATA_CSV_DIR / "VIX_History.csv"   # CBOE spot diario
+VVIX_CSV     = DATA_CSV_DIR / "VVIX_History.csv"  # CBOE VVIX diario
+SKEW_CSV     = DATA_CSV_DIR / "skew-history.csv"  # CBOE SKEW diario
+QQQ_OPC_CSV  = DATA_CSV_DIR / "qqq_quotedata.csv" # Barchart QQQ opciones (descarga diaria)
 
 # ─── CONFIGURACION ALERTAS EMAIL (FASE 6) ─────────────────────────────────
 EMAIL_FROM     = ""   # Gmail origen: tu@gmail.com
@@ -317,28 +352,99 @@ def descargar_fred_ultimo(series_id: str, n: int = 3) -> dict | None:
 #  FASE 7 — A0  Validacion de calendario de mercado
 # ─────────────────────────────────────────────────────────────────────────────
 
-def mercado_abierto_hoy() -> bool:
-    """Devuelve True si hay o hubo sesion de mercado hoy (QQQ tuvo datos).
-    Si es fin de semana, festivo o no hay datos devuelve False.
+def estado_sesion_mercado() -> dict:
+    """Clasifica el estado de la sesion de mercado USA HOY.
 
-    NOTA: yfinance usa end exclusivo → end debe ser manana para incluir hoy.
-    Durante la sesion en curso el bar diario ya esta disponible con datos
-    parciales; se acepta como valido para no bloquear la ejecucion.
+    Devuelve dict con:
+      - 'estado': 'sesion_en_curso' | 'cierre_disponible' | 'premercado_laboral'
+                  | 'fin_de_semana' | 'festivo_probable' | 'indeterminado'
+      - 'ejecutar': bool — si el script DEBE continuar o no
+      - 'ultima_fecha': str ISO de la ultima vela disponible para QQQ (o None)
+      - 'descripcion': str legible para log
+
+    Politica:
+      - Sabado/Domingo  -> ejecutar=True (refrescar JSON con ultima vela del viernes)
+      - L-V con datos   -> ejecutar=True (sesion en curso o cierre disponible)
+      - L-V SIN datos   -> ejecutar=True (premercado: NY abre 15:30 CEST; trabajamos
+                           con el ultimo cierre disponible)
+      - Festivo USA detectado por ausencia de datos en dia laboral -> ejecutar=True
+        igualmente (queremos regenerar el JSON con datos del dia previo)
+
+    Esto sustituye a la antigua mercado_abierto_hoy(): ya NO abortamos el script
+    porque yfinance no tenga vela del dia; trabajamos con la ultima disponible.
     """
+    from datetime import date as date_cls, timedelta
+    hoy = date_cls.today()
+    wd  = hoy.weekday()  # 0=lun, 6=dom
+
+    # 1) Fin de semana → no buscamos vela de hoy, simplemente usamos la ultima
+    if wd >= 5:
+        return {
+            "estado": "fin_de_semana",
+            "ejecutar": True,
+            "ultima_fecha": None,
+            "descripcion": "Fin de semana — mercado USA cerrado. Se regenera el JSON con la ultima vela disponible.",
+        }
+
+    # 2) Dia laboral: intentamos averiguar si Yahoo ya tiene la vela de hoy
     try:
         import yfinance as yf
-        from datetime import date as date_cls, timedelta
-        hoy     = date_cls.today()
-        manana  = hoy + timedelta(days=1)
-        hoy_str = hoy.strftime("%Y-%m-%d")
-        man_str = manana.strftime("%Y-%m-%d")
-        # end exclusivo → pedir start=hoy, end=manana para incluir el bar de hoy
-        df = yf.download("QQQ", start=hoy_str, end=man_str, progress=False, auto_adjust=True)
-        return not df.empty
-    except Exception:
-        # Si yfinance falla pero es dia laboral (L-V) asumimos mercado abierto
-        from datetime import date as date_cls
-        return date_cls.today().weekday() < 5
+        # Pedimos 5 dias para garantizar que siempre haya algo (period maneja
+        # festivos y fines de semana sin lanzar error)
+        df = yf.download("QQQ", period="5d", progress=False, auto_adjust=True)
+        if df.empty:
+            return {
+                "estado": "indeterminado",
+                "ejecutar": True,
+                "ultima_fecha": None,
+                "descripcion": "yfinance devolvio vacio para QQQ (5d). Se continua usando historico local como ultima referencia.",
+            }
+        ultima = pd.to_datetime(df.index[-1]).date()
+        ultima_str = ultima.strftime("%Y-%m-%d")
+
+        if ultima == hoy:
+            # Hay barra para hoy. Puede ser sesion en curso o ya cerrada.
+            # Distinguimos por hora UTC (NY cierra a las 20:00 UTC = 22:00 CEST verano).
+            import datetime as _dt
+            ahora_utc = _dt.datetime.utcnow()
+            if 13 <= ahora_utc.hour < 20:
+                estado_str = "sesion_en_curso"
+                desc = f"Sesion USA en curso (vela parcial de {ultima_str} disponible)."
+            else:
+                estado_str = "cierre_disponible"
+                desc = f"Cierre USA de {ultima_str} ya disponible."
+            return {"estado": estado_str, "ejecutar": True,
+                    "ultima_fecha": ultima_str, "descripcion": desc}
+        else:
+            # No hay vela de hoy todavia (premercado) o es festivo USA
+            dif_dias = (hoy - ultima).days
+            if dif_dias == 1:
+                desc = (f"Premercado USA en dia laboral (ultima vela: {ultima_str}). "
+                        f"NY abre 15:30 CEST. Se trabaja con esa vela como ultima referencia.")
+                estado_str = "premercado_laboral"
+            else:
+                desc = (f"Posible festivo USA o gap de datos ({dif_dias} dias desde {ultima_str}). "
+                        f"Se regenera el JSON con la ultima vela disponible.")
+                estado_str = "festivo_probable"
+            return {"estado": estado_str, "ejecutar": True,
+                    "ultima_fecha": ultima_str, "descripcion": desc}
+
+    except Exception as e:
+        # yfinance fallo: en dia laboral asumimos premercado y continuamos
+        return {
+            "estado": "indeterminado",
+            "ejecutar": True,
+            "ultima_fecha": None,
+            "descripcion": f"No se pudo consultar yfinance ({e}). Se continua con historico local.",
+        }
+
+
+def mercado_abierto_hoy() -> bool:
+    """Compatibilidad hacia atras: devuelve True si la sesion esta en curso o
+    ya hay cierre disponible para hoy. Para la logica nueva usa
+    estado_sesion_mercado() que es mas rica.
+    """
+    return estado_sesion_mercado()["estado"] in ("sesion_en_curso", "cierre_disponible")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1287,6 +1393,206 @@ def calcular_vix_ts(df_maestro: pd.DataFrame) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  MÓDULO: parsear_vix_ts_txt — Lee VIX.txt descargado de Cboe VIX Futures
+#  Ruta esperada: BASE_DIR / "VIX.txt"
+#  Formato: tabla TSV con columnas Symbol / Expiration / Last Price /
+#           Change / High / Low / Settlement / Volume
+#  Estrategia: enriquece el resultado de calcular_vix_ts con datos reales
+#  de la curva de futuros (front month, segundo mes, pendiente, contango/bk)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def parsear_vix_ts_txt(base_dir: Path = None) -> dict:
+    """
+    Lee VIX.txt guardado en nq-proxy y extrae la curva de futuros VIX.
+
+    Datos que extrae:
+      - VIX spot (línea "VIX\\t-\\t21.57\\t...")
+      - Front month (primer contrato con precio real, no semanal/mini)
+      - Second month
+      - Todos los contratos mensuales estándar (VX/XX)
+      - Spread spot vs front → contango o backwardation
+      - Pendiente de la curva (slope 1M→3M)
+      - Señal interpretativa: alcista / neutro / bajista / bajista_fuerte
+
+    El precio preferido es Last Price; si es "-" se usa Settlement como fallback
+    (ocurre en fin de semana — Settlement es el precio de cierre del viernes).
+
+    Devuelve None si el archivo no existe o no se puede parsear.
+    """
+    if base_dir is None:
+        base_dir = BASE_DIR
+
+    candidatos = [base_dir / "VIX.txt", base_dir / "vix.txt", base_dir / "VIX.TXT"]
+    ruta = next((p for p in candidatos if p.exists()), None)
+    if ruta is None:
+        return None
+
+    try:
+        texto = ruta.read_text(encoding="utf-8", errors="replace")
+        lineas = texto.splitlines()
+
+        vix_spot   = None
+        futuros    = []  # lista de dicts {symbol, expiry, precio, settlement, dte}
+
+        hoy = datetime.now().date()
+
+        for linea in lineas:
+            partes = [p.strip() for p in linea.strip().split("\t")]
+            if len(partes) < 7:
+                continue
+
+            simbolo = partes[0]
+            expiry_str = partes[1]
+            last_str   = partes[2]
+            settlement_str = partes[6] if len(partes) > 6 else "-"
+
+            def _to_float(s):
+                try:
+                    v = float(s.replace(",", "."))
+                    return v if v > 0 else None
+                except (ValueError, TypeError):
+                    return None
+
+            # ── VIX spot ────────────────────────────────────────────────────
+            if simbolo == "VIX" and expiry_str == "-":
+                last = _to_float(last_str)
+                sett = _to_float(settlement_str)
+                vix_spot = last or sett
+                continue
+
+            # ── Futuros VIX: solo contratos con fecha de vencimiento ────────
+            # Aceptar: VX/M6, VX/N6, VX/Q6 ... (contratos mensuales estándar)
+            # Aceptar también: VX23/M6, VX25/M6 (weeklys) pero con flag is_weekly
+            if not (simbolo.startswith("VX") and "/" in simbolo):
+                continue
+            if expiry_str == "-" or not expiry_str:
+                continue
+
+            try:
+                from datetime import datetime as dt_cls
+                expiry_date = dt_cls.strptime(expiry_str, "%m/%d/%Y").date()
+            except ValueError:
+                continue
+
+            dte = (expiry_date - hoy).days
+            if dte < 0:
+                continue  # vencido
+
+            last  = _to_float(last_str)
+            sett  = _to_float(settlement_str)
+            precio = last or sett  # usar settlement si no hay last (fin de semana)
+
+            if precio is None:
+                continue
+
+            # Distinguir contratos semanales (tienen número: VX23/M6) de mensuales (VX/M6)
+            import re as _re
+            is_weekly = bool(_re.match(r"VX\d+/", simbolo))
+
+            futuros.append({
+                "symbol":     simbolo,
+                "expiry":     expiry_str,
+                "expiry_date": expiry_date.isoformat(),
+                "precio":     round(precio, 4),
+                "last":       last,
+                "settlement": sett,
+                "dte":        dte,
+                "is_weekly":  is_weekly,
+                "using_settlement": last is None,
+            })
+
+        if not futuros:
+            log.warning("  [VIX-TXT] Archivo encontrado pero sin futuros parseables")
+            return None
+
+        # Ordenar por DTE
+        futuros.sort(key=lambda x: x["dte"])
+
+        # Contratos mensuales (excluir weeklys para la curva principal)
+        mensuales = [f for f in futuros if not f["is_weekly"]]
+
+        # Front month y second month (de contratos mensuales)
+        front  = mensuales[0] if len(mensuales) > 0 else futuros[0]
+        second = mensuales[1] if len(mensuales) > 1 else (futuros[1] if len(futuros) > 1 else None)
+        third  = mensuales[2] if len(mensuales) > 2 else None
+
+        front_precio  = front["precio"]
+        second_precio = second["precio"] if second else None
+
+        # ── Cálculos de estructura ────────────────────────────────────────────
+
+        # Spread spot-front (contango = spot < front → positivo)
+        spread_sf  = round(front_precio - vix_spot, 2) if vix_spot else None
+        spread_pct = round(spread_sf / vix_spot * 100, 1) if (spread_sf is not None and vix_spot) else None
+        backwardation = spread_sf < 0 if spread_sf is not None else None
+
+        # Pendiente de la curva: (second - front) / dte_entre_ellos * 30
+        # Normalizada a "puntos por mes" para comparar entre periodos
+        slope_1m2m = None
+        if second and second_precio and front_precio:
+            delta_dte = second["dte"] - front["dte"]
+            if delta_dte > 0:
+                slope_1m2m = round((second_precio - front_precio) / delta_dte * 30, 3)
+
+        # Contango score: clasificación de la curva
+        # Usamos spread spot-front (el más importante para señal 2-5D)
+        if backwardation:
+            senal = "alcista"
+            desc  = (f"VIX backwardation — spot={vix_spot} > front={front_precio} "
+                     f"(spread={spread_sf:+.2f}) — estrés agudo, rebote probable 2-5d")
+        elif spread_pct and spread_pct > 20:
+            senal = "bajista_fuerte"
+            desc  = (f"Contango extremo — spot={vix_spot} front={front_precio} "
+                     f"({spread_pct:+.1f}%) — complacencia máxima, corrección probable")
+        elif spread_pct and spread_pct > 10:
+            senal = "bajista"
+            desc  = (f"Contango elevado — spot={vix_spot} front={front_precio} "
+                     f"({spread_pct:+.1f}%) — complacencia, vigilar")
+        elif spread_pct and spread_pct < -5:
+            senal = "alcista_fuerte"
+            desc  = (f"Backwardation pronunciada — spot={vix_spot} front={front_precio} "
+                     f"({spread_pct:+.1f}%) — pánico extremo, rebote inminente")
+        else:
+            senal = "neutro"
+            desc  = (f"Term structure normal — spot={vix_spot} front={front_precio} "
+                     f"({spread_pct:+.1f}%)" if spread_pct else "Term structure normal")
+
+        result = {
+            # Campos compatibles con calcular_vix_ts (mismo formato)
+            "spot":          vix_spot,
+            "vix3m":         third["precio"] if third else second_precio,
+            "spread1":       spread_sf,
+            "spread1Pct":    spread_pct,
+            "backwardation": backwardation,
+            "vixPercentil":  None,  # no disponible desde TXT (requiere histórico)
+            "señal":         senal,
+            "desc":          desc,
+            # Campos extra (enriquecimiento respecto a calcular_vix_ts)
+            "front_month":   front,
+            "second_month":  second,
+            "slope_1m2m":    slope_1m2m,
+            "curva":         futuros[:8],  # máx 8 contratos para el frontend
+            "n_contratos":   len(futuros),
+            "fuente":        "vix_txt_manual",
+            "usando_settlement": any(f["using_settlement"] for f in futuros[:3]),
+        }
+
+        using_sett = any(f["using_settlement"] for f in futuros[:2])
+        log.info(
+            f"  [VIX-TXT] OK — spot={vix_spot} | front={front['symbol']}={front_precio} "
+            f"| spread={spread_sf:+.2f} ({spread_pct:+.1f}%) | {senal.upper()} "
+            f"| {len(futuros)} contratos" + (" [usando settlement]" if using_sett else "")
+        )
+        return result
+
+    except Exception as e:
+        log.warning(f"  [VIX-TXT] Error parseando VIX.txt: {e}")
+        import traceback
+        log.warning(traceback.format_exc())
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  DETECTORES DE GIRO
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1875,6 +2181,1080 @@ def calcular_macro_fred(df_maestro: pd.DataFrame, precios: dict) -> dict:
 
 
 
+# =============================================================================
+#                                                                            ##
+#   ████  BLOQUE CSV LOCAL — CAPA AUTORITATIVA (prevalece sobre APIs) ████  ##
+#                                                                            ##
+#   Lee directamente de los CSV en DATA_CSV_DIR.                             ##
+#   - leer_cot_csv()             → COT NASDAQ MINI con percentiles 1044sem   ##
+#   - leer_vix_vvix_skew_csv()   → VIX+VVIX+SKEW + ratio + term structure    ##
+#   - leer_dix_gex_csv()         → DIX% + GEX (B$) SqueezeMetrics            ##
+#   - leer_qqq_opciones_csv()    → Max Pain + muros OI + PCR (Barchart)      ##
+#                                                                            ##
+#   Estas funciones provienen del antiguo actualizar_radar_csv.py.           ##
+#   Si producen datos validos, SOBRESCRIBEN los calculados por las APIs.    ##
+# =============================================================================
+
+import csv as _csv_csv
+import re as _csv_re
+from datetime import datetime as _dt_csv, timedelta as _td_csv
+
+def _csv_log(msg):
+    """Wrapper para logger del bloque CSV."""
+    log.info(f"  [CSV] {msg}")
+
+def _csv_percentil(serie, valor):
+    """Percentil de 'valor' dentro de 'serie' (lista de floats). 0-100."""
+    if not serie or valor is None:
+        return None
+    return round(sum(1 for x in serie if x <= valor) / len(serie) * 100, 1)
+
+def _csv_tendencia_n(serie_ordenada, n=4):
+    """Devuelve 'subiendo', 'bajando' o 'estable' comparando ultimos n/2 vs anteriores n/2."""
+    if len(serie_ordenada) < n:
+        return "insuficiente"
+    mitad = n // 2
+    recientes  = serie_ordenada[-mitad:]
+    anteriores = serie_ordenada[-n:-mitad]
+    avg_rec = sum(recientes) / len(recientes)
+    avg_ant = sum(anteriores) / len(anteriores)
+    diff_pct = (avg_rec - avg_ant) / abs(avg_ant) * 100 if avg_ant != 0 else 0
+    if diff_pct > 3:
+        return "subiendo"
+    if diff_pct < -3:
+        return "bajando"
+    return "estable"
+
+def _csv_parse_fecha(s):
+    """Parsea los distintos formatos de fecha de los TXT del CFTC y CSV CBOE."""
+    s = str(s).strip()
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return _dt_csv.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+def _csv_safe_float(s):
+    """Convierte string a float tolerando espacios, comas y puntos."""
+    try:
+        return float(str(s).strip().replace(",", ""))
+    except (ValueError, TypeError):
+        return None
+
+
+# -----------------------------------------------------------------------------
+# CSV-1) COT — CFTC Financial Futures TFF (NASDAQ MINI 209742)
+# -----------------------------------------------------------------------------
+
+def leer_cot_csv():
+    """
+    Lee todos los TXT del CFTC en COT_CSV_DIR, extrae el NASDAQ MINI (209742),
+    calcula percentiles con el historico completo y devuelve un dict con
+    valores actuales + serie historica para el dashboard.
+    """
+    if not COT_CSV_DIR.exists():
+        _csv_log(f"COT: carpeta {COT_CSV_DIR} no existe - saltando capa CSV COT")
+        return None
+
+    txt_files = sorted(COT_CSV_DIR.glob("*.txt")) + sorted(COT_CSV_DIR.glob("*.TXT"))
+    if not txt_files:
+        _csv_log(f"COT: no se encontraron TXT en {COT_CSV_DIR}")
+        return None
+
+    _csv_log(f"COT: leyendo {len(txt_files)} TXT en {COT_CSV_DIR}...")
+
+    all_rows = {}  # fecha -> dict (deduplicar)
+    for path in txt_files:
+        try:
+            with open(path, newline="", encoding="utf-8", errors="replace") as f:
+                reader = _csv_csv.DictReader(f)
+                for row in reader:
+                    code = row.get("CFTC_Contract_Market_Code", "").strip()
+                    if code != "209742":
+                        continue
+                    fecha = _csv_parse_fecha(row.get("Report_Date_as_YYYY-MM-DD", ""))
+                    if not fecha:
+                        continue
+                    all_rows[fecha] = row
+        except Exception as e:
+            _csv_log(f"COT: {path.name}: {e}")
+
+    if not all_rows:
+        _csv_log("COT: no se encontraron datos NASDAQ MINI (209742)")
+        return None
+
+    serie_raw = sorted(all_rows.items())
+
+    serie = []
+    for fecha, row in serie_raw:
+        lev_l = _csv_safe_float(row.get("Lev_Money_Positions_Long_All"))
+        lev_s = _csv_safe_float(row.get("Lev_Money_Positions_Short_All"))
+        dl_l  = _csv_safe_float(row.get("Dealer_Positions_Long_All"))
+        dl_s  = _csv_safe_float(row.get("Dealer_Positions_Short_All"))
+        am_l  = _csv_safe_float(row.get("Asset_Mgr_Positions_Long_All"))
+        am_s  = _csv_safe_float(row.get("Asset_Mgr_Positions_Short_All"))
+        oi    = _csv_safe_float(row.get("Open_Interest_All"))
+        if None in (lev_l, lev_s, dl_l, dl_s, am_l, am_s):
+            continue
+        lev_tot = lev_l + lev_s
+        serie.append({
+            "fecha":       str(fecha),
+            "oi":          int(oi) if oi else 0,
+            "lev_l":       int(lev_l),
+            "lev_s":       int(lev_s),
+            "lev_net":     int(lev_l - lev_s),
+            "lev_pct_l":   round(lev_l / lev_tot * 100, 1) if lev_tot > 0 else 0,
+            "dealer_l":    int(dl_l),
+            "dealer_s":    int(dl_s),
+            "dealer_net":  int(dl_l - dl_s),
+            "assetmgr_l":  int(am_l),
+            "assetmgr_s":  int(am_s),
+            "assetmgr_net":int(am_l - am_s),
+        })
+
+    n_total = len(serie)
+    if n_total == 0:
+        return None
+    _csv_log(f"COT: {n_total} semanas cargadas ({serie[0]['fecha']} -> {serie[-1]['fecha']})")
+
+    pcts_l = sorted([r["lev_pct_l"] for r in serie])  # SORTED para percentiles correctos
+
+    p10 = pcts_l[int(n_total * 0.10)] if n_total > 10 else pcts_l[0]
+    p25 = pcts_l[int(n_total * 0.25)] if n_total > 4  else pcts_l[0]
+    p75 = pcts_l[int(n_total * 0.75)] if n_total > 4  else pcts_l[-1]
+    p90 = pcts_l[int(n_total * 0.90)] if n_total > 10 else pcts_l[-1]
+
+    actual = serie[-1]
+    pct_hist = _csv_percentil(pcts_l, actual["lev_pct_l"])
+
+    ultimos_nets = [r["lev_net"]   for r in serie[-8:]]
+    ultimos_pcts = [r["lev_pct_l"] for r in serie[-8:]]
+    tend_pct = _csv_tendencia_n(ultimos_pcts, 4)
+
+    prev = serie[-2] if len(serie) >= 2 else None
+    cambio_net = actual["lev_net"] - prev["lev_net"] if prev else None
+    cambio_pct = round(actual["lev_pct_l"] - prev["lev_pct_l"], 1) if prev else None
+
+    pct_l = actual["lev_pct_l"]
+    if pct_l <= p10:
+        senal     = "alcista_extremo"
+        senal_txt = f"Fondos muy cortos ({pct_l:.0f}% largos, p{pct_hist:.0f}) - senal contraria ALCISTA FUERTE"
+        fuerza    = "extremo"
+    elif pct_l <= p25:
+        senal     = "alcista"
+        senal_txt = f"Fondos cortos ({pct_l:.0f}% largos, p{pct_hist:.0f}) - sesgo alcista"
+        fuerza    = "fuerte"
+    elif pct_l >= p90:
+        senal     = "bajista_extremo"
+        senal_txt = f"Fondos muy largos ({pct_l:.0f}% largos, p{pct_hist:.0f}) - senal contraria BAJISTA FUERTE"
+        fuerza    = "extremo"
+    elif pct_l >= p75:
+        senal     = "bajista"
+        senal_txt = f"Fondos largos ({pct_l:.0f}% largos, p{pct_hist:.0f}) - sesgo bajista"
+        fuerza    = "fuerte"
+    else:
+        senal     = "neutro"
+        senal_txt = f"Posicionamiento neutro ({pct_l:.0f}% largos, p{pct_hist:.0f})"
+        fuerza    = "neutro"
+
+    _csv_log(f"COT -> {senal_txt}")
+
+    hist_52 = [
+        {
+            "fecha":        r["fecha"],
+            "lev_l":        r["lev_l"],
+            "lev_s":        r["lev_s"],
+            "lev_net":      r["lev_net"],
+            "lev_pct_l":    r["lev_pct_l"],
+            "dealer_net":   r["dealer_net"],
+            "assetmgr_net": r["assetmgr_net"],
+        }
+        for r in serie[-52:]
+    ]
+
+    return {
+        # Datos actuales
+        "fecha":          actual["fecha"],
+        "lev_largos":     actual["lev_l"],
+        "lev_cortos":     actual["lev_s"],
+        "lev_neto":       actual["lev_net"],
+        "lev_pct_largos": actual["lev_pct_l"],
+        "dealer_neto":    actual["dealer_net"],
+        "assetmgr_neto":  actual["assetmgr_net"],
+        "open_interest":  actual["oi"],
+        # Contexto historico
+        "percentil_historico":  pct_hist,
+        "semanas_historico":    n_total,
+        "tendencia_4s":         tend_pct,
+        "cambio_semana_neto":   cambio_net,
+        "cambio_semana_pct":    cambio_pct,
+        # Senal
+        "señal":          senal,
+        "señal_texto":    senal_txt,
+        "fuerza":         fuerza,
+        # Umbrales calibrados
+        "umbrales": {
+            "alcista_extremo_p10": round(p10, 1),
+            "alcista_fuerte_p25":  round(p25, 1),
+            "bajista_fuerte_p75":  round(p75, 1),
+            "bajista_extremo_p90": round(p90, 1),
+        },
+        # Serie historica 52 semanas
+        "historico_52s": hist_52,
+        "fuente": "CFTC TXT local (CSV)",
+    }
+
+
+# -----------------------------------------------------------------------------
+# CSV-2) VIX + VVIX + SKEW (CBOE)
+# -----------------------------------------------------------------------------
+
+def _csv_senal_vix_compuesta(vix_s, ratio_s, skew_s, mom_s):
+    """Combina las 4 senales VIX en una senal resumen."""
+    puntos_alcista = 0
+    puntos_bajista = 0
+    if vix_s   == "panico":            puntos_alcista += 2
+    if vix_s   == "complacencia":      puntos_bajista += 2
+    if ratio_s == "miedo_extremo":     puntos_alcista += 2
+    if ratio_s == "complacencia":      puntos_bajista += 1
+    if skew_s  == "cola_extrema":      puntos_bajista += 2
+    if skew_s  == "cola_elevada":      puntos_bajista += 1
+    if mom_s   == "spike_bajista":     puntos_alcista += 1
+    if puntos_alcista >= 3:
+        return "alcista"
+    if puntos_bajista >= 3:
+        return "bajista"
+    return "neutro"
+
+
+def leer_vix_vvix_skew_csv():
+    """
+    Lee los 3 CSV de CBOE, calcula senales derivadas y devuelve dict con
+    valores actuales, percentiles historicos y serie 90 dias.
+    """
+    if not VIX_CSV.exists():
+        _csv_log(f"VIX: {VIX_CSV} no existe - saltando capa CSV VIX/VVIX/SKEW")
+        return None
+
+    _csv_log("VIX+VVIX+SKEW: leyendo CSV CBOE...")
+
+    # --- VIX ---
+    vix = {}
+    try:
+        with open(VIX_CSV, newline="", encoding="utf-8") as f:
+            for row in _csv_csv.DictReader(f):
+                d = _csv_parse_fecha(row.get("DATE", ""))
+                c = _csv_safe_float(row.get("CLOSE"))
+                if d and c:
+                    vix[d] = c
+        _csv_log(f"VIX: {len(vix)} dias ({min(vix)} -> {max(vix)})")
+    except Exception as e:
+        _csv_log(f"VIX error: {e}")
+        return None
+
+    # --- VVIX ---
+    vvix = {}
+    if VVIX_CSV.exists():
+        try:
+            with open(VVIX_CSV, newline="", encoding="utf-8") as f:
+                for row in _csv_csv.DictReader(f):
+                    d = _csv_parse_fecha(row.get("DATE", ""))
+                    v = _csv_safe_float(row.get("VVIX"))
+                    if d and v:
+                        vvix[d] = v
+            _csv_log(f"VVIX: {len(vvix)} dias")
+        except Exception as e:
+            _csv_log(f"VVIX warning: {e}")
+
+    # --- SKEW ---
+    skew = {}
+    if SKEW_CSV.exists():
+        try:
+            with open(SKEW_CSV, newline="", encoding="utf-8") as f:
+                for row in _csv_csv.DictReader(f):
+                    d = _csv_parse_fecha(row.get("DATE", ""))
+                    s = _csv_safe_float(row.get("SKEW"))
+                    if d and s:
+                        skew[d] = s
+            _csv_log(f"SKEW: {len(skew)} dias")
+        except Exception as e:
+            _csv_log(f"SKEW warning: {e}")
+
+    if not vix:
+        return None
+
+    ultima_vix  = max(vix.keys())
+    ultima_vvix = max(vvix.keys()) if vvix else None
+    ultima_skew = max(skew.keys()) if skew else None
+
+    vix_spot = vix[ultima_vix]
+    vvix_val = vvix.get(ultima_vvix) if ultima_vvix else None
+    skew_val = skew.get(ultima_skew) if ultima_skew else None
+
+    todos_vix  = sorted(vix.values())
+    todos_vvix = sorted(vvix.values()) if vvix else []
+    todos_skew = sorted(skew.values()) if skew else []
+
+    pct_vix  = _csv_percentil(todos_vix,  vix_spot)
+    pct_vvix = _csv_percentil(todos_vvix, vvix_val) if vvix_val else None
+    pct_skew = _csv_percentil(todos_skew, skew_val) if skew_val else None
+
+    ratio = round(vvix_val / vix_spot, 2) if vvix_val and vix_spot > 0 else None
+
+    ratios_hist = []
+    for d in vix:
+        if d in vvix and vix[d] > 0:
+            ratios_hist.append(vvix[d] / vix[d])
+    ratios_hist.sort()
+    pct_ratio = _csv_percentil(ratios_hist, ratio) if ratio else None
+
+    if ratio:
+        if ratio > 7.0:
+            ratio_senal = "miedo_extremo"
+            ratio_txt   = f"VVIX/VIX={ratio:.1f}x - demanda extrema de proteccion institucional"
+        elif ratio > 6.0:
+            ratio_senal = "miedo_elevado"
+            ratio_txt   = f"VVIX/VIX={ratio:.1f}x - mercado nervioso, volatilidad cara"
+        elif ratio < 3.5:
+            ratio_senal = "complacencia"
+            ratio_txt   = f"VVIX/VIX={ratio:.1f}x - complacencia, volatilidad barata"
+        else:
+            ratio_senal = "normal"
+            ratio_txt   = f"VVIX/VIX={ratio:.1f}x - regimen normal"
+    else:
+        ratio_senal, ratio_txt = "sin_datos", "VVIX no disponible"
+
+    # --- Term Structure proxy: VIX MA5 vs MA20 ---
+    vix_sorted_dates = sorted(vix.keys())
+    def vix_ma(fecha, n):
+        vals = []
+        d = fecha
+        while len(vals) < n and d >= vix_sorted_dates[0]:
+            if d in vix:
+                vals.append(vix[d])
+            d -= _td_csv(days=1)
+        return sum(vals) / len(vals) if vals else None
+
+    ma5  = vix_ma(ultima_vix, 5)
+    ma20 = vix_ma(ultima_vix, 20)
+
+    if ma5 and ma20 and ma20 > 0:
+        ts_spread = (ma5 - ma20) / ma20 * 100
+        if ts_spread > 8:
+            ts_senal = "backwardation"
+            ts_txt   = f"VIX MA5({ma5:.1f}) >> MA20({ma20:.1f}): estres agudo -> rebote probable 2-5d"
+        elif ts_spread > 3:
+            ts_senal = "tension"
+            ts_txt   = f"VIX MA5({ma5:.1f}) > MA20({ma20:.1f}): tension creciente"
+        elif ts_spread < -5:
+            ts_senal = "contango_pronunciado"
+            ts_txt   = f"VIX MA5({ma5:.1f}) << MA20({ma20:.1f}): calma pronunciada, complacencia posible"
+        else:
+            ts_senal = "contango_normal"
+            ts_txt   = f"VIX MA5({ma5:.1f}) ~ MA20({ma20:.1f}): estructura normal"
+    else:
+        ts_senal, ts_txt, ts_spread = "sin_datos", "Datos insuficientes", None
+
+    # --- Momentum VIX 5d ---
+    d5 = ultima_vix - _td_csv(days=7)
+    vix_5d = None
+    for _ in range(7):
+        if d5 in vix:
+            vix_5d = vix[d5]
+            break
+        d5 -= _td_csv(days=1)
+    mom_5d = round((vix_spot - vix_5d) / vix_5d * 100, 1) if vix_5d else None
+    if   mom_5d and mom_5d > 20: mom_senal = "spike_bajista"
+    elif mom_5d and mom_5d > 5:  mom_senal = "subiendo"
+    elif mom_5d and mom_5d < -10:mom_senal = "cayendo"
+    else:                         mom_senal = "estable"
+
+    # --- Senal VIX global ---
+    if pct_vix <= 15:
+        vix_senal = "complacencia"
+        vix_txt   = f"VIX={vix_spot:.2f} (p{pct_vix:.0f}) - complacencia extrema"
+    elif pct_vix >= 85:
+        vix_senal = "panico"
+        vix_txt   = f"VIX={vix_spot:.2f} (p{pct_vix:.0f}) - panico, rebote probable"
+    elif pct_vix >= 70:
+        vix_senal = "estres"
+        vix_txt   = f"VIX={vix_spot:.2f} (p{pct_vix:.0f}) - estres elevado, vigilar"
+    else:
+        vix_senal = "normal"
+        vix_txt   = f"VIX={vix_spot:.2f} (p{pct_vix:.0f}) - zona normal"
+
+    # --- SKEW ---
+    if skew_val and pct_skew is not None:
+        if   pct_skew >= 90:
+            skew_senal = "cola_extrema"
+            skew_txt   = f"SKEW={skew_val:.1f} (p{pct_skew:.0f}) - compra masiva de puts OTM - cola bajista"
+        elif pct_skew >= 75:
+            skew_senal = "cola_elevada"
+            skew_txt   = f"SKEW={skew_val:.1f} (p{pct_skew:.0f}) - proteccion de cola elevada"
+        elif pct_skew <= 10:
+            skew_senal = "cola_baja"
+            skew_txt   = f"SKEW={skew_val:.1f} (p{pct_skew:.0f}) - sin demanda de proteccion"
+        else:
+            skew_senal = "normal"
+            skew_txt   = f"SKEW={skew_val:.1f} (p{pct_skew:.0f}) - normal"
+    else:
+        skew_senal = "sin_datos"
+        skew_txt   = "SKEW no disponible"
+
+    _csv_log(f"VIX -> {vix_txt}")
+    _csv_log(f"VVIX/VIX -> {ratio_txt}")
+    _csv_log(f"SKEW -> {skew_txt}")
+
+    cutoff_90 = ultima_vix - _td_csv(days=130)
+    hist_90 = []
+    for d in sorted(vix.keys()):
+        if d < cutoff_90:
+            continue
+        hist_90.append({
+            "fecha":  str(d),
+            "vix":    vix[d],
+            "vvix":   vvix.get(d),
+            "skew":   skew.get(d),
+            "ratio":  round(vvix[d] / vix[d], 2) if d in vvix and vix[d] > 0 else None,
+        })
+
+    return {
+        "fecha_vix":      str(ultima_vix),
+        "vix_spot":       round(vix_spot, 2),
+        "vvix":           round(vvix_val, 2) if vvix_val else None,
+        "skew":           round(skew_val, 1) if skew_val else None,
+        "ratio_vvix_vix": ratio,
+        "vix_percentil":  pct_vix,
+        "vvix_percentil": pct_vvix,
+        "skew_percentil": pct_skew,
+        "ratio_percentil":pct_ratio,
+        "vix_ma5":        round(ma5, 2)  if ma5  else None,
+        "vix_ma20":       round(ma20, 2) if ma20 else None,
+        "vix_mom_5d_pct": mom_5d,
+        "vix_mom_señal":  mom_senal,
+        "ts_spread_pct":  round(ts_spread, 1) if ts_spread is not None else None,
+        "ts_señal":       ts_senal,
+        "ts_texto":       ts_txt,
+        "vix_señal":      vix_senal,
+        "vix_texto":      vix_txt,
+        "ratio_señal":    ratio_senal,
+        "ratio_texto":    ratio_txt,
+        "skew_señal":     skew_senal,
+        "skew_texto":     skew_txt,
+        "señal_global":   _csv_senal_vix_compuesta(vix_senal, ratio_senal, skew_senal, mom_senal),
+        "historico_90d":  hist_90,
+        "fuente":         "CBOE CSV local",
+    }
+
+
+# -----------------------------------------------------------------------------
+# CSV-3) DIX + GEX (SqueezeMetrics)
+# -----------------------------------------------------------------------------
+
+def leer_dix_gex_csv():
+    """
+    Lee DIX.csv de SqueezeMetrics (columnas: date, price, dix [0-1], gex [USD]).
+    Devuelve DIX en %, GEX en B$, percentiles, MAs y senal.
+    """
+    if not DIX_CSV.exists():
+        _csv_log(f"DIX: {DIX_CSV} no existe - saltando capa CSV DIX/GEX")
+        return None
+
+    _csv_log("DIX+GEX: leyendo CSV SqueezeMetrics...")
+
+    serie = []
+    try:
+        with open(DIX_CSV, newline="", encoding="utf-8") as f:
+            for row in _csv_csv.DictReader(f):
+                d     = _csv_parse_fecha(row.get("date", ""))
+                dix_r = _csv_safe_float(row.get("dix"))
+                gex_r = _csv_safe_float(row.get("gex"))
+                price = _csv_safe_float(row.get("price"))
+                if not (d and dix_r is not None and gex_r is not None):
+                    continue
+                serie.append({
+                    "fecha": str(d),
+                    "dix":   round(dix_r * 100, 2),
+                    "gex":   round(gex_r / 1_000_000_000, 3),
+                    "price": price,
+                })
+    except Exception as e:
+        _csv_log(f"DIX error: {e}")
+        return None
+
+    if not serie:
+        return None
+
+    _csv_log(f"DIX: {len(serie)} dias ({serie[0]['fecha']} -> {serie[-1]['fecha']})")
+
+    todos_dix = sorted(r["dix"] for r in serie)
+    todos_gex = sorted(r["gex"] for r in serie)
+
+    actual  = serie[-1]
+    pct_dix = _csv_percentil(todos_dix, actual["dix"])
+    pct_gex = _csv_percentil(todos_gex, actual["gex"])
+
+    dix_20 = [r["dix"] for r in serie[-20:]]
+    gex_20 = [r["gex"] for r in serie[-20:]]
+    tend_dix = _csv_tendencia_n(dix_20, 6)
+    tend_gex = _csv_tendencia_n(gex_20, 6)
+
+    dix_ma5  = round(sum(r["dix"] for r in serie[-5:])  / min(5,  len(serie)), 2)
+    dix_ma20 = round(sum(r["dix"] for r in serie[-20:]) / min(20, len(serie)), 2)
+    gex_ma5  = round(sum(r["gex"] for r in serie[-5:])  / min(5,  len(serie)), 3)
+
+    d = actual["dix"]
+    if   d >= 47: dix_senal, dix_txt = "acumulacion_fuerte", f"DIX={d:.1f}% (p{pct_dix:.0f}) - acumulacion institucional fuerte en dark pools"
+    elif d >= 44: dix_senal, dix_txt = "acumulacion",        f"DIX={d:.1f}% (p{pct_dix:.0f}) - acumulacion moderada"
+    elif d <  38: dix_senal, dix_txt = "distribucion",       f"DIX={d:.1f}% (p{pct_dix:.0f}) - distribucion institucional"
+    elif d <  41: dix_senal, dix_txt = "distribucion_leve", f"DIX={d:.1f}% (p{pct_dix:.0f}) - ligera presion vendedora"
+    else:         dix_senal, dix_txt = "neutro",            f"DIX={d:.1f}% (p{pct_dix:.0f}) - actividad neutral"
+
+    g = actual["gex"]
+    if   g >= 8: gex_senal, gex_regimen, gex_txt = "anclaje_fuerte", "positivo_alto", f"GEX={g:.2f}B (p{pct_gex:.0f}) - dealers anclan precio con fuerza, baja volatilidad"
+    elif g >= 2: gex_senal, gex_regimen, gex_txt = "anclaje",        "positivo",      f"GEX={g:.2f}B (p{pct_gex:.0f}) - gamma positiva, mercado estable"
+    elif g >= 0: gex_senal, gex_regimen, gex_txt = "neutral",        "positivo_bajo", f"GEX={g:.2f}B (p{pct_gex:.0f}) - gamma baja, movimientos posibles"
+    else:        gex_senal, gex_regimen, gex_txt = "amplificacion",  "negativo",      f"GEX={g:.2f}B (p{pct_gex:.0f}) - gamma NEGATIVA, dealers amplificaran movimientos"
+
+    _csv_log(f"DIX -> {dix_txt}")
+    _csv_log(f"GEX -> {gex_txt}")
+
+    hist_90 = [{"fecha": r["fecha"], "dix": r["dix"], "gex": r["gex"]} for r in serie[-90:]]
+
+    return {
+        "fecha":            actual["fecha"],
+        "dix":              actual["dix"],
+        "gex_b":            actual["gex"],
+        "precio_sp500":     actual["price"],
+        "dix_percentil":    pct_dix,
+        "gex_percentil":    pct_gex,
+        "dix_ma5":          dix_ma5,
+        "dix_ma20":         dix_ma20,
+        "gex_ma5":          gex_ma5,
+        "tendencia_dix_6d": tend_dix,
+        "tendencia_gex_6d": tend_gex,
+        "dix_señal":        dix_senal,
+        "dix_texto":        dix_txt,
+        "gex_señal":        gex_senal,
+        "gex_regimen":      gex_regimen,
+        "gex_texto":        gex_txt,
+        "historico_90d":    hist_90,
+        "fuente":           "SqueezeMetrics CSV local",
+    }
+
+
+# -----------------------------------------------------------------------------
+# CSV-4) Opciones QQQ - Barchart (qqq_quotedata.csv)
+# -----------------------------------------------------------------------------
+
+def leer_qqq_opciones_csv():
+    """
+    Lee qqq_quotedata.csv de Barchart.
+    Calcula Max Pain, top resistencias (calls), top soportes (puts) y PCR.
+    """
+    if not QQQ_OPC_CSV.exists():
+        _csv_log(f"QQQ opciones: {QQQ_OPC_CSV} no existe - saltando capa CSV opciones")
+        return None
+
+    _csv_log("QQQ opciones: leyendo CSV Barchart...")
+
+    try:
+        rows_raw = []
+        with open(QQQ_OPC_CSV, newline="", encoding="utf-8") as f:
+            for r in _csv_csv.reader(f):
+                rows_raw.append(r)
+    except Exception as e:
+        _csv_log(f"QQQ opciones error: {e}")
+        return None
+
+    if len(rows_raw) < 4:
+        return None
+
+    # Precio QQQ desde cabecera Barchart
+    precio_qqq = None
+    for row in rows_raw[:3]:
+        for cell in row:
+            m = _csv_re.search(r"Last:\s*([\d.]+)", str(cell))
+            if m:
+                precio_qqq = float(m.group(1))
+                break
+        if precio_qqq:
+            break
+    if not precio_qqq:
+        precio_qqq = 0.0
+    _csv_log(f"QQQ precio (CSV): {precio_qqq}")
+
+    # Agrupar OI por vencimiento
+    exp_data = {}
+    for row in rows_raw[3:]:
+        if len(row) < 22:
+            continue
+        try:
+            expiry = row[0].strip()
+            strike = _csv_safe_float(row[11])
+            c_oi   = _csv_safe_float(row[10]) or 0
+            p_oi   = _csv_safe_float(row[21]) or 0
+            if not expiry or not strike or strike <= 0:
+                continue
+            if expiry not in exp_data:
+                exp_data[expiry] = {}
+            exp_data[expiry][strike] = {"c_oi": int(c_oi), "p_oi": int(p_oi)}
+        except Exception:
+            continue
+
+    if not exp_data:
+        _csv_log("QQQ opciones: no se pudo parsear el CSV")
+        return None
+
+    # Vencimiento con mas OI (mas liquido)
+    exp_oi_total = {exp: sum(d["c_oi"] + d["p_oi"] for d in strikes.values())
+                    for exp, strikes in exp_data.items()}
+    exp_target = max(exp_oi_total, key=exp_oi_total.get)
+    strikes_data = exp_data[exp_target]
+    _csv_log(f"Vencimiento seleccionado: {exp_target} (OI total: {exp_oi_total[exp_target]:,})")
+
+    # Filtrado +-25% del precio
+    if precio_qqq > 0:
+        rango_min = precio_qqq * 0.75
+        rango_max = precio_qqq * 1.25
+        strikes_filtrados = {s: d for s, d in strikes_data.items() if rango_min <= s <= rango_max}
+    else:
+        strikes_filtrados = strikes_data
+
+    def calcular_max_pain(sd):
+        strikes = sorted(sd.keys())
+        dolor = {}
+        for test in strikes:
+            total = 0
+            for s, d in sd.items():
+                if test < s:
+                    total += d["c_oi"] * (s - test)
+                elif test > s:
+                    total += d["p_oi"] * (test - s)
+            dolor[test] = total
+        return min(dolor, key=dolor.get) if dolor else None
+
+    max_pain = calcular_max_pain(strikes_filtrados)
+
+    calls_arriba = [(s, d["c_oi"]) for s, d in strikes_filtrados.items()
+                    if s > precio_qqq and d["c_oi"] > 0]
+    calls_arriba.sort(key=lambda x: -x[1])
+    top_calls = [{"strike": s, "oi": oi} for s, oi in calls_arriba[:3]]
+
+    puts_abajo = [(s, d["p_oi"]) for s, d in strikes_filtrados.items()
+                  if s < precio_qqq and d["p_oi"] > 0]
+    puts_abajo.sort(key=lambda x: -x[1])
+    top_puts = [{"strike": s, "oi": oi} for s, oi in puts_abajo[:3]]
+
+    total_c = sum(d["c_oi"] for d in strikes_filtrados.values())
+    total_p = sum(d["p_oi"] for d in strikes_filtrados.values())
+    pcr     = round(total_p / total_c, 2) if total_c > 0 else None
+
+    if max_pain and precio_qqq > 0:
+        dist_mp = round((max_pain - precio_qqq) / precio_qqq * 100, 1)
+        if dist_mp < -5:
+            mp_senal = "bajista"
+            mp_txt   = f"Max Pain={max_pain} ({dist_mp:+.1f}%) - precio por encima, presion bajista al vencimiento"
+        elif dist_mp > 5:
+            mp_senal = "alcista"
+            mp_txt   = f"Max Pain={max_pain} ({dist_mp:+.1f}%) - precio por debajo, presion alcista al vencimiento"
+        else:
+            mp_senal = "neutro"
+            mp_txt   = f"Max Pain={max_pain} ({dist_mp:+.1f}%) - precio cerca del Max Pain, rango estable"
+    else:
+        dist_mp, mp_senal, mp_txt = None, "sin_datos", "Max Pain no calculable"
+
+    if pcr:
+        if   pcr > 1.5: pcr_senal, pcr_txt = "miedo",      f"PCR={pcr:.2f} - ratio puts/calls alto, mercado comprando proteccion"
+        elif pcr > 1.0: pcr_senal, pcr_txt = "precaucion", f"PCR={pcr:.2f} - sesgo hacia puts, cautela institucional"
+        elif pcr < 0.6: pcr_senal, pcr_txt = "euforia",    f"PCR={pcr:.2f} - exceso de calls, posible senal de euforia"
+        else:           pcr_senal, pcr_txt = "normal",     f"PCR={pcr:.2f} - equilibrio normal calls/puts"
+    else:
+        pcr_senal, pcr_txt = "sin_datos", "PCR no calculable"
+
+    resist_1  = top_calls[0]["strike"] if top_calls else None
+    soporte_1 = top_puts[0]["strike"]  if top_puts  else None
+
+    _csv_log(f"Max Pain -> {mp_txt}")
+    _csv_log(f"Resistencia: {resist_1} | Soporte: {soporte_1}")
+    _csv_log(f"PCR -> {pcr_txt}")
+
+    return {
+        "vencimiento":      exp_target,
+        "precio_qqq":       precio_qqq,
+        "max_pain":         max_pain,
+        "dist_max_pain_pct":dist_mp,
+        "max_pain_señal":   mp_senal,
+        "max_pain_texto":   mp_txt,
+        "resistencia_1":    resist_1,
+        "soporte_1":        soporte_1,
+        "top_resistencias": top_calls,
+        "top_soportes":     top_puts,
+        "pcr":              pcr,
+        "pcr_señal":        pcr_senal,
+        "pcr_texto":        pcr_txt,
+        "total_calls_oi":   total_c,
+        "total_puts_oi":    total_p,
+        "fuente":           "Barchart QQQ CSV local",
+    }
+
+
+# -----------------------------------------------------------------------------
+# CSV-5) MAPEADORES - adaptan el output CSV al esquema legacy del JSON
+# -----------------------------------------------------------------------------
+
+def mapear_cot_csv_al_legacy(cot_csv: dict, cot_legacy: dict = None) -> dict:
+    """
+    Convierte el output de leer_cot_csv() al esquema 'cot' esperado por el
+    frontend (largos, cortos, neto, pctLargo, cambioNeto, trend4w, senal,
+    senalDealers, netoDealers...). Conserva campos legacy no solapados.
+    """
+    if not cot_csv:
+        return cot_legacy or {}
+    base = dict(cot_legacy) if cot_legacy else {}
+    # NOTA: el COT del CSV usa Lev_Money (hedge funds). El legacy usaba NonComm.
+    # Lev_Money es el subgrupo MAS importante de NonComm -> es upgrade, no perdida.
+    base.update({
+        "fecha":         cot_csv.get("fecha"),
+        "largos":        cot_csv.get("lev_largos"),
+        "cortos":        cot_csv.get("lev_cortos"),
+        "neto":          cot_csv.get("lev_neto"),
+        "pctLargo":      cot_csv.get("lev_pct_largos"),
+        "cambioNeto":    cot_csv.get("cambio_semana_neto"),
+        "trend4w":       cot_csv.get("tendencia_4s"),
+        "señal":         cot_csv.get("señal"),
+        "desc":          cot_csv.get("señal_texto"),
+        "señalDealers":  "neutro",  # CSV no clasifica dealers como "acumulacion/distribucion"
+        "netoDealers":   cot_csv.get("dealer_neto"),
+        "fuente":        cot_csv.get("fuente"),
+        # extras enriquecidos del CSV
+        "percentil_historico": cot_csv.get("percentil_historico"),
+        "semanas_historico":   cot_csv.get("semanas_historico"),
+        "umbrales":            cot_csv.get("umbrales"),
+        "historico_52s":       cot_csv.get("historico_52s"),
+        "assetmgr_neto":       cot_csv.get("assetmgr_neto"),
+        "open_interest":       cot_csv.get("open_interest"),
+        "fuerza":              cot_csv.get("fuerza"),
+        # eliminar el campo "error" legacy si existia (CSV es exito)
+        "error":               None,
+    })
+    return base
+
+
+def mapear_qqq_csv_al_legacy(qqq_csv: dict, opc_legacy: dict = None) -> dict:
+    """
+    Convierte el output de leer_qqq_opciones_csv() al esquema 'opciones' legacy
+    (v1, v2, v3, gex, pcrOI, pcrVol...). El CSV solo tiene 1 vencimiento, asi que
+    v2/v3 se conservan del legacy si existian.
+    """
+    if not qqq_csv:
+        return opc_legacy or {}
+    base = dict(opc_legacy) if opc_legacy else {}
+
+    precio_ref = qqq_csv.get("precio_qqq") or 1
+    # v1 desde CSV (vencimiento mas liquido de Barchart)
+    v1_csv = {
+        "fecha":    qqq_csv.get("vencimiento"),
+        "maxPain":  qqq_csv.get("max_pain"),
+        "distPct":  qqq_csv.get("dist_max_pain_pct"),
+        "topCalls": [{"strike": float(c["strike"]),
+                      "oi": int(c["oi"]),
+                      "dist": round((float(c["strike"]) - precio_ref) / precio_ref * 100, 2)}
+                     for c in (qqq_csv.get("top_resistencias") or [])],
+        "topPuts":  [{"strike": float(p["strike"]),
+                      "oi": int(p["oi"]),
+                      "dist": round((float(p["strike"]) - precio_ref) / precio_ref * 100, 2)}
+                     for p in (qqq_csv.get("top_soportes") or [])],
+        "señal":    qqq_csv.get("max_pain_señal"),
+        "desc":     qqq_csv.get("max_pain_texto"),
+    }
+
+    base["v1"]     = v1_csv
+    base["precio"] = qqq_csv.get("precio_qqq")
+    base["pcrOI"]  = qqq_csv.get("pcr")
+    base["error"]  = None
+    base["fuente"] = qqq_csv.get("fuente")
+
+    # extras enriquecidos
+    base["resistencia_1"]  = qqq_csv.get("resistencia_1")
+    base["soporte_1"]      = qqq_csv.get("soporte_1")
+    base["total_calls_oi"] = qqq_csv.get("total_calls_oi")
+    base["total_puts_oi"]  = qqq_csv.get("total_puts_oi")
+    return base
+
+
+def mapear_pcr_csv_al_legacy(qqq_csv: dict, pcr_legacy: dict = None) -> dict:
+    """
+    PCR derivado del CSV de opciones QQQ. El campo 'equity' usaba PCR.txt CBOE
+    (todas las equity options del mercado). El CSV solo tiene PCR de QQQ -> es
+    un proxy razonable pero NO identico. Conservamos PCR.txt legacy si existe.
+    """
+    if not qqq_csv:
+        return pcr_legacy or {}
+    base = dict(pcr_legacy) if pcr_legacy else {}
+    pcr_qqq = qqq_csv.get("pcr")
+
+    # Si el legacy ya tenia equity/total de PCR.txt CBOE, no lo pisamos: es mas
+    # representativo del mercado completo que el PCR del CSV de QQQ aislado.
+    if not base.get("equity") and not base.get("total"):
+        base["equity"] = pcr_qqq
+        base["total"]  = pcr_qqq
+        base["señal"]  = qqq_csv.get("pcr_señal")
+        base["desc"]   = qqq_csv.get("pcr_texto")
+        base["fuente"] = "qqq_quotedata_csv"
+        base["error"]  = None
+
+    # Siempre anadir el PCR especifico de QQQ como dato extra
+    base["pcr_qqq"]        = pcr_qqq
+    base["pcr_qqq_señal"]  = qqq_csv.get("pcr_señal")
+    base["pcr_qqq_texto"]  = qqq_csv.get("pcr_texto")
+    return base
+
+
+def mapear_vix_csv_al_legacy(vix_csv: dict, vix_ts_legacy: dict = None) -> dict:
+    """
+    El CSV de VIX/VVIX/SKEW aporta info que el vixTS legacy NO tenia:
+    spot diario, percentiles historicos, ratio VVIX/VIX, SKEW, momentum.
+    El legacy vixTS sigue siendo necesario porque tiene la term structure de
+    futuros (vx1/vx2) y backwardation. Hacemos MERGE conservando ambos.
+    """
+    if not vix_csv:
+        return vix_ts_legacy or {}
+    base = dict(vix_ts_legacy) if vix_ts_legacy else {}
+
+    # El spot del CSV puede ser mas reciente que el del historico -> usar CSV
+    if vix_csv.get("vix_spot"):
+        base["spot"] = vix_csv["vix_spot"]
+    # Percentil historico solo en CSV
+    if vix_csv.get("vix_percentil") is not None:
+        base["vixPercentil"] = vix_csv["vix_percentil"]
+    # Si CSV no tiene futuros pero legacy si, conservar futuros legacy
+    # (vx1, vx2, backwardation, spread1, etc. se mantienen tal cual)
+
+    # Anadir bloque enriquecido como subcampo
+    base["csv_extras"] = {
+        "vvix":           vix_csv.get("vvix"),
+        "skew":           vix_csv.get("skew"),
+        "ratio_vvix_vix": vix_csv.get("ratio_vvix_vix"),
+        "vvix_percentil": vix_csv.get("vvix_percentil"),
+        "skew_percentil": vix_csv.get("skew_percentil"),
+        "ratio_percentil":vix_csv.get("ratio_percentil"),
+        "vix_ma5":        vix_csv.get("vix_ma5"),
+        "vix_ma20":       vix_csv.get("vix_ma20"),
+        "vix_mom_5d_pct": vix_csv.get("vix_mom_5d_pct"),
+        "ts_proxy_señal": vix_csv.get("ts_señal"),
+        "ts_proxy_texto": vix_csv.get("ts_texto"),
+        "señal_compuesta_csv": vix_csv.get("señal_global"),
+    }
+    return base
+
+
+# =============================================================================
+#  FIN BLOQUE CSV LOCAL - vuelve a la logica original del actualizar_radar.py
+# =============================================================================
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  MÓDULO: parsear_cot_txt — Lee COT.txt descargado del CFTC
+#  Ruta esperada: BASE_DIR / "COT.txt"
+#  Formato: TFF (Traders in Financial Futures) — Legacy Futures Only
+#  Descarga: https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm
+#           → "Financial Futures" → "Traders in Financial Futures"
+#  Contrato objetivo: NASDAQ MINI (CFTC Code #209742)
+#  Columnas de posiciones (en orden en la línea "Positions"):
+#    Dealer L/S/Spr | AssetMgr L/S/Spr | Leveraged L/S/Spr | Other L/S/Spr | NonRep L/S
+#  El frontend Táctico 2-5D busca: largos, cortos, neto, leveraged_long/short,
+#  pctLargo, cambioNeto, señal, fecha, fecha_reporte
+# ─────────────────────────────────────────────────────────────────────────────
+
+def parsear_cot_txt(base_dir: Path = None) -> dict:
+    """
+    Lee COT.txt del CFTC (sección Financial Futures / TFF) y extrae
+    el bloque NASDAQ MINI (código 209742).
+
+    Posiciones en orden de columna (14 valores por fila):
+      [0]  Dealer Long       [1]  Dealer Short      [2]  Dealer Spread
+      [3]  Asset Mgr Long    [4]  Asset Mgr Short   [5]  Asset Mgr Spread
+      [6]  Leveraged Long    [7]  Leveraged Short   [8]  Leveraged Spread
+      [9]  Other Long        [10] Other Short       [11] Other Spread
+      [12] NonRep Long       [13] NonRep Short
+
+    El frontend usa Leveraged Funds como proxy de Large Speculators NQ.
+
+    Devuelve None si no encuentra el archivo o el bloque NASDAQ MINI.
+    """
+    if base_dir is None:
+        base_dir = BASE_DIR
+
+    candidatos = [base_dir / "COT.txt", base_dir / "cot.txt", base_dir / "COT.TXT"]
+    ruta = next((p for p in candidatos if p.exists()), None)
+    if ruta is None:
+        return None
+
+    try:
+        texto = ruta.read_text(encoding="latin-1", errors="replace")
+        lineas = texto.splitlines()
+
+        import re as _re
+
+        # ── Extraer fecha del reporte del header ──────────────────────────────
+        fecha_reporte = None
+        fecha_iso     = None
+        for linea in lineas[:5]:
+            m = _re.search(r"as of\s+(\w+ \d+,\s*\d+)", linea, _re.IGNORECASE)
+            if m:
+                fecha_raw = m.group(1).strip()
+                try:
+                    from datetime import datetime as _dt
+                    dt = _dt.strptime(fecha_raw, "%B %d, %Y")
+                    fecha_reporte = fecha_raw
+                    fecha_iso     = dt.strftime("%Y-%m-%d")
+                except ValueError:
+                    fecha_reporte = fecha_raw
+                break
+
+        # ── Localizar el bloque NASDAQ MINI (código 209742) ───────────────────
+        # La línea objetivo tiene simultáneamente "209742" y "Open Interest"
+        # p.ej: "CFTC Code #209742   Open Interest is   314,972"
+        # La siguiente línea es "Positions" y la siguiente a esa son los datos.
+        bloque_inicio = None
+        for i, linea in enumerate(lineas):
+            if "209742" in linea and "Open Interest" in linea:
+                bloque_inicio = i
+                break
+
+        if bloque_inicio is None:
+            log.warning("  [COT-TXT] Código 209742 (NASDAQ MINI) no encontrado en COT.txt")
+            return None
+
+        # ── Parsear las 4 secciones del bloque ────────────────────────────────
+        # Buscamos dentro de las siguientes 20 líneas desde bloque_inicio
+        bloque = lineas[bloque_inicio: bloque_inicio + 25]
+
+        def _extraer_numeros(linea):
+            """Extrae todos los enteros de una línea (ignora puntos decimales)."""
+            tokens = _re.findall(r"[-]?\d[\d,]*", linea)
+            result = []
+            for t in tokens:
+                try:
+                    result.append(int(t.replace(",", "")))
+                except ValueError:
+                    pass
+            return result
+
+        posiciones   = None
+        cambios      = None
+        open_interest = None
+
+        estado = "buscando"
+        for linea in bloque:
+            linea_strip = linea.strip()
+
+            # Open Interest
+            m_oi = _re.search(r"Open Interest is\s+([\d,]+)", linea_strip)
+            if m_oi:
+                try:
+                    open_interest = int(m_oi.group(1).replace(",", ""))
+                except ValueError:
+                    pass
+
+            if linea_strip.startswith("Positions"):
+                estado = "posiciones_siguiente"
+                continue
+            if estado == "posiciones_siguiente" and linea_strip:
+                nums = _extraer_numeros(linea_strip)
+                if len(nums) >= 14:
+                    posiciones = nums[:14]
+                estado = "buscando"
+                continue
+
+            if linea_strip.startswith("Changes from:"):
+                estado = "cambios_siguiente"
+                continue
+            if estado == "cambios_siguiente" and linea_strip:
+                nums = _extraer_numeros(linea_strip)
+                if len(nums) >= 14:
+                    cambios = nums[:14]
+                estado = "buscando"
+                continue
+
+        if posiciones is None:
+            log.warning("  [COT-TXT] No se pudo parsear la línea Positions del NASDAQ MINI")
+            return None
+
+        # ── Extraer campos por posición ───────────────────────────────────────
+        dealer_l       = posiciones[0];  dealer_s       = posiciones[1]
+        asset_l        = posiciones[3];  asset_s        = posiciones[4]
+        leveraged_l    = posiciones[6];  leveraged_s    = posiciones[7]
+        other_l        = posiciones[9];  other_s        = posiciones[10]
+
+        # Cambios (si disponibles)
+        cambio_lev_l = cambios[6] if cambios and len(cambios) > 6 else None
+        cambio_lev_s = cambios[7] if cambios and len(cambios) > 7 else None
+        cambio_dealer_l = cambios[0] if cambios else None
+
+        neto_lev  = leveraged_l - leveraged_s
+        total_lev = leveraged_l + leveraged_s
+        pct_largo = round(leveraged_l / total_lev * 100, 1) if total_lev > 0 else None
+
+        cambio_neto = (cambio_lev_l - cambio_lev_s) if (cambio_lev_l is not None and cambio_lev_s is not None) else None
+
+        # Señal interpretativa (idéntica a calcular_cot)
+        if pct_largo is not None:
+            if   pct_largo > 75: señal = "bajista";     desc = f"Specs {pct_largo}% largos — sobreposicionamiento, contrarian bajista"
+            elif pct_largo > 65: señal = "bajista_mod"; desc = f"Specs {pct_largo}% largos — posicionamiento elevado, precaución"
+            elif pct_largo < 25: señal = "alcista";     desc = f"Specs {pct_largo}% largos — capitulación, señal contraria alcista"
+            elif pct_largo < 35: señal = "alcista_mod"; desc = f"Specs {pct_largo}% largos — posicionamiento bajo, sesgo alcista"
+            else:                señal = "neutro";      desc = f"Specs {pct_largo}% largos — posicionamiento neutral"
+        else:
+            señal = "neutro"; desc = "Datos insuficientes"
+
+        log.info(
+            f"  [COT-TXT] OK — fecha={fecha_iso or fecha_reporte} | "
+            f"Lev_Long={leveraged_l:,} Lev_Short={leveraged_s:,} "
+            f"Neto={neto_lev:+,} ({pct_largo}%) | {señal.upper()}"
+        )
+
+        return {
+            # Campos compatibles con calcular_cot (mismo formato)
+            "fecha":         fecha_iso or fecha_reporte or "desconocida",
+            "fecha_reporte": fecha_reporte,
+            # Leveraged Funds = Large Speculators proxy para NQ
+            "largos":          leveraged_l,
+            "cortos":          leveraged_s,
+            "neto":            neto_lev,
+            "leveraged_long":  leveraged_l,
+            "leveraged_short": leveraged_s,
+            # Asset Manager (dealers/institucionales)
+            "dealers_largo":   dealer_l,
+            "dealers_corto":   dealer_s,
+            "netoDealers":     dealer_l - dealer_s,
+            "asset_largo":     asset_l,
+            "asset_corto":     asset_s,
+            # Estadísticos
+            "pctLargo":        pct_largo,
+            "pctDealers":      round(dealer_l / (dealer_l + dealer_s) * 100, 1) if (dealer_l + dealer_s) > 0 else None,
+            "open_interest":   open_interest,
+            "cambioNeto":      cambio_neto,
+            "cambioNetoDealers": (cambio_dealer_l - cambios[1]) if (cambio_dealer_l is not None and cambios and len(cambios) > 1) else None,
+            "trend4w":         None,   # solo hay 1 semana en el TXT; requeriría histórico
+            "señal":           señal,
+            "señalDealers":    "neutro",  # calculamos más abajo si hay cambios
+            "desc":            desc,
+            "historial":       [],
+            "fuente":          "cftc_txt_manual",
+            "fuente_verificacion": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
+        }
+
+    except Exception as e:
+        log.warning(f"  [COT-TXT] Error parseando COT.txt: {e}")
+        import traceback
+        log.warning(traceback.format_exc())
+        return None
+
+
 def calcular_cot() -> dict:
     """
     COT oficial CFTC — tres fuentes con fallback automático:
@@ -1887,6 +3267,12 @@ def calcular_cot() -> dict:
     import io, zipfile, requests
 
     log.info("  [COT] Iniciando módulo CFTC...")
+
+    # ── FUENTE 0: COT.txt manual (mayor prioridad) ────────────────────────────
+    cot_txt = parsear_cot_txt(BASE_DIR)
+    if cot_txt is not None:
+        log.info(f"  [COT] ✅ Fuente 0 (COT.txt manual): largos={cot_txt['largos']:,} cortos={cot_txt['cortos']:,} | {cot_txt['señal'].upper()}")
+        return cot_txt
 
     # ── FUENTE 1: ZIP directo del CFTC (más fiable) ───────────────────────────
     def _via_zip_directo():
@@ -2468,7 +3854,79 @@ def calcular_opciones_qqq(precios: dict) -> dict:
         }
 
     except Exception as e:
-        log.error(f"  [OPC] Error módulo opciones: {e}")
+        log.error(f"  [OPC] Error módulo opciones (yfinance): {e}")
+        # ── FALLBACK: reconstruir desde gex_manual.json si existe ────────────
+        # Esto ocurre en fin de semana o cuando yfinance tiene un bug de datetime.
+        # gex_manual.json es generado por gex_parser.py con datos reales de Cboe.
+        gex_manual_path = BASE_DIR / "gex_manual.json"
+        if gex_manual_path.exists():
+            try:
+                with open(gex_manual_path, "r", encoding="utf-8") as _f:
+                    _gm = json.load(_f)
+                _gen = _gm.get("generado", "")
+                _age_h = 0
+                if _gen:
+                    _dt = datetime.fromisoformat(_gen.replace("Z", ""))
+                    _age_h = (datetime.now() - _dt).total_seconds() / 3600
+
+                # Usar gex_manual si tiene menos de 72h (cubre fin de semana)
+                if _age_h < 72:
+                    log.info(f"  [OPC] Fallback a gex_manual.json OK (edad={_age_h:.1f}h)")
+                    # Construir v1 desde el vencimiento próximo calculado por gex_parser
+                    prox = _gm.get("vencimiento_proximo") or {}
+                    maxpain_prox = prox.get("max_pain")
+                    precio_ref   = _gm.get("precio_referencia") or precios.get("qqq") or 0
+                    dist_mp      = round((maxpain_prox - precio_ref) / precio_ref * 100, 2) if (maxpain_prox and precio_ref) else None
+                    v1_fb = {
+                        "fecha":    prox.get("expiry", ""),
+                        "maxPain":  maxpain_prox,
+                        "distPct":  dist_mp,
+                        "topCalls": prox.get("top_calls", []),
+                        "topPuts":  prox.get("top_puts",  []),
+                        "señal":    "neutro",
+                        "desc":     f"Fallback gex_manual.json — MaxPain={maxpain_prox} ({dist_mp:+.2f}%)" if dist_mp else "Fallback gex_manual.json",
+                    } if prox else None
+
+                    # GEX desde gex_manual
+                    gex_total = _gm.get("valor_total", 0)
+                    gex_M     = _gm.get("valor_total_M", 0)
+                    if   gex_M >  2: gex_estado = "positivo";  gex_desc = f"GEX={gex_M:.1f}M — dealers comprando caídas (soporte)"
+                    elif gex_M < -2: gex_estado = "negativo";  gex_desc = f"GEX={gex_M:.1f}M — dealers amplificando movimientos (peligro)"
+                    else:            gex_estado = "neutro";    gex_desc = f"GEX={gex_M:.1f}M — zona de transición"
+
+                    gex_real_dict = {
+                        "valor_total":         gex_total,
+                        "gamma_flip_level":    _gm.get("gamma_flip_level"),
+                        "dist_gamma_flip_pct": _gm.get("dist_gamma_flip_pct"),
+                        "fuente":              "gex_parser_local (fallback yfinance)",
+                    }
+
+                    return {
+                        "error":      None,
+                        "precio":     precio_ref,
+                        "vencimientos": [v1_fb] if v1_fb else [],
+                        "v1":         v1_fb,
+                        "v2":         None,
+                        "v3":         None,
+                        "gex": {
+                            "estado": gex_estado,
+                            "valor":  round(gex_M, 2),
+                            "trampa": False,
+                            "desc":   gex_desc,
+                        },
+                        "gex_real":   gex_real_dict,
+                        "skew":       None,
+                        "ratio_0dte": {"valor": None, "senal": "sin_datos", "desc": "No disponible (yfinance falló)"},
+                        "pcrOI":      None,
+                        "pcrVol":     None,
+                        "fuente":     "gex_parser_local",
+                        "_gex_manual_payload": _gm,
+                    }
+                else:
+                    log.warning(f"  [OPC] gex_manual.json demasiado antiguo ({_age_h:.1f}h > 72h) — devolviendo error")
+            except Exception as e2:
+                log.warning(f"  [OPC] Fallback gex_manual.json también falló: {e2}")
+
         return {
             "error": str(e),
             "gex": {"estado": "neutro", "valor": 0, "trampa": False, "desc": "Opciones no disponibles"},
@@ -2478,10 +3936,122 @@ def calcular_opciones_qqq(precios: dict) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  ██████╗  MÓDULO FASE 3 — PCR CBOE (Put/Call Ratio diario)
+#  MÓDULO: parsear_pcr_txt — Lee PCR.txt descargado manualmente de CBOE
+#  Ruta esperada: BASE_DIR / "PCR.txt"
+#  Formato: líneas de texto con "TOTAL PUT/CALL RATIO\t0.97" etc.
+#  Prioridad: FUENTE 0 — prevalece sobre CBOE CSV y Yahoo Options
 # ─────────────────────────────────────────────────────────────────────────────
 
+def parsear_pcr_txt(base_dir: Path = None) -> dict:
+    """
+    Lee PCR.txt guardado manualmente en la carpeta del proyecto (nq-proxy).
+    El archivo se descarga de https://www.cboe.com/data/market-statistics-historical-data/
+    seleccionando la fecha más reciente en la sección Daily Market Statistics.
 
+    Extrae:
+      - TOTAL PUT/CALL RATIO      → pcr_total
+      - EQUITY PUT/CALL RATIO     → pcr_equity
+      - INDEX PUT/CALL RATIO      → pcr_index
+      - SPX + SPXW PUT/CALL RATIO → pcr_spx
+      - Fecha del reporte (ej: "05 June 2026")
+
+    Devuelve None si el archivo no existe o no se puede parsear.
+    """
+    if base_dir is None:
+        base_dir = BASE_DIR
+
+    # Buscar el archivo: PCR.txt (insensible a mayúsculas en Windows vía Path)
+    candidatos = [base_dir / "PCR.txt", base_dir / "pcr.txt", base_dir / "PCR.TXT"]
+    ruta = next((p for p in candidatos if p.exists()), None)
+    if ruta is None:
+        return None
+
+    try:
+        texto = ruta.read_text(encoding="utf-8", errors="replace")
+        lineas = texto.splitlines()
+
+        pcr_total  = None
+        pcr_equity = None
+        pcr_index  = None
+        pcr_spx    = None
+        fecha_str  = None
+
+        # Buscar la fecha del reporte (formato: "05 June 2026")
+        import re
+        for linea in lineas:
+            m = re.match(r"^(\d{1,2}\s+\w+\s+\d{4})$", linea.strip())
+            if m:
+                fecha_str = m.group(1).strip()
+                break
+
+        # Parsear los ratios de la tabla tabulada
+        for linea in lineas:
+            linea = linea.strip()
+            def _extract(etiqueta):
+                if linea.startswith(etiqueta):
+                    # Formato: "TOTAL PUT/CALL RATIO\t0.97"
+                    # o:       "TOTAL PUT/CALL RATIO  0.97"
+                    resto = linea[len(etiqueta):].strip().lstrip("\t").strip()
+                    # Tomar solo el primer token numérico
+                    tok = resto.split()[0] if resto else ""
+                    tok = tok.replace(",", ".").strip()
+                    try:
+                        v = float(tok)
+                        return round(v, 3) if v > 0 else None
+                    except (ValueError, IndexError):
+                        return None
+                return None
+
+            r = _extract("TOTAL PUT/CALL RATIO");  pcr_total  = r if r and pcr_total  is None else pcr_total
+            r = _extract("EQUITY PUT/CALL RATIO");  pcr_equity = r if r and pcr_equity is None else pcr_equity
+            r = _extract("INDEX PUT/CALL RATIO");   pcr_index  = r if r and pcr_index  is None else pcr_index
+            r = _extract("SPX + SPXW PUT/CALL RATIO"); pcr_spx = r if r and pcr_spx   is None else pcr_spx
+
+        if pcr_total is None and pcr_equity is None:
+            log.warning("  [PCR-TXT] Archivo encontrado pero no se pudo extraer ningún ratio")
+            return None
+
+        # Verificar frescura: si la fecha del archivo es de hace más de 5 días,
+        # avisar pero usar igualmente (puede ser el último dato disponible)
+        edad_dias = None
+        if fecha_str:
+            try:
+                from datetime import datetime as _dt_cls
+                fecha_rep = _dt_cls.strptime(fecha_str, "%d %B %Y")
+                edad_dias = (datetime.now() - fecha_rep).days
+                if edad_dias > 5:
+                    log.warning(f"  [PCR-TXT] Dato de hace {edad_dias} días ({fecha_str}) — puede no ser el último")
+                else:
+                    log.info(f"  [PCR-TXT] Fecha reporte: {fecha_str} ({edad_dias}d)")
+            except Exception:
+                pass
+
+        # Señal interpretativa (igual que calcular_pcr_cboe)
+        ref = pcr_total or pcr_equity
+        if   ref and ref > 1.2:  señal = "alcista_contrario"; desc = f"PCR={ref} — miedo extremo, señal contraria alcista"
+        elif ref and ref > 1.0:  señal = "precaucion";        desc = f"PCR={ref} — elevado, precaución"
+        elif ref and ref < 0.6:  señal = "bajista_contrario"; desc = f"PCR={ref} — euforia, señal contraria bajista"
+        elif ref and ref < 0.75: señal = "precaucion_alcista";desc = f"PCR={ref} — bajo, complacencia moderada"
+        else:                    señal = "neutro";            desc = f"PCR={ref} — rango normal" if ref else "PCR no disponible"
+
+        log.info(f"  [PCR-TXT] OK — total={pcr_total} equity={pcr_equity} index={pcr_index} | {señal.upper()} | fecha={fecha_str}")
+
+        return {
+            "total":    pcr_total,
+            "equity":   pcr_equity,
+            "index":    pcr_index,
+            "spx":      pcr_spx,
+            "señal":    señal,
+            "desc":     desc,
+            "fuente":   "cboe_txt_manual",
+            "fecha":    fecha_str,
+            "edad_dias": edad_dias,
+            "fuente_verificacion": "https://www.cboe.com/data/volatility-and-put-call-ratio-data/",
+        }
+
+    except Exception as e:
+        log.warning(f"  [PCR-TXT] Error parseando PCR.txt: {e}")
+        return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2490,7 +4060,9 @@ def calcular_opciones_qqq(precios: dict) -> dict:
 
 def calcular_pcr_cboe(opciones_data: dict = None) -> dict:
     """
-    PCR Put/Call Ratio — dos fuentes con fallback:
+    PCR Put/Call Ratio — tres fuentes con fallback en orden de prioridad:
+      0. PCR.txt descargado manualmente de CBOE  ← NUEVO (prioridad máxima)
+         Guardar en C:\\Users\\m21lo\\nq-proxy\\PCR.txt
       1. CBOE CSV oficial  https://cdn.cboe.com/api/global/us_indices/daily_prices/PC_STATS.csv
          (puede dar 403 desde IPs residenciales — CBOE tiene anti-scraping)
       2. PCR calculado de la cadena de opciones QQQ (Yahoo Finance)
@@ -2501,6 +4073,12 @@ def calcular_pcr_cboe(opciones_data: dict = None) -> dict:
     import requests
 
     log.info("  [PCR] Obteniendo Put/Call Ratio...")
+
+    # ── FUENTE 0: PCR.txt manual (mayor prioridad) ────────────────────────────
+    pcr_txt = parsear_pcr_txt(BASE_DIR)
+    if pcr_txt is not None:
+        log.info(f"  [PCR] ✅ Fuente 0 (PCR.txt manual): total={pcr_txt.get('total')} equity={pcr_txt.get('equity')}")
+        return pcr_txt
 
     # ── FUENTE 1: CBOE CSV oficial ────────────────────────────────────────────
     def _via_cboe():
@@ -2830,7 +4408,13 @@ def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
 def exportar_json(datos: dict) -> None:
     def serializar(obj):
         if isinstance(obj, (np.integer,)):   return int(obj)
-        if isinstance(obj, (np.floating,)):  return round(float(obj), 6)
+        if isinstance(obj, (np.floating,)):
+            v = float(obj)
+            if v != v or v == float('inf') or v == float('-inf'): return None  # NaN/Inf → null
+            return round(v, 6)
+        if isinstance(obj, float):
+            if obj != obj or obj == float('inf') or obj == float('-inf'): return None  # NaN/Inf → null
+            return obj
         if isinstance(obj, (np.bool_,)):     return bool(obj)
         if isinstance(obj, pd.Timestamp):    return obj.isoformat()
         if isinstance(obj, (np.ndarray,)):   return obj.tolist()
@@ -2935,9 +4519,91 @@ def inyectar_gex_manual(datos_json: dict) -> None:
                 if venc_prox.get("rango_semana"):
                     m["derivados"]["rango_semana"] = venc_prox["rango_semana"]
 
+                # ── Inyectar PCR CBOE en manengis_tactico.json ──────────────
+                # Lee pcr_data que fue calculado por calcular_pcr_cboe()
+                # (con prioridad: PCR.txt > CBOE CSV > Yahoo Options)
+                # El frontend Táctico busca data.pcr.{equity,total,index,spx}
+                pcr_path = BASE_DIR / "PCR.txt"
+                pcr_inyectado = parsear_pcr_txt(BASE_DIR)
+                # Si no hay PCR.txt, intentar leer del datos_radar.json ya generado
+                if pcr_inyectado is None:
+                    radar_path = BASE_DIR / "datos_radar.json"
+                    if radar_path.exists():
+                        try:
+                            with open(radar_path, "r", encoding="utf-8") as _rf:
+                                _rd = json.load(_rf)
+                            _pcr_rd = _rd.get("pcr") or {}
+                            if _pcr_rd and not _pcr_rd.get("error"):
+                                pcr_inyectado = {
+                                    "total":  _pcr_rd.get("total"),
+                                    "equity": _pcr_rd.get("equity"),
+                                    "index":  _pcr_rd.get("index"),
+                                    "spx":    _pcr_rd.get("spx"),
+                                    "señal":  _pcr_rd.get("señal"),
+                                    "fecha":  _pcr_rd.get("fecha"),
+                                    "fuente": _pcr_rd.get("fuente"),
+                                }
+                        except Exception:
+                            pass
+
+                if pcr_inyectado and any(pcr_inyectado.get(k) for k in ("total", "equity")):
+                    m["pcr"] = {
+                        "equity": pcr_inyectado.get("equity"),
+                        "total":  pcr_inyectado.get("total"),
+                        "index":  pcr_inyectado.get("index"),
+                        "spx":    pcr_inyectado.get("spx"),
+                        "señal":  pcr_inyectado.get("señal"),
+                        "fecha":  pcr_inyectado.get("fecha"),
+                        "fuente": pcr_inyectado.get("fuente", "cboe_txt_manual"),
+                    }
+                    log.info(f"  [INYECT] manengis_tactico.json pcr inyectado: equity={m['pcr']['equity']} total={m['pcr']['total']} fecha={m['pcr']['fecha']}")
+
+                # ── Inyectar vixTermStructure con vx1/vx2 de VIX.txt ────────────
+                # El frontend Táctico busca data.vixTermStructure.{spot, vx1, vx2}
+                # parsear_vix_ts_txt lee VIX.txt con los futuros reales de Cboe
+                vts_inyectado = parsear_vix_ts_txt(BASE_DIR)
+                if vts_inyectado is not None:
+                    m["vixTermStructure"] = {
+                        "spot":           vts_inyectado.get("spot"),
+                        "vx1":            (vts_inyectado.get("front_month") or {}).get("precio"),
+                        "vx2":            (vts_inyectado.get("second_month") or {}).get("precio"),
+                        "vx1_symbol":     (vts_inyectado.get("front_month") or {}).get("symbol"),
+                        "vx2_symbol":     (vts_inyectado.get("second_month") or {}).get("symbol"),
+                        "vx1_expiry":     (vts_inyectado.get("front_month") or {}).get("expiry"),
+                        "spread1":        vts_inyectado.get("spread1"),
+                        "spread1Pct":     vts_inyectado.get("spread1Pct"),
+                        "backwardation":  vts_inyectado.get("backwardation"),
+                        "slope_1m2m":     vts_inyectado.get("slope_1m2m"),
+                        "señal":          vts_inyectado.get("señal"),
+                        "desc":           vts_inyectado.get("desc"),
+                        "fuente":         "vix_txt_manual",
+                        "usando_settlement": vts_inyectado.get("usando_settlement", False),
+                    }
+                    log.info(
+                        f"  [INYECT] manengis_tactico.json vixTermStructure inyectado: "
+                        f"spot={m['vixTermStructure']['spot']} "
+                        f"vx1={m['vixTermStructure']['vx1']} vx2={m['vixTermStructure']['vx2']}"
+                    )
+
                 # Guardar manengis_tactico.json actualizado
+                # IMPORTANTE: usar allow_nan=False para que NaN/Inf exploten antes
+                # de escribir JSON inválido. Primero sanitizamos con json.dumps
+                # pasando por el serializador personalizado que convierte NaN → null.
+                import math
+                def _sanitizar_nan(obj):
+                    """Convierte recursivamente NaN/Inf a None para JSON válido."""
+                    if isinstance(obj, float):
+                        if math.isnan(obj) or math.isinf(obj): return None
+                        return obj
+                    if isinstance(obj, dict):
+                        return {k: _sanitizar_nan(v) for k, v in obj.items()}
+                    if isinstance(obj, list):
+                        return [_sanitizar_nan(v) for v in obj]
+                    return obj
+
+                m_limpio = _sanitizar_nan(m)
                 with open(manengis_path, "w", encoding="utf-8") as f:
-                    json.dump(m, f, ensure_ascii=False, indent=2)
+                    json.dump(m_limpio, f, ensure_ascii=False, indent=2)
                 log.info(f"  [INYECT] manengis_tactico.json actualizado | top_calls={len(top_calls)} | top_puts={len(top_puts)}")
             except Exception as _e:
                 log.warning(f"  [INYECT] No se pudo actualizar manengis_tactico.json: {_e}")
@@ -3843,21 +5509,40 @@ def calcular_market_regime_matching(df: pd.DataFrame,
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="NQ Radar Cuantitativo v7 — Actualizador")
+    parser = argparse.ArgumentParser(description="NQ Radar Cuantitativo v8 - Actualizador unificado (APIs + CSV local)")
     parser.add_argument("--init",     action="store_true", help="Forzar descarga historica completa desde 2000")
     parser.add_argument("--nogit",    action="store_true", help="Saltar el git push")
     parser.add_argument("--nomacro",  action="store_true", help="Saltar modulo FRED (modo offline)")
-    parser.add_argument("--noderivativos", action="store_true", help="Saltar modulos COT + Opciones + PCR")
+    parser.add_argument("--noderivativos", action="store_true", help="Saltar modulos COT + Opciones + PCR (APIs)")
     parser.add_argument("--noinstitucional", action="store_true", help="Saltar modulos lentos: NDX100 breadth + SEC insiders")
+    parser.add_argument("--nocsv",    action="store_true", help="Saltar capa CSV local (usar solo APIs/Yahoo)")
+    parser.add_argument("--solocsv",  action="store_true", help="Solo capa CSV: saltar APIs lentas (NDX100, SEC, FRED, Yahoo institucional)")
     args = parser.parse_args()
 
-    log.info("=" * 65)
-    log.info(f"NQ RADAR CUANTITATIVO v{VERSION} — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    log.info("=" * 65)
+    # --solocsv implica saltar APIs lentas
+    if args.solocsv:
+        args.noinstitucional = True
+        args.noderivativos   = True   # Las funciones online de COT/Opciones/PCR son lentas; CSV es instantaneo
+        # No tocamos args.nomacro: FRED es rapido y aporta mucho. Si quieres saltarlo, anade --nomacro.
 
-    # ── FASE 7 A0: Validacion de calendario de mercado ───────────────────────
-    if not mercado_abierto_hoy():
-        log.info("Mercado cerrado hoy — abortando sin modificar archivos.")
+    log.info("=" * 65)
+    log.info(f"NQ RADAR CUANTITATIVO v{VERSION} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    log.info("=" * 65)
+    log.info(f"  CSV local: {'DESACTIVADO (--nocsv)' if args.nocsv else 'ACTIVADO (capa autoritativa)'}")
+    log.info(f"  Carpeta DATOS_CSV: {DATA_CSV_DIR}")
+
+    # ── FASE 7 A0: Estado de la sesion de mercado (NO aborta nunca) ─────────
+    # Antes: si yfinance no tenia vela diaria de hoy abortabamos con sys.exit(0).
+    # Eso fallaba en premercado (ejecutar antes de las 15:30 CEST) y daba el
+    # falso "possibly delisted; no price data found". Ahora clasificamos el
+    # estado y SIEMPRE continuamos: si no hay vela de hoy, se trabaja con la
+    # ultima disponible en el historico.
+    _estado_mkt = estado_sesion_mercado()
+    log.info(f"  Estado mercado USA: {_estado_mkt['estado']} — {_estado_mkt['descripcion']}")
+    if not _estado_mkt["ejecutar"]:
+        # Caso extremadamente improbable con la politica nueva, pero lo
+        # dejamos por seguridad.
+        log.info("Politica de estado decide NO ejecutar. Saliendo.")
         sys.exit(0)
 
     # ── 1. Histórico ──────────────────────────────────────────────────────────
@@ -3875,6 +5560,25 @@ def main():
     log.info("\n[3/8] VIX Term Structure...")
     vix_ts = calcular_vix_ts(df)
     log.info(f"  VIX Spot={vix_ts.get('spot')}, VIX3M={vix_ts.get('vix3m')}, Señal={vix_ts.get('señal')}")
+
+    # ── Enriquecimiento con VIX.txt (futuros reales de Cboe) ─────────────────
+    # Si VIX.txt existe en nq-proxy, parsear_vix_ts_txt() devuelve una versión
+    # más completa con front/second month, curva completa y pendiente.
+    # Prevalece sobre calcular_vix_ts excepto en vixPercentil (requiere histórico).
+    vix_ts_txt = parsear_vix_ts_txt(BASE_DIR)
+    if vix_ts_txt is not None:
+        # Preservar vixPercentil del cálculo histórico si está disponible
+        if vix_ts.get("vixPercentil") is not None:
+            vix_ts_txt["vixPercentil"] = vix_ts["vixPercentil"]
+        # Si el spot del TXT es None (raro), usar el del histórico
+        if vix_ts_txt.get("spot") is None and vix_ts.get("spot") is not None:
+            vix_ts_txt["spot"] = vix_ts["spot"]
+        vix_ts = vix_ts_txt
+        log.info(
+            f"  [VIX-TXT] Enriquecido: spot={vix_ts.get('spot')} "
+            f"front={vix_ts.get('front_month',{}).get('symbol')}={vix_ts.get('front_month',{}).get('precio')} "
+            f"spread={vix_ts.get('spread1'):+.2f} | slope={vix_ts.get('slope_1m2m')}"
+        )
 
     # ── 4. Giro, flujos y liquidez ────────────────────────────────────────────
     log.info("\n[4/8] Detectores de giro, flujos y liquidez...")
@@ -3959,6 +5663,82 @@ def main():
                          "gex": {"estado": "neutro", "valor": 0, "trampa": False, "desc": ""}}
         pcr_data      = {"error": "saltado_noderivativos", "equity": None,
                          "total": None, "señal": "neutro", "desc": ""}
+
+    # ═════════════════════════════════════════════════════════════════════════
+    #  [5.6/8] CAPA CSV LOCAL — PREVALECE sobre las APIs anteriores
+    # ═════════════════════════════════════════════════════════════════════════
+    #  Aqui leemos los CSV locales (COT/CBOE/SqueezeMetrics/Barchart) y, cuando
+    #  estan disponibles, SOBRESCRIBEN los datos calculados por las APIs en el
+    #  bloque anterior. Si los CSV no existen, mantenemos los datos legacy
+    #  (Yahoo + CFTC API) como fallback transparente.
+    # ─────────────────────────────────────────────────────────────────────────
+    cot_csv_data       = None
+    vix_vvix_skew_data = None
+    dix_gex_data       = None
+    qqq_opciones_csv   = None
+
+    if not args.nocsv:
+        log.info("\n[5.6/8] CAPA CSV LOCAL (prevalece sobre APIs)...")
+
+        # CSV-1: COT
+        try:
+            cot_csv_data = leer_cot_csv()
+            if cot_csv_data:
+                cot_data = mapear_cot_csv_al_legacy(cot_csv_data, cot_data)
+                log.info(f"  [CSV] COT prevalece: fecha={cot_csv_data.get('fecha')} "
+                         f"pctLargos={cot_csv_data.get('lev_pct_largos')}% "
+                         f"senal={cot_csv_data.get('señal','?').upper()} "
+                         f"(p{cot_csv_data.get('percentil_historico')}, "
+                         f"{cot_csv_data.get('semanas_historico')}sem)")
+        except Exception as e:
+            log.warning(f"  [CSV] COT fallo (mantengo legacy): {e}")
+            cot_csv_data = None
+
+        # CSV-2: VIX + VVIX + SKEW
+        try:
+            vix_vvix_skew_data = leer_vix_vvix_skew_csv()
+            if vix_vvix_skew_data:
+                vix_ts = mapear_vix_csv_al_legacy(vix_vvix_skew_data, vix_ts)
+                log.info(f"  [CSV] VIX/VVIX/SKEW prevalece: VIX={vix_vvix_skew_data.get('vix_spot')} "
+                         f"(p{vix_vvix_skew_data.get('vix_percentil')}) "
+                         f"VVIX/VIX={vix_vvix_skew_data.get('ratio_vvix_vix')} "
+                         f"SKEW={vix_vvix_skew_data.get('skew')} "
+                         f"senal={vix_vvix_skew_data.get('señal_global','?').upper()}")
+        except Exception as e:
+            log.warning(f"  [CSV] VIX/VVIX/SKEW fallo (mantengo legacy): {e}")
+            vix_vvix_skew_data = None
+
+        # CSV-3: DIX + GEX (no tiene equivalente directo en legacy: bloque nuevo)
+        try:
+            dix_gex_data = leer_dix_gex_csv()
+            if dix_gex_data:
+                log.info(f"  [CSV] DIX/GEX nuevo bloque: DIX={dix_gex_data.get('dix')}% "
+                         f"(p{dix_gex_data.get('dix_percentil')}, {dix_gex_data.get('dix_señal')}) | "
+                         f"GEX={dix_gex_data.get('gex_b')}B "
+                         f"(p{dix_gex_data.get('gex_percentil')}, {dix_gex_data.get('gex_señal')})")
+        except Exception as e:
+            log.warning(f"  [CSV] DIX/GEX fallo: {e}")
+            dix_gex_data = None
+
+        # CSV-4: Opciones QQQ (Barchart)
+        try:
+            qqq_opciones_csv = leer_qqq_opciones_csv()
+            if qqq_opciones_csv:
+                opciones_data = mapear_qqq_csv_al_legacy(qqq_opciones_csv, opciones_data)
+                pcr_data      = mapear_pcr_csv_al_legacy(qqq_opciones_csv, pcr_data)
+                log.info(f"  [CSV] QQQ opciones prevalece: venc={qqq_opciones_csv.get('vencimiento')} "
+                         f"MaxPain={qqq_opciones_csv.get('max_pain')} "
+                         f"({qqq_opciones_csv.get('dist_max_pain_pct'):+.1f}%) "
+                         f"Resist={qqq_opciones_csv.get('resistencia_1')} "
+                         f"Sop={qqq_opciones_csv.get('soporte_1')} "
+                         f"PCR={qqq_opciones_csv.get('pcr')}")
+        except Exception as e:
+            log.warning(f"  [CSV] QQQ opciones fallo (mantengo legacy): {e}")
+            qqq_opciones_csv = None
+    else:
+        log.info("\n[5.6/8] Capa CSV LOCAL DESACTIVADA (--nocsv) - usando solo APIs/Yahoo")
+
+    # ═════════════════════════════════════════════════════════════════════════
 
     # ── 5.7 FASE 4: Market Regime Matching ───────────────────────────────────
     comparativa_correcciones = None
@@ -4101,6 +5881,26 @@ def main():
         "tecnicos":     tecnicos_ndx,
         "tecnicosQQQ":  tecnicos_qqq,
         "vixTS":        vix_ts,
+        # ── vixTermStructure: alias con vx1/vx2 que espera el frontend Táctico 2-5D ──
+        # El frontend aplicarDatosRadar() busca data.vixTermStructure.{spot, vx1, vx2}
+        # vixTS (de parsear_vix_ts_txt) tiene front_month/second_month → los mapeamos aquí
+        "vixTermStructure": {
+            "spot":          vix_ts.get("spot"),
+            "vx1":           (vix_ts.get("front_month") or {}).get("precio"),
+            "vx2":           (vix_ts.get("second_month") or {}).get("precio"),
+            "vx1_symbol":    (vix_ts.get("front_month") or {}).get("symbol"),
+            "vx2_symbol":    (vix_ts.get("second_month") or {}).get("symbol"),
+            "vx1_expiry":    (vix_ts.get("front_month") or {}).get("expiry"),
+            "vx2_expiry":    (vix_ts.get("second_month") or {}).get("expiry"),
+            "spread1":       vix_ts.get("spread1"),
+            "spread1Pct":    vix_ts.get("spread1Pct"),
+            "backwardation": vix_ts.get("backwardation"),
+            "slope_1m2m":    vix_ts.get("slope_1m2m"),
+            "señal":         vix_ts.get("señal"),
+            "desc":          vix_ts.get("desc"),
+            "fuente":        vix_ts.get("fuente", "historico"),
+            "usando_settlement": vix_ts.get("usando_settlement", False),
+        },
         "giro":         giro,
         "flows":        flows,
         "liquidez":     liquidez,
@@ -4154,8 +5954,23 @@ def main():
         # Fase 7 — nuevos modulos
         "cta_levels":    cta_data or {"senal_cta": "neutro", "error": "no_ejecutado"},
         "sec_insiders":  sec_insiders_data or {"senal": "neutro", "error": "no_ejecutado"},
-        "fase_activa": 7,
-        "proximas_fases": "Fase8=SEC_13F_Form4_Completo+PBoC_Directo",
+        # ──────────────────────────────────────────────────────────────────────
+        # BLOQUE CSV LOCAL (v8.0 unificado) — datos enriquecidos del CSV
+        # ──────────────────────────────────────────────────────────────────────
+        # Estos bloques contienen el output COMPLETO del CSV local, incluyendo
+        # campos que NO existen en los bloques legacy (percentiles 1044sem,
+        # umbrales calibrados, historicos 52s/90d, ratio VVIX/VIX, SKEW, DIX,
+        # GEX en B$, etc.). El frontend puede leerlos para nuevos paneles.
+        # Si la capa CSV esta desactivada (--nocsv) o un CSV no existe,
+        # el campo correspondiente sera null.
+        "csv_cot":           cot_csv_data,           # COT NASDAQ MINI completo con percentiles
+        "csv_vix_vvix_skew": vix_vvix_skew_data,     # VIX+VVIX+SKEW + ratio + term structure proxy
+        "csv_dix_gex":       dix_gex_data,           # DIX% + GEX B$ SqueezeMetrics
+        "csv_qqq_opciones":  qqq_opciones_csv,       # Max Pain + muros OI + PCR Barchart
+        "csv_activo":        (not args.nocsv),
+        # ──────────────────────────────────────────────────────────────────────
+        "fase_activa": 8,
+        "proximas_fases": "Fase9=HMM_clustering_regimenes+SEC_13F_completo",
     }
 
     # ── INYECCIÓN gex_manual.json → maxpain + derivados (auto-rellena Radar 2-5D) ──
@@ -4173,13 +5988,25 @@ def main():
         log.info("\n[8/8] Git saltado (--nogit activo)")
 
     log.info("\n" + "=" * 65)
-    log.info(f"OK RADAR v7 ACTUALIZADO CORRECTAMENTE")
+    log.info(f"OK RADAR v{VERSION} ACTUALIZADO CORRECTAMENTE")
     log.info(f"   JSON: {JSON_PATH}")
     log.info(f"   NDX:  {precios.get('ndx')} | VIX: {precios.get('vix')}")
     log.info(f"   Score Macro FRED: {macro.get('score', '?'):+}")
     log.info(f"   Score 2D: {hs['d2']['score']:+.1f} ({hs['d2']['estado'].upper()})")
     log.info(f"   Score 1S: {hs['w1']['score']:+.1f} ({hs['w1']['estado'].upper()})")
     log.info(f"   Score 4S: {hs['w4']['score']:+.1f} ({hs['w4']['estado'].upper()})")
+
+    # ── Resumen capa CSV (v8.0) ──────────────────────────────────────────────
+    if not args.nocsv:
+        csv_status = []
+        if cot_csv_data:       csv_status.append(f"COT(p{cot_csv_data.get('percentil_historico')},{cot_csv_data.get('semanas_historico')}sem)")
+        if vix_vvix_skew_data: csv_status.append(f"VIX(p{vix_vvix_skew_data.get('vix_percentil')},ratio={vix_vvix_skew_data.get('ratio_vvix_vix')})")
+        if dix_gex_data:       csv_status.append(f"DIX({dix_gex_data.get('dix')}%,{dix_gex_data.get('dix_señal')})")
+        if qqq_opciones_csv:   csv_status.append(f"MaxPain={qqq_opciones_csv.get('max_pain')}")
+        if csv_status:
+            log.info(f"   CSV LOCAL: {' | '.join(csv_status)}")
+        else:
+            log.info(f"   CSV LOCAL: sin datos (carpeta {DATA_CSV_DIR} vacia o ausente)")
 
     # Alertas Fase 3
     if cot_data and not cot_data.get("error"):

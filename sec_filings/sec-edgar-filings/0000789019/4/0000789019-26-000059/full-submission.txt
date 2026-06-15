@@ -1,0 +1,213 @@
+<SEC-DOCUMENT>0000789019-26-000059.txt : 20260313
+<SEC-HEADER>0000789019-26-000059.hdr.sgml : 20260313
+<ACCEPTANCE-DATETIME>20260313180221
+ACCESSION NUMBER:		0000789019-26-000059
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260312
+FILED AS OF DATE:		20260313
+DATE AS OF CHANGE:		20260313
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			List Teri
+		CENTRAL INDEX KEY:			0001529370
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-37845
+		FILM NUMBER:		26753765
+
+	MAIL ADDRESS:	
+		STREET 1:		2200 PENNSYLVANIA AVENUE
+		STREET 2:		SUITE 800W
+		CITY:			WASHINGTON
+		STATE:			DC
+		ZIP:			20037
+
+	FORMER NAME:	
+		FORMER CONFORMED NAME:	List-Stoll Teri
+		DATE OF NAME CHANGE:	20180306
+
+	FORMER NAME:	
+		FORMER CONFORMED NAME:	List Teri L.
+		DATE OF NAME CHANGE:	20110907
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			MICROSOFT CORP
+		CENTRAL INDEX KEY:			0000789019
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-PREPACKAGED SOFTWARE [7372]
+		ORGANIZATION NAME:           	06 Technology
+		EIN:				911144442
+		STATE OF INCORPORATION:			WA
+		FISCAL YEAR END:			0630
+
+	BUSINESS ADDRESS:	
+		STREET 1:		ONE MICROSOFT WAY
+		CITY:			REDMOND
+		STATE:			WA
+		ZIP:			98052-6399
+		BUSINESS PHONE:		425-882-8080
+
+	MAIL ADDRESS:	
+		STREET 1:		ONE MICROSOFT WAY
+		CITY:			REDMOND
+		STATE:			WA
+		ZIP:			98052-6399
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>form4.xml
+<DESCRIPTION>STATEMENT OF CHANGES IN BENEFICIAL OWNERSHIP OF SECURITIES
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0508</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-03-12</periodOfReport>
+
+    <issuer>
+        <issuerCik>0000789019</issuerCik>
+        <issuerName>MICROSOFT CORP</issuerName>
+        <issuerTradingSymbol>MSFT</issuerTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001529370</rptOwnerCik>
+            <rptOwnerName>List Teri</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>C/O MICROSOFT CORPORATION</rptOwnerStreet1>
+            <rptOwnerStreet2>ONE MICROSOFT WAY</rptOwnerStreet2>
+            <rptOwnerCity>REDMOND</rptOwnerCity>
+            <rptOwnerState>WA</rptOwnerState>
+            <rptOwnerZipCode>98052-6399</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>0</isTenPercentOwner>
+            <isOther>0</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeHolding>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>145</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeHolding>
+        <nonDerivativeHolding>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>2802</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>By Trust</value>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeHolding>
+    </nonDerivativeTable>
+
+    <derivativeTable>
+        <derivativeTransaction>
+            <securityTitle>
+                <value>Restricted Stock Units</value>
+            </securityTitle>
+            <conversionOrExercisePrice>
+                <footnoteId id="F1"/>
+            </conversionOrExercisePrice>
+            <transactionDate>
+                <value>2026-03-12</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>A</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>52.01</value>
+                    <footnoteId id="F2"/>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>0</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <exerciseDate>
+                <footnoteId id="F3"/>
+            </exerciseDate>
+            <expirationDate>
+                <footnoteId id="F3"/>
+            </expirationDate>
+            <underlyingSecurity>
+                <underlyingSecurityTitle>
+                    <value>Common Stock</value>
+                </underlyingSecurityTitle>
+                <underlyingSecurityShares>
+                    <value>52.01</value>
+                </underlyingSecurityShares>
+            </underlyingSecurity>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>23020.848</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </derivativeTransaction>
+    </derivativeTable>
+
+    <footnotes>
+        <footnote id="F1">Each restricted stock unit represents a contingent right to receive one share of Microsoft common stock.</footnote>
+        <footnote id="F2">Dividend equivalent rights accrue when and as dividends are paid on the Company's common stock and become exercisable proportionately with the restricted stock units to which they relate.</footnote>
+        <footnote id="F3">The restricted stock units are fully vested. Delivery of the shares to the reporting person will be made 30 days after the date of the reporting person's separation from service to the Board of Directors.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>Julia Stark, Attorney-in-fact for Teri List</signatureName>
+        <signatureDate>2026-03-13</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
