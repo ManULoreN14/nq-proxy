@@ -2791,15 +2791,18 @@ def leer_qqq_opciones_csv():
         if len(row) < 22:
             continue
         try:
-            expiry = row[0].strip()
-            strike = _csv_safe_float(row[11])
-            c_oi   = _csv_safe_float(row[10]) or 0
-            p_oi   = _csv_safe_float(row[21]) or 0
+            expiry  = row[0].strip()
+            strike  = _csv_safe_float(row[11])
+            c_oi    = _csv_safe_float(row[10]) or 0
+            p_oi    = _csv_safe_float(row[21]) or 0
+            c_gamma = _csv_safe_float(row[9])  or 0   # Gamma calls (Barchart col 9)
+            p_gamma = _csv_safe_float(row[20]) or 0   # Gamma puts  (Barchart col 20)
             if not expiry or not strike or strike <= 0:
                 continue
             if expiry not in exp_data:
                 exp_data[expiry] = {}
-            exp_data[expiry][strike] = {"c_oi": int(c_oi), "p_oi": int(p_oi)}
+            exp_data[expiry][strike] = {"c_oi": int(c_oi), "p_oi": int(p_oi),
+                                         "c_gamma": c_gamma, "p_gamma": p_gamma}
         except Exception:
             continue
 
@@ -2837,15 +2840,25 @@ def leer_qqq_opciones_csv():
 
     max_pain = calcular_max_pain(strikes_filtrados)
 
+    # Max Pain por TODOS los vencimientos del CSV (alimenta derivados.vencimientos)
+    maxpain_por_vencimiento = {}
+    for exp, sd in exp_data.items():
+        mp_exp = calcular_max_pain(sd)
+        if mp_exp is not None:
+            maxpain_por_vencimiento[exp] = mp_exp
+
+    def _dist_pct(strike):
+        return round((strike - precio_qqq) / precio_qqq * 100, 2) if precio_qqq > 0 else None
+
     calls_arriba = [(s, d["c_oi"]) for s, d in strikes_filtrados.items()
                     if s > precio_qqq and d["c_oi"] > 0]
     calls_arriba.sort(key=lambda x: -x[1])
-    top_calls = [{"strike": s, "oi": oi} for s, oi in calls_arriba[:3]]
+    top_calls = [{"strike": s, "oi": oi, "dist": _dist_pct(s)} for s, oi in calls_arriba[:3]]
 
     puts_abajo = [(s, d["p_oi"]) for s, d in strikes_filtrados.items()
                   if s < precio_qqq and d["p_oi"] > 0]
     puts_abajo.sort(key=lambda x: -x[1])
-    top_puts = [{"strike": s, "oi": oi} for s, oi in puts_abajo[:3]]
+    top_puts = [{"strike": s, "oi": oi, "dist": _dist_pct(s)} for s, oi in puts_abajo[:3]]
 
     total_c = sum(d["c_oi"] for d in strikes_filtrados.values())
     total_p = sum(d["p_oi"] for d in strikes_filtrados.values())
@@ -2875,10 +2888,58 @@ def leer_qqq_opciones_csv():
 
     resist_1  = top_calls[0]["strike"] if top_calls else None
     soporte_1 = top_puts[0]["strike"]  if top_puts  else None
+    resistencia_principal = top_calls[0] if top_calls else None
+    soporte_principal     = top_puts[0]  if top_puts  else None
+    rango_semana = None
+    if resist_1 and soporte_1 and precio_qqq > 0:
+        rango_semana = {
+            "techo":       resist_1,
+            "suelo":       soporte_1,
+            "amplitudPct": round((resist_1 - soporte_1) / precio_qqq * 100, 2),
+        }
+
+    # ── GEX (Gamma Exposure) + Gamma Flip Level, desde columnas Gamma Barchart ──
+    # Misma formula que gex_parser.py:
+    #   GEX_strike = (gammaCall*OIcall - gammaPut*OIput) * 100 * precio^2*0.01/1e6
+    #   Gamma Flip = primer strike donde el GEX acumulado cruza de + a -
+    gex_total = gex_total_M = gamma_flip_level = dist_gamma_flip_pct = None
+    gex_estado, gex_desc = "sin_datos", "GEX no calculable (sin columnas Gamma)"
+    if precio_qqq > 0:
+        S2 = precio_qqq ** 2 * 0.01 / 1e6
+        gex_por_strike = {}
+        for s, d in strikes_filtrados.items():
+            gc = d.get("c_gamma", 0) * d["c_oi"] * 100 * S2
+            gp = d.get("p_gamma", 0) * d["p_oi"] * 100 * S2
+            gex_por_strike[s] = gc - gp
+
+        if any(v != 0 for v in gex_por_strike.values()):
+            gex_total_M = round(sum(gex_por_strike.values()), 2)
+            gex_total   = round(gex_total_M * 1e6, 0)
+
+            flip, acum = None, 0.0
+            for s in sorted(gex_por_strike):
+                prev = acum
+                acum += gex_por_strike[s]
+                if prev >= 0 and acum < 0 and flip is None:
+                    flip = s
+            if flip is None:
+                flip = min(gex_por_strike, key=lambda k: gex_por_strike[k])
+            gamma_flip_level    = flip
+            dist_gamma_flip_pct = _dist_pct(flip)
+
+            if   gex_total_M >  2: gex_estado, gex_desc = "positivo", f"GEX={gex_total_M:.1f}M — dealers comprando caidas (soporte)"
+            elif gex_total_M < -2: gex_estado, gex_desc = "negativo", f"GEX={gex_total_M:.1f}M — dealers amplificando movimientos (peligro)"
+            else:                  gex_estado, gex_desc = "neutro",   f"GEX={gex_total_M:.1f}M — zona de transicion"
+        else:
+            gex_desc = "GEX=0 — columnas Gamma del CSV vacias para este vencimiento"
 
     _csv_log(f"Max Pain -> {mp_txt}")
     _csv_log(f"Resistencia: {resist_1} | Soporte: {soporte_1}")
     _csv_log(f"PCR -> {pcr_txt}")
+    if gamma_flip_level is not None:
+        _csv_log(f"GEX -> {gex_desc} | Gamma Flip={gamma_flip_level} ({dist_gamma_flip_pct:+.2f}%)")
+    else:
+        _csv_log(f"GEX -> {gex_desc}")
 
     return {
         "vencimiento":      exp_target,
@@ -2891,11 +2952,22 @@ def leer_qqq_opciones_csv():
         "soporte_1":        soporte_1,
         "top_resistencias": top_calls,
         "top_soportes":     top_puts,
+        "resistencia_principal":   resistencia_principal,
+        "soporte_principal":       soporte_principal,
+        "rango_semana":            rango_semana,
+        "maxpain_por_vencimiento": maxpain_por_vencimiento,
         "pcr":              pcr,
         "pcr_señal":        pcr_senal,
         "pcr_texto":        pcr_txt,
         "total_calls_oi":   total_c,
         "total_puts_oi":    total_p,
+        # ── GEX / Gamma Flip (nuevo, desde columnas Gamma de Barchart) ──
+        "gex_total":          gex_total,
+        "gex_total_M":        gex_total_M,
+        "gamma_flip_level":   gamma_flip_level,
+        "dist_gamma_flip_pct":dist_gamma_flip_pct,
+        "gex_estado":         gex_estado,
+        "gex_desc":           gex_desc,
         "fuente":           "Barchart QQQ CSV local",
     }
 
@@ -2989,6 +3061,22 @@ def mapear_qqq_csv_al_legacy(qqq_csv: dict, opc_legacy: dict = None) -> dict:
     base["soporte_1"]      = qqq_csv.get("soporte_1")
     base["total_calls_oi"] = qqq_csv.get("total_calls_oi")
     base["total_puts_oi"]  = qqq_csv.get("total_puts_oi")
+
+    # GEX/Gamma Flip calculados desde Gamma de Barchart (si el CSV trae columnas Gamma)
+    if qqq_csv.get("gamma_flip_level") is not None:
+        base["gex"] = {
+            "estado": qqq_csv.get("gex_estado"),
+            "valor":  qqq_csv.get("gex_total_M"),
+            "trampa": False,
+            "desc":   qqq_csv.get("gex_desc"),
+        }
+        base["gex_real"] = {
+            "valor_total":         qqq_csv.get("gex_total"),
+            "valor_total_M":       qqq_csv.get("gex_total_M"),
+            "gamma_flip_level":    qqq_csv.get("gamma_flip_level"),
+            "dist_gamma_flip_pct": qqq_csv.get("dist_gamma_flip_pct"),
+            "fuente":              "csv_barchart_local",
+        }
     return base
 
 
@@ -3018,6 +3106,37 @@ def mapear_pcr_csv_al_legacy(qqq_csv: dict, pcr_legacy: dict = None) -> dict:
     base["pcr_qqq_señal"]  = qqq_csv.get("pcr_señal")
     base["pcr_qqq_texto"]  = qqq_csv.get("pcr_texto")
     return base
+
+
+def construir_gex_payload_desde_csv(qqq_csv: dict) -> dict:
+    """
+    Empaqueta el output de leer_qqq_opciones_csv() con la MISMA forma que
+    gex_manual.json (gex_parser.py), para que inyectar_gex_manual() siga
+    funcionando sin cambios y siga auto-rellenando tactico-2-5d/horizonte-inst
+    -- pero ahora a diario, desde qqq_quotedata.csv (Barchart), sin pegar
+    opciones.txt a mano.
+    """
+    venc_prox = {
+        "expiry":                qqq_csv.get("vencimiento"),
+        "max_pain":              qqq_csv.get("max_pain"),
+        "dist_max_pain_pct":     qqq_csv.get("dist_max_pain_pct"),
+        "top_calls":             qqq_csv.get("top_resistencias") or [],
+        "top_puts":              qqq_csv.get("top_soportes") or [],
+        "resistencia_principal": qqq_csv.get("resistencia_principal"),
+        "soporte_principal":     qqq_csv.get("soporte_principal"),
+        "rango_semana":          qqq_csv.get("rango_semana"),
+    }
+    return {
+        "valor_total":             qqq_csv.get("gex_total"),
+        "valor_total_M":           qqq_csv.get("gex_total_M"),
+        "gamma_flip_level":        qqq_csv.get("gamma_flip_level"),
+        "dist_gamma_flip_pct":     qqq_csv.get("dist_gamma_flip_pct"),
+        "precio_referencia":       qqq_csv.get("precio_qqq"),
+        "vencimiento_proximo":     venc_prox,
+        "maxpain_por_vencimiento": qqq_csv.get("maxpain_por_vencimiento") or {},
+        "fuente":                  "csv_barchart_local",
+        "generado":                datetime.now().isoformat(),
+    }
 
 
 def mapear_vix_csv_al_legacy(vix_csv: dict, vix_ts_legacy: dict = None) -> dict:
@@ -5740,6 +5859,14 @@ def main():
                          f"Resist={qqq_opciones_csv.get('resistencia_1')} "
                          f"Sop={qqq_opciones_csv.get('soporte_1')} "
                          f"PCR={qqq_opciones_csv.get('pcr')}")
+                # Si gex_manual.json (opciones.txt) no aporto payload fresco (<24h),
+                # usar el GEX/Gamma Flip/MaxPain calculado del CSV Barchart para
+                # auto-rellenar tactico-2-5d/horizonte-inst via inyectar_gex_manual().
+                if not opciones_data.get("_gex_manual_payload") and qqq_opciones_csv.get("gamma_flip_level") is not None:
+                    opciones_data["_gex_manual_payload"] = construir_gex_payload_desde_csv(qqq_opciones_csv)
+                    log.info(f"  [CSV] GEX desde Barchart: total={qqq_opciones_csv.get('gex_total_M')}M "
+                             f"flip={qqq_opciones_csv.get('gamma_flip_level')} "
+                             f"({qqq_opciones_csv.get('dist_gamma_flip_pct'):+.2f}%) -> _gex_manual_payload")
         except Exception as e:
             log.warning(f"  [CSV] QQQ opciones fallo (mantengo legacy): {e}")
             qqq_opciones_csv = None
