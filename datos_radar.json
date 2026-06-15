@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-06-15T14:14:18.572239",
+  "ts": "2026-06-15T19:24:07.445069",
   "precio": {
     "ndx": 29635.9492,
     "qqq": 721.34,
@@ -392,10 +392,10 @@
         "trend": "down"
       },
       "rrpontsyd": {
-        "v": 0.454,
-        "prev": 0.46,
-        "fecha": "2026-06-12",
-        "trend": "down"
+        "v": 0.581,
+        "prev": 0.454,
+        "fecha": "2026-06-15",
+        "trend": "up"
       },
       "fedfunds": {
         "v": 3.63,
@@ -410,9 +410,9 @@
         "trend": "up"
       },
       "hySpread": {
-        "v": 2.78,
-        "prev": 2.8,
-        "fecha": "2026-06-11",
+        "v": 2.71,
+        "prev": 2.78,
+        "fecha": "2026-06-12",
         "trend": "down"
       },
       "nfci": {
@@ -455,12 +455,12 @@
       "cpi_yoy": 5.67
     },
     "liquidezNeta": {
-      "valor": 5897275.0,
+      "valor": 5897274.0,
       "trend": "up",
       "walcl": 6725397.0,
       "wtregen": 828122.0,
-      "rrpontsyd": 0.454,
-      "desc": "Liquidez Neta = WALCL - TGA - RRP = 5,897,275M"
+      "rrpontsyd": 0.581,
+      "desc": "Liquidez Neta = WALCL - TGA - RRP = 5,897,274M"
     },
     "tiposRealesOro": {
       "tipoReal": 2.16,
@@ -492,46 +492,46 @@
       "tecnico": 4,
       "macro": 3.0,
       "cot": 0.5,
-      "vix": 0.3,
+      "vix": -5,
       "flujos": -1.0,
       "giro": 0.0,
       "amplitud": 0.7
     },
     "horizontes": {
       "d2": {
-        "score": 1.5,
-        "estado": "alcista_mod",
-        "conf": 15,
+        "score": 0.2,
+        "estado": "neutro",
+        "conf": 10,
         "pesos": "28%T+23%V+13%F+10%G+10%M+10%C+6%A"
       },
       "d5": {
-        "score": 1.4,
-        "estado": "alcista_mod",
-        "conf": 14,
+        "score": 0.4,
+        "estado": "neutro",
+        "conf": 10,
         "pesos": "23%T+18%V+14%M+14%C+13%F+9%G+9%A"
       },
       "w1": {
-        "score": 1.4,
-        "estado": "alcista_mod",
-        "conf": 14,
+        "score": 0.6,
+        "estado": "neutro",
+        "conf": 10,
         "pesos": "19%M+19%C+18%T+14%V+13%F+9%G+8%A"
       },
       "w2": {
-        "score": 1.5,
+        "score": 1.0,
         "estado": "alcista_mod",
-        "conf": 15,
+        "conf": 10,
         "pesos": "23%M+23%C+18%T+13%F+9%A+9%V+5%G"
       },
       "w3": {
-        "score": 1.5,
+        "score": 1.1,
         "estado": "alcista_mod",
-        "conf": 15,
+        "conf": 11,
         "pesos": "28%M+28%C+13%T+11%F+8%A+7%V+5%G"
       },
       "w4": {
-        "score": 1.4,
+        "score": 1.2,
         "estado": "alcista_mod",
-        "conf": 14,
+        "conf": 12,
         "pesos": "32%M+32%C+10%A+9%F+8%T+5%G+4%V"
       }
     }
@@ -1073,31 +1073,31 @@
           {
             "strike": 720.0,
             "oi": 8243,
-            "vol": 495,
+            "vol": 3042,
             "dist": -0.19
           },
           {
             "strike": 730.0,
             "oi": 5704,
-            "vol": 3776,
+            "vol": 6376,
             "dist": 1.2
           },
           {
             "strike": 725.0,
             "oi": 4347,
-            "vol": 1167,
+            "vol": 2820,
             "dist": 0.51
           },
           {
             "strike": 740.0,
             "oi": 4314,
-            "vol": 47581,
+            "vol": 227726,
             "dist": 2.59
           },
           {
             "strike": 729.0,
             "oi": 4284,
-            "vol": 388,
+            "vol": 1221,
             "dist": 1.06
           }
         ],
@@ -1105,31 +1105,31 @@
           {
             "strike": 675.0,
             "oi": 22810,
-            "vol": 83,
+            "vol": 2745,
             "dist": -6.42
           },
           {
             "strike": 660.0,
             "oi": 21726,
-            "vol": 1022,
+            "vol": 1225,
             "dist": -8.5
           },
           {
             "strike": 715.0,
             "oi": 7699,
-            "vol": 1952,
+            "vol": 7653,
             "dist": -0.88
           },
           {
             "strike": 690.0,
             "oi": 6739,
-            "vol": 155,
+            "vol": 3778,
             "dist": -4.34
           },
           {
             "strike": 700.0,
             "oi": 6509,
-            "vol": 822,
+            "vol": 6305,
             "dist": -2.96
           }
         ],
@@ -1144,31 +1144,31 @@
           {
             "strike": 730.0,
             "oi": 5310,
-            "vol": 4494,
+            "vol": 5434,
             "dist": 1.2
           },
           {
             "strike": 725.0,
             "oi": 4632,
-            "vol": 4166,
+            "vol": 4515,
             "dist": 0.51
           },
           {
             "strike": 758.0,
             "oi": 3138,
-            "vol": 75,
+            "vol": 3110,
             "dist": 5.08
           },
           {
             "strike": 737.0,
             "oi": 2890,
-            "vol": 833,
+            "vol": 4637,
             "dist": 2.17
           },
           {
             "strike": 738.0,
             "oi": 1940,
-            "vol": 2716,
+            "vol": 5029,
             "dist": 2.31
           }
         ],
@@ -1176,31 +1176,31 @@
           {
             "strike": 650.0,
             "oi": 10511,
-            "vol": 38,
+            "vol": 367,
             "dist": -9.89
           },
           {
             "strike": 690.0,
             "oi": 9537,
-            "vol": 141,
+            "vol": 1480,
             "dist": -4.34
           },
           {
             "strike": 675.0,
             "oi": 8196,
-            "vol": 32,
+            "vol": 650,
             "dist": -6.42
           },
           {
             "strike": 685.0,
             "oi": 7634,
-            "vol": 5,
+            "vol": 804,
             "dist": -5.04
           },
           {
             "strike": 700.0,
             "oi": 6423,
-            "vol": 416,
+            "vol": 1778,
             "dist": -2.96
           }
         ],
@@ -1215,31 +1215,31 @@
           {
             "strike": 740.0,
             "oi": 25050,
-            "vol": 1755,
+            "vol": 6070,
             "dist": 2.59
           },
           {
             "strike": 741.0,
             "oi": 3456,
-            "vol": 107,
+            "vol": 3395,
             "dist": 2.73
           },
           {
             "strike": 735.0,
             "oi": 1993,
-            "vol": 1479,
+            "vol": 2155,
             "dist": 1.89
           },
           {
             "strike": 730.0,
             "oi": 1690,
-            "vol": 75,
+            "vol": 285,
             "dist": 1.2
           },
           {
             "strike": 750.0,
             "oi": 1355,
-            "vol": 1877,
+            "vol": 7118,
             "dist": 3.97
           }
         ],
@@ -1247,31 +1247,31 @@
           {
             "strike": 695.0,
             "oi": 6461,
-            "vol": 60,
+            "vol": 3924,
             "dist": -3.65
           },
           {
             "strike": 650.0,
             "oi": 4999,
-            "vol": 222,
+            "vol": 994,
             "dist": -9.89
           },
           {
             "strike": 660.0,
             "oi": 3338,
-            "vol": 57,
+            "vol": 944,
             "dist": -8.5
           },
           {
             "strike": 715.0,
             "oi": 2810,
-            "vol": 85,
+            "vol": 840,
             "dist": -0.88
           },
           {
             "strike": 712.0,
             "oi": 1911,
-            "vol": 69,
+            "vol": 701,
             "dist": -1.29
           }
         ],
@@ -1328,31 +1328,31 @@
         {
           "strike": 730.0,
           "oi": 5310,
-          "vol": 4494,
+          "vol": 5434,
           "dist": 1.2
         },
         {
           "strike": 725.0,
           "oi": 4632,
-          "vol": 4166,
+          "vol": 4515,
           "dist": 0.51
         },
         {
           "strike": 758.0,
           "oi": 3138,
-          "vol": 75,
+          "vol": 3110,
           "dist": 5.08
         },
         {
           "strike": 737.0,
           "oi": 2890,
-          "vol": 833,
+          "vol": 4637,
           "dist": 2.17
         },
         {
           "strike": 738.0,
           "oi": 1940,
-          "vol": 2716,
+          "vol": 5029,
           "dist": 2.31
         }
       ],
@@ -1360,31 +1360,31 @@
         {
           "strike": 650.0,
           "oi": 10511,
-          "vol": 38,
+          "vol": 367,
           "dist": -9.89
         },
         {
           "strike": 690.0,
           "oi": 9537,
-          "vol": 141,
+          "vol": 1480,
           "dist": -4.34
         },
         {
           "strike": 675.0,
           "oi": 8196,
-          "vol": 32,
+          "vol": 650,
           "dist": -6.42
         },
         {
           "strike": 685.0,
           "oi": 7634,
-          "vol": 5,
+          "vol": 804,
           "dist": -5.04
         },
         {
           "strike": 700.0,
           "oi": 6423,
-          "vol": 416,
+          "vol": 1778,
           "dist": -2.96
         }
       ],
@@ -1399,31 +1399,31 @@
         {
           "strike": 740.0,
           "oi": 25050,
-          "vol": 1755,
+          "vol": 6070,
           "dist": 2.59
         },
         {
           "strike": 741.0,
           "oi": 3456,
-          "vol": 107,
+          "vol": 3395,
           "dist": 2.73
         },
         {
           "strike": 735.0,
           "oi": 1993,
-          "vol": 1479,
+          "vol": 2155,
           "dist": 1.89
         },
         {
           "strike": 730.0,
           "oi": 1690,
-          "vol": 75,
+          "vol": 285,
           "dist": 1.2
         },
         {
           "strike": 750.0,
           "oi": 1355,
-          "vol": 1877,
+          "vol": 7118,
           "dist": 3.97
         }
       ],
@@ -1431,31 +1431,31 @@
         {
           "strike": 695.0,
           "oi": 6461,
-          "vol": 60,
+          "vol": 3924,
           "dist": -3.65
         },
         {
           "strike": 650.0,
           "oi": 4999,
-          "vol": 222,
+          "vol": 994,
           "dist": -9.89
         },
         {
           "strike": 660.0,
           "oi": 3338,
-          "vol": 57,
+          "vol": 944,
           "dist": -8.5
         },
         {
           "strike": 715.0,
           "oi": 2810,
-          "vol": 85,
+          "vol": 840,
           "dist": -0.88
         },
         {
           "strike": 712.0,
           "oi": 1911,
-          "vol": 69,
+          "vol": 701,
           "dist": -1.29
         }
       ],
@@ -1463,35 +1463,35 @@
       "desc": "Max Pain 715 — precio cerca, zona equilibrio"
     },
     "gex": {
-      "estado": "positivo",
-      "valor": 2,
+      "estado": "negativo",
+      "valor": -203.16,
       "trampa": false,
-      "desc": "Gamma positiva — dealers comprando caídas"
+      "desc": "GEX=-203.2M — dealers amplificando movimientos (peligro)"
     },
     "gex_real": {
-      "valor_total": null,
-      "gamma_flip_level": null,
-      "dist_gamma_flip_pct": null,
-      "fuente": "sintetico"
+      "valor_total": -203160000.0,
+      "valor_total_M": -203.16,
+      "gamma_flip_level": 544.78,
+      "dist_gamma_flip_pct": -24.68,
+      "fuente": "csv_barchart_local"
     },
     "skew": {
-      "valor": 3.566,
-      "put_iv": 0.5625,
-      "call_iv": 0.1577,
+      "valor": 6.831,
+      "put_iv": 0.5938,
+      "call_iv": 0.0869,
       "senal": "cisne_negro",
-      "desc": "SKEW=3.566 - cobertura institucional extrema contra colapso"
+      "desc": "SKEW=6.831 - cobertura institucional extrema contra colapso"
     },
     "ratio_0dte": {
-      "valor": 0.576,
-      "vol_0dte": 371053,
-      "vol_total": 644002,
+      "valor": 0.734,
+      "vol_0dte": 4532496,
+      "vol_total": 6176391,
       "senal": "extremo",
-      "desc": "0DTE=57.6% - delta hedging forzado al cierre, amplificacion movimientos"
+      "desc": "0DTE=73.4% - delta hedging forzado al cierre, amplificacion movimientos"
     },
     "pcrOI": 1.49,
-    "pcrVol": 0.765,
+    "pcrVol": 0.919,
     "fuente": "Barchart QQQ CSV local",
-    "_gex_manual_payload": null,
     "error": null,
     "resistencia_1": 740.0,
     "soporte_1": 580.0,
@@ -1525,7 +1525,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (83% similitud). Contexto: VIX=17.7, RSI=56. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-15T14:10:47.350075"
+    "ts_calculo": "2026-06-15T19:19:02.848010"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001526,
@@ -1615,7 +1615,7 @@
       },
       {
         "ticker": "GOOGL",
-        "forms": 42,
+        "forms": 43,
         "compras": 0,
         "ventas": 48,
         "sh_compras": 0,
@@ -3304,39 +3304,109 @@
     "top_resistencias": [
       {
         "strike": 740.0,
-        "oi": 40294
+        "oi": 40294,
+        "dist": 2.32
       },
       {
         "strike": 750.0,
-        "oi": 30434
+        "oi": 30434,
+        "dist": 3.7
       },
       {
         "strike": 735.0,
-        "oi": 29869
+        "oi": 29869,
+        "dist": 1.62
       }
     ],
     "top_soportes": [
       {
         "strike": 580.0,
-        "oi": 84775
+        "oi": 84775,
+        "dist": -19.81
       },
       {
         "strike": 590.0,
-        "oi": 84320
+        "oi": 84320,
+        "dist": -18.42
       },
       {
         "strike": 600.0,
-        "oi": 81835
+        "oi": 81835,
+        "dist": -17.04
       }
     ],
+    "resistencia_principal": {
+      "strike": 740.0,
+      "oi": 40294,
+      "dist": 2.32
+    },
+    "soporte_principal": {
+      "strike": 580.0,
+      "oi": 84775,
+      "dist": -19.81
+    },
+    "rango_semana": {
+      "techo": 740.0,
+      "suelo": 580.0,
+      "amplitudPct": 22.12
+    },
+    "maxpain_por_vencimiento": {
+      "Fri Jun 12 2026": 692.0,
+      "Mon Jun 15 2026": 660.0,
+      "Tue Jun 16 2026": 690.0,
+      "Wed Jun 17 2026": 695.0,
+      "Thu Jun 18 2026": 615.0,
+      "Mon Jun 22 2026": 701.0,
+      "Tue Jun 23 2026": 670.0,
+      "Wed Jun 24 2026": 700.0,
+      "Thu Jun 25 2026": 735.0,
+      "Fri Jun 26 2026": 688.0,
+      "Tue Jun 30 2026": 640.0,
+      "Thu Jul 02 2026": 696.0,
+      "Fri Jul 10 2026": 706.0,
+      "Fri Jul 17 2026": 650.0,
+      "Fri Jul 24 2026": 670.0,
+      "Fri Jul 31 2026": 650.0,
+      "Fri Aug 21 2026": 655.0,
+      "Mon Aug 31 2026": 742.0,
+      "Fri Sep 18 2026": 605.0,
+      "Wed Sep 30 2026": 590.0,
+      "Fri Oct 16 2026": 690.0,
+      "Fri Dec 18 2026": 580.0,
+      "Thu Dec 31 2026": 665.0,
+      "Fri Jan 15 2027": 630.0,
+      "Fri Mar 19 2027": 770.0,
+      "Wed Mar 31 2027": 705.0,
+      "Thu Jun 17 2027": 730.0,
+      "Fri Sep 17 2027": 730.0,
+      "Fri Dec 17 2027": 575.0,
+      "Fri Jan 21 2028": 400.0,
+      "Fri Jun 16 2028": 690.0,
+      "Fri Dec 15 2028": 715.0
+    },
     "pcr": 1.49,
     "pcr_señal": "precaucion",
     "pcr_texto": "PCR=1.49 - sesgo hacia puts, cautela institucional",
     "total_calls_oi": 1061117,
     "total_puts_oi": 1577599,
+    "gex_total": -203160000.0,
+    "gex_total_M": -203.16,
+    "gamma_flip_level": 544.78,
+    "dist_gamma_flip_pct": -24.68,
+    "gex_estado": "negativo",
+    "gex_desc": "GEX=-203.2M — dealers amplificando movimientos (peligro)",
     "fuente": "Barchart QQQ CSV local"
   },
   "csv_activo": true,
   "fase_activa": 8,
-  "proximas_fases": "Fase9=HMM_clustering_regimenes+SEC_13F_completo"
+  "proximas_fases": "Fase9=HMM_clustering_regimenes+SEC_13F_completo",
+  "maxpain": {
+    "valor": 650.0,
+    "precio": 721.34,
+    "distPct": -10.1,
+    "expiracion": "Thu Jun 18 2026",
+    "señal": "distribucion",
+    "descripcion": "Max Pain 650 (-10.10%) — gravedad atrae precio abajo",
+    "fuente": "gex_parser_local"
+  }
 }
