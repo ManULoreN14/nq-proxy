@@ -1108,6 +1108,19 @@ def _delta_historico() -> pd.DataFrame:
         return df_maestro
 
     inicio_delta = (ultima_fecha + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Si el hueco entre el historico y hoy son solo dias de fin de semana
+    # (p.ej. ultima_fecha=viernes, hoy=lunes -> hueco=sabado+domingo), no hay
+    # ninguna sesion de mercado pendiente. Saltar yfinance evita el falso
+    # "possibly delisted; no price data found" cuando el rango pedido no
+    # contiene ningun dia laboral (no cubre festivos puntuales en dia laboral,
+    # esos casos minoritarios seguiran logueando el aviso pero sin romper nada).
+    ayer = hoy - timedelta(days=1)
+    dias_pendientes = pd.bdate_range(start=inicio_delta, end=ayer)
+    if len(dias_pendientes) == 0:
+        log.info(f"  Hueco {inicio_delta}..{ayer.date()} es solo fin de semana. Sin descarga.")
+        return df_maestro
+
     log.info(f"  Descargando delta desde {inicio_delta}...")
 
     dfs_nuevos = {}
