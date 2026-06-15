@@ -1,19 +1,19 @@
 {
   "version": "2.4",
-  "generado": "2026-06-15T20:08:38+00:00",
+  "generado": "2026-06-15T23:09:31+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
     "precio_qqq": 744.0,
     "precio_ndx": 30543.918,
-    "vix": 16.11,
+    "vix": 16.2,
     "rsi": 54.82,
     "ema20": 717.98,
     "ema50": 689.74,
     "atr14": 16.66,
     "roc5d": 3.9,
-    "vix3m": 19.37,
-    "vix_ts_ratio": 0.8317,
+    "vix3m": 19.36,
+    "vix_ts_ratio": 0.8368,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
     "cot_lev_net": null,
@@ -30,11 +30,11 @@
     "regimen_confianza": 100,
     "risk_score": 0.5,
     "fedfunds": 3.62,
-    "us2y": 4.05,
-    "us10y": 4.45,
-    "us30y": 4.95,
-    "spread_2_10": 0.4,
-    "spread_3m_10": 0.67,
+    "us2y": 4.09,
+    "us10y": 4.48,
+    "us30y": 4.97,
+    "spread_2_10": 0.39,
+    "spread_3m_10": 0.7,
     "curva_invertida": false,
     "max_pain": 655.0
   },
@@ -47,13 +47,13 @@
     "roc5d": 3.9
   },
   "vix_term_structure": {
-    "vix": 16.11,
-    "vix3m": 19.37,
-    "ratio": 0.8317,
-    "spread": 3.26,
+    "vix": 16.2,
+    "vix3m": 19.36,
+    "ratio": 0.8368,
+    "spread": 3.16,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (16.11) < VIX3M (19.37): contango_normal"
+    "descripcion": "VIX (16.2) < VIX3M (19.36): contango_normal"
   },
   "cot": {
     "error": "No disponible"
@@ -102,8 +102,8 @@
       },
       {
         "ticker": "AMZN",
-        "precio": 246.097,
-        "ema20": 252.26,
+        "precio": 246.02,
+        "ema20": 252.25,
         "ema50": 249.32,
         "sobre_ema20": false,
         "sobre_ema50": false
@@ -177,35 +177,35 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX -27.5% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX -27.09% (3 dias)."
   },
   "fred": {
     "score": -1,
     "estado": "normal",
     "curva_invertida": false,
-    "curva_descripcion": "2Y=4.05% 10Y=4.45% 30Y=4.95% | Spread=0.4",
+    "curva_descripcion": "2Y=4.09% 10Y=4.48% 30Y=4.97% | Spread=0.39",
     "fedfunds": {
       "valor": 3.62,
       "anterior": 3.62,
       "fecha": "2026-06-15"
     },
     "us2y": {
-      "valor": 4.05,
-      "anterior": 4.13
+      "valor": 4.09,
+      "anterior": 4.05
     },
     "us10y": {
-      "valor": 4.45,
-      "anterior": 4.55
+      "valor": 4.48,
+      "anterior": 4.45
     },
     "us30y": {
-      "valor": 4.95,
-      "anterior": 5.03
+      "valor": 4.97,
+      "anterior": 4.95
     },
     "spread_2_10": {
-      "valor": 0.4
+      "valor": 0.39
     },
     "spread_3m_10": {
-      "valor": 0.67
+      "valor": 0.7
     },
     "cpi_yoy": {
       "valor": 333.979
@@ -237,17 +237,17 @@
       },
       {
         "ind": "Curva 10Y-2Y",
-        "val": "+0.4%",
+        "val": "+0.39%",
         "tend": "estable",
         "senal": "alcista",
         "desc": "Normal"
       },
       {
         "ind": "US 10Y",
-        "val": "4.45%",
+        "val": "4.48%",
         "tend": "bajando",
         "senal": "neutro",
-        "desc": "2Y:4.05% 30Y:4.95%"
+        "desc": "2Y:4.09% 30Y:4.97%"
       },
       {
         "ind": "NFCI",
@@ -258,21 +258,21 @@
       }
     ],
     "estadoCurva": {
-      "t10y2y": 0.4,
-      "t10y3m": 0.67,
+      "t10y2y": 0.39,
+      "t10y3m": 0.7,
       "senalRecesion": "baja",
       "descripcion": "Curva normal"
     }
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-15T20:08:38+00:00",
+    "generado": "2026-06-15T23:09:31+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.29,
       "rsi": 54.82,
-      "vix": 16.11,
-      "vix_change_3d_pct": -27.5,
+      "vix": 16.2,
+      "vix_change_3d_pct": -27.09,
       "roc5d": 3.9,
       "breadth_pct": 57.1
     },
@@ -632,7 +632,7 @@
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
       "precio_qqq": 744.0,
-      "vix": 16.11
+      "vix": 16.2
     }
   ],
   "sentimiento": {
