@@ -6502,6 +6502,13 @@ def main():
         if amplitud_data.get("señal_zscore") == "sobreextendido":
             log.warning(f"   ALERTA ZSCORE: QQQ sobreextendido vs SMA200 (Z={zscore}) — agotamiento tecnico")
 
+        # ── Resumen VIX Backtest (siempre visible al final del log) ──────────
+        bt_res = vix_ts.get("backtest_regimenes") if vix_ts else None
+        if bt_res:
+            log.info(f"   VIX-BT: {bt_res.get('desc')}")
+            if bt_res.get("desc_2d"):
+                log.info(f"   VIX-BT: {bt_res.get('desc_2d')}")
+
 
     # ── ALERTAS EMAIL FASE 6 ─────────────────────────────────────────────────
     FUENTES_EMAIL = {
