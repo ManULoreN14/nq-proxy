@@ -1,21 +1,21 @@
 {
   "version": "2.4",
-  "generado": "2026-06-16T07:24:11+00:00",
+  "generado": "2026-06-16T10:32:51+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
     "precio_qqq": 744.0,
     "precio_ndx": null,
-    "vix": 17.68,
+    "vix": 16.16,
     "rsi": 54.82,
     "ema20": 717.98,
     "ema50": 689.74,
     "atr14": 16.66,
     "roc5d": 3.9,
     "vix3m": 20.51,
-    "vix_ts_ratio": 0.862,
+    "vix_ts_ratio": 0.7879,
     "vix_ts_backwardation": false,
-    "vix_ts_estado": "contango_tenso",
+    "vix_ts_estado": "contango_normal",
     "cot_lev_net": null,
     "cot_sesgo": "sin_datos",
     "breadth_pct_ema20": 0.0,
@@ -47,13 +47,13 @@
     "roc5d": 3.9
   },
   "vix_term_structure": {
-    "vix": 17.68,
+    "vix": 16.16,
     "vix3m": 20.51,
-    "ratio": 0.862,
-    "spread": 2.83,
+    "ratio": 0.7879,
+    "spread": 4.35,
     "backwardation": false,
-    "estado": "contango_tenso",
-    "descripcion": "VIX (17.68) < VIX3M (20.51): contango_tenso"
+    "estado": "contango_normal",
+    "descripcion": "VIX (16.16) < VIX3M (20.51): contango_normal"
   },
   "cot": {
     "error": "No disponible"
@@ -129,7 +129,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX -11.02% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX -27.27% (3 dias)."
   },
   "fred": {
     "score": -1,
@@ -218,13 +218,13 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-16T07:24:11+00:00",
+    "generado": "2026-06-16T10:32:51+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -0.29,
       "rsi": 54.82,
-      "vix": 17.68,
-      "vix_change_3d_pct": -11.02,
+      "vix": 16.16,
+      "vix_change_3d_pct": -27.27,
       "roc5d": 3.9,
       "breadth_pct": 0
     },
@@ -594,7 +594,7 @@
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
       "precio_qqq": 744.0,
-      "vix": 17.68
+      "vix": 16.16
     }
   ],
   "sentimiento": {
