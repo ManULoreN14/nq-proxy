@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-06-16T07:16:59.241647",
+  "ts": "2026-06-16T07:27:50.758686",
   "precio": {
     "ndx": 30543.918,
     "qqq": 744.0,
@@ -178,6 +178,183 @@
       "ts_proxy_señal": "backwardation",
       "ts_proxy_texto": "VIX MA5(19.6) >> MA20(17.5): estres agudo -> rebote probable 2-5d",
       "señal_compuesta_csv": "neutro"
+    },
+    "backtest_regimenes": {
+      "regimen_hoy": "contango_elevado",
+      "reg_vvix_hoy": "normal",
+      "vvix_actual": 93.82,
+      "stats": {
+        "backwardation": {
+          "n": 543,
+          "ret_2d_medio": 0.24,
+          "ret_5d_medio": 0.57,
+          "ret_10d_medio": 1.02,
+          "acierto_2d": 56.7,
+          "acierto_5d": 61.0,
+          "acierto_10d": 63.5
+        },
+        "contango_normal": {
+          "n": 1631,
+          "ret_2d_medio": 0.14,
+          "ret_5d_medio": 0.36,
+          "ret_10d_medio": 0.82,
+          "acierto_2d": 56.7,
+          "acierto_5d": 58.9,
+          "acierto_10d": 64.1
+        },
+        "contango_elevado": {
+          "n": 1987,
+          "ret_2d_medio": 0.12,
+          "ret_5d_medio": 0.33,
+          "ret_10d_medio": 0.55,
+          "acierto_2d": 58.4,
+          "acierto_5d": 60.8,
+          "acierto_10d": 62.6
+        },
+        "contango_extremo": {
+          "n": 808,
+          "ret_2d_medio": 0.09,
+          "ret_5d_medio": 0.16,
+          "ret_10d_medio": 0.39,
+          "acierto_2d": 59.0,
+          "acierto_5d": 59.2,
+          "acierto_10d": 61.8
+        }
+      },
+      "stats_2d": {
+        "backwardation+calma": {
+          "reg_vix": "backwardation",
+          "reg_vvix": "calma",
+          "n": 110,
+          "ret_5d_medio": 0.06,
+          "acierto_5d": 60.0,
+          "ret_2d_medio": -0.21,
+          "acierto_2d": 47.3
+        },
+        "backwardation+normal": {
+          "reg_vix": "backwardation",
+          "reg_vvix": "normal",
+          "n": 174,
+          "ret_5d_medio": 0.17,
+          "acierto_5d": 55.2,
+          "ret_2d_medio": 0.15,
+          "acierto_2d": 55.2
+        },
+        "backwardation+elevado": {
+          "reg_vix": "backwardation",
+          "reg_vvix": "elevado",
+          "n": 153,
+          "ret_5d_medio": 0.01,
+          "acierto_5d": 56.9,
+          "ret_2d_medio": -0.03,
+          "acierto_2d": 58.2
+        },
+        "backwardation+extremo": {
+          "reg_vix": "backwardation",
+          "reg_vvix": "extremo",
+          "n": 73,
+          "ret_5d_medio": 2.72,
+          "acierto_5d": 79.5,
+          "ret_2d_medio": 1.15,
+          "acierto_2d": 64.4
+        },
+        "contango_normal+calma": {
+          "reg_vix": "contango_normal",
+          "reg_vvix": "calma",
+          "n": 733,
+          "ret_5d_medio": 0.49,
+          "acierto_5d": 60.7,
+          "ret_2d_medio": 0.25,
+          "acierto_2d": 58.9
+        },
+        "contango_normal+normal": {
+          "reg_vix": "contango_normal",
+          "reg_vvix": "normal",
+          "n": 608,
+          "ret_5d_medio": 0.16,
+          "acierto_5d": 56.4,
+          "ret_2d_medio": -0.04,
+          "acierto_2d": 53.6
+        },
+        "contango_normal+elevado": {
+          "reg_vix": "contango_normal",
+          "reg_vvix": "elevado",
+          "n": 219,
+          "ret_5d_medio": 0.34,
+          "acierto_5d": 57.1,
+          "ret_2d_medio": 0.19,
+          "acierto_2d": 56.6
+        },
+        "contango_normal+extremo": {
+          "reg_vix": "contango_normal",
+          "reg_vvix": "extremo",
+          "n": 33,
+          "ret_5d_medio": 1.47,
+          "acierto_5d": 78.8,
+          "ret_2d_medio": 0.81,
+          "acierto_2d": 63.6
+        },
+        "contango_elevado+calma": {
+          "reg_vix": "contango_elevado",
+          "reg_vvix": "calma",
+          "n": 1122,
+          "ret_5d_medio": 0.25,
+          "acierto_5d": 60.2,
+          "ret_2d_medio": 0.09,
+          "acierto_2d": 59.1
+        },
+        "contango_elevado+normal": {
+          "reg_vix": "contango_elevado",
+          "reg_vvix": "normal",
+          "n": 701,
+          "ret_5d_medio": 0.52,
+          "acierto_5d": 64.2,
+          "ret_2d_medio": 0.21,
+          "acierto_2d": 57.8
+        },
+        "contango_elevado+elevado": {
+          "reg_vix": "contango_elevado",
+          "reg_vvix": "elevado",
+          "n": 132,
+          "ret_5d_medio": 0.03,
+          "acierto_5d": 48.5,
+          "ret_2d_medio": -0.07,
+          "acierto_2d": 54.5
+        },
+        "contango_extremo+calma": {
+          "reg_vix": "contango_extremo",
+          "reg_vvix": "calma",
+          "n": 367,
+          "ret_5d_medio": -0.03,
+          "acierto_5d": 54.0,
+          "ret_2d_medio": 0.01,
+          "acierto_2d": 55.3
+        },
+        "contango_extremo+normal": {
+          "reg_vix": "contango_extremo",
+          "reg_vvix": "normal",
+          "n": 338,
+          "ret_5d_medio": 0.41,
+          "acierto_5d": 65.4,
+          "ret_2d_medio": 0.18,
+          "acierto_2d": 63.9
+        },
+        "contango_extremo+elevado": {
+          "reg_vix": "contango_extremo",
+          "reg_vvix": "elevado",
+          "n": 83,
+          "ret_5d_medio": 0.18,
+          "acierto_5d": 59.0,
+          "ret_2d_medio": 0.14,
+          "acierto_2d": 61.4
+        }
+      },
+      "desc": "Régimen 'contango_elevado' — 1987 casos: NDX +0.33% medio a 5d (61% positivo)",
+      "desc_2d": "Con VVIX normal (94): 701 casos → NDX +0.52% a 5d (64% positivo)",
+      "n_hoy": 1987,
+      "ret_5d_medio": 0.33,
+      "acierto_5d": 60.8,
+      "clave_2d_activa": "contango_elevado+normal"
     }
   },
   "vixTermStructure": {
@@ -1211,7 +1388,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Corrección macro/geopolítica (10-15%) (81% similitud). Contexto: VIX=16.2, RSI=63. Confianza del sistema: 5%. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-06-16T07:14:28.964409"
+    "ts_calculo": "2026-06-16T07:24:22.683173"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001498,
