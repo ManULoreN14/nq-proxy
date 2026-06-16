@@ -1410,6 +1410,255 @@ def calcular_vix_ts(df_maestro: pd.DataFrame) -> dict:
     }
 
 
+def backtest_vix_regimenes(df_maestro: pd.DataFrame, spread1_pct_hoy: float | None,
+                           vvix_hoy: float | None = None) -> dict | None:
+    """
+    Paso 3: capacidad predictiva del régimen VIX actual basada en el histórico.
+    Dimensión 1 — régimen VIX (spread VIX3M/VIX):
+      backwardation / contango_normal / contango_elevado / contango_extremo
+    Dimensión 2 — nivel VVIX (si disponible):
+      calma (<90) / normal (90-110) / elevado (110-130) / extremo (>130)
+    Calcula retornos medios y tasa de acierto de NDX a 2/5/10d para cada
+    combinación, eligiendo solo las que tienen N>=20 casos históricos.
+    Resultado en vix_ts.backtest_regimenes (JSON) y desc legible.
+    """
+    try:
+        cols_req = ["VIX_close", "VIX3M_close", "NDX_close"]
+        if any(c not in df_maestro.columns for c in cols_req):
+            return None
+
+        df = df_maestro[cols_req].dropna().copy()
+        if len(df) < 100:
+            return None
+
+        spread = (df["VIX3M_close"] - df["VIX_close"]) / df["VIX_close"] * 100
+
+        def _reg_vix(s):
+            if s < 0:   return "backwardation"
+            if s < 10:  return "contango_normal"
+            if s < 20:  return "contango_elevado"
+            return "contango_extremo"
+
+        def _reg_vvix(v):
+            if v is None or (hasattr(v, '__class__') and v.__class__.__name__ == 'float' and v != v):
+                return None
+            v = float(v)
+            if v < 90:  return "calma"
+            if v < 110: return "normal"
+            if v < 130: return "elevado"
+            return "extremo"
+
+        df["regimen"]    = spread.apply(_reg_vix)
+        df["spread_pct"] = spread
+
+        # Intentar añadir VVIX desde DATOS_CSV si existe
+        vvix_csv_path = None
+        for _candidate in (BASE_DIR / "DATOS_CSV" / "VVIX_History.csv",
+                           BASE_DIR / "VVIX_History.csv"):
+            if _candidate.exists():
+                vvix_csv_path = _candidate
+                break
+        vvix_series = None
+        if vvix_csv_path is not None:
+            try:
+                vv = pd.read_csv(vvix_csv_path, parse_dates=["DATE"])
+                vv = vv.set_index("DATE")["VVIX"].sort_index()
+                vvix_series = vv
+                df = df.join(vvix_series.rename("VVIX"), how="left")
+                log.info(f"  [VIX-BT] VVIX integrado ({len(vvix_series)} días, "
+                         f"hasta {vvix_series.index[-1].date()})")
+            except Exception as e:
+                log.warning(f"  [VIX-BT] No se pudo cargar VVIX_History.csv: {e}")
+        else:
+            log.info(f"  [VIX-BT] VVIX_History.csv no encontrado — backtest solo 1D (sin cruce VVIX)")
+
+        tiene_vvix = "VVIX" in df.columns
+
+        # Retornos futuros NDX
+        for d in (2, 5, 10):
+            df[f"ret_{d}d"] = df["NDX_close"].shift(-d) / df["NDX_close"] - 1
+
+        # Régimen actual
+        if spread1_pct_hoy is not None:
+            regimen_hoy = _reg_vix(spread1_pct_hoy)
+        else:
+            regimen_hoy = df["regimen"].iloc[-1]
+
+        reg_vvix_hoy = _reg_vvix(vvix_hoy) if vvix_hoy is not None else None
+
+        # ── Estadísticas 1D: solo por régimen VIX (siempre disponible) ──
+        stats_1d = {}
+        for reg in ("backwardation", "contango_normal", "contango_elevado", "contango_extremo"):
+            sub = df[df["regimen"] == reg].iloc[:-10]
+            n = len(sub)
+            if n < 5:
+                stats_1d[reg] = {"n": n}
+                continue
+            d2, d5, d10 = sub["ret_2d"].dropna(), sub["ret_5d"].dropna(), sub["ret_10d"].dropna()
+            stats_1d[reg] = {
+                "n":             n,
+                "ret_2d_medio":  round(float(d2.mean())  * 100, 2) if len(d2)  else None,
+                "ret_5d_medio":  round(float(d5.mean())  * 100, 2) if len(d5)  else None,
+                "ret_10d_medio": round(float(d10.mean()) * 100, 2) if len(d10) else None,
+                "acierto_2d":    round(float((d2>0).mean()) * 100, 1) if len(d2)  else None,
+                "acierto_5d":    round(float((d5>0).mean()) * 100, 1) if len(d5)  else None,
+                "acierto_10d":   round(float((d10>0).mean())* 100, 1) if len(d10) else None,
+            }
+
+        # ── Estadísticas 2D: régimen VIX × nivel VVIX (cuando hay datos) ──
+        stats_2d = {}
+        if tiene_vvix:
+            df["reg_vvix"] = df["VVIX"].apply(_reg_vvix)
+            orden_vvix = ("calma", "normal", "elevado", "extremo")
+            orden_vix  = ("backwardation", "contango_normal",
+                          "contango_elevado", "contango_extremo")
+            for rv in orden_vix:
+                for vv in orden_vvix:
+                    sub = df[(df["regimen"] == rv) & (df["reg_vvix"] == vv)].iloc[:-10]
+                    n = len(sub)
+                    if n < 20:   # umbral mínimo de significación estadística
+                        continue
+                    d5 = sub["ret_5d"].dropna()
+                    d2 = sub["ret_2d"].dropna()
+                    clave = f"{rv}+{vv}"
+                    stats_2d[clave] = {
+                        "reg_vix":    rv,
+                        "reg_vvix":   vv,
+                        "n":          n,
+                        "ret_5d_medio": round(float(d5.mean())*100, 2) if len(d5) else None,
+                        "acierto_5d":   round(float((d5>0).mean())*100, 1) if len(d5) else None,
+                        "ret_2d_medio": round(float(d2.mean())*100, 2) if len(d2) else None,
+                        "acierto_2d":   round(float((d2>0).mean())*100, 1) if len(d2) else None,
+                    }
+
+        # ── Descripción legible del régimen actual ──
+        s1 = stats_1d.get(regimen_hoy, {})
+        n1, r5, a5 = s1.get("n", 0), s1.get("ret_5d_medio"), s1.get("acierto_5d")
+        if n1 >= 5 and r5 is not None:
+            signo = "+" if r5 >= 0 else ""
+            desc = (f"Régimen '{regimen_hoy}' — {n1} casos: "
+                    f"NDX {signo}{r5:.2f}% medio a 5d ({a5:.0f}% positivo)")
+        else:
+            desc = f"Régimen '{regimen_hoy}' — histórico insuficiente"
+
+        # Descripción enriquecida con VVIX si aplica
+        desc_2d = None
+        clave_2d = f"{regimen_hoy}+{reg_vvix_hoy}" if reg_vvix_hoy else None
+        if clave_2d and clave_2d in stats_2d:
+            s2 = stats_2d[clave_2d]
+            r5_2 = s2.get("ret_5d_medio")
+            a5_2 = s2.get("acierto_5d")
+            n2   = s2.get("n", 0)
+            if r5_2 is not None:
+                signo2 = "+" if r5_2 >= 0 else ""
+                desc_2d = (f"Con VVIX {reg_vvix_hoy} ({vvix_hoy:.0f}): "
+                           f"{n2} casos → NDX {signo2}{r5_2:.2f}% a 5d "
+                           f"({a5_2:.0f}% positivo)")
+
+        return {
+            "regimen_hoy":     regimen_hoy,
+            "reg_vvix_hoy":    reg_vvix_hoy,
+            "vvix_actual":     vvix_hoy,
+            "stats":           stats_1d,
+            "stats_2d":        stats_2d,
+            "desc":            desc,
+            "desc_2d":         desc_2d,
+            "n_hoy":           n1,
+            "ret_5d_medio":    r5,
+            "acierto_5d":      a5,
+            "clave_2d_activa": clave_2d,
+        }
+    except Exception as e:
+        log.warning(f"  [VIX-BT] Error en backtest_vix_regimenes: {e}")
+        import traceback
+        log.warning(traceback.format_exc())
+        return None
+    """
+    Paso 3: capacidad predictiva del régimen VIX actual basada en el histórico.
+    Para cada régimen (backwardation / contango_normal / contango_elevado /
+    contango_extremo), calcula los retornos medios y tasa de acierto de NDX
+    en los 2, 5 y 10 dias siguientes.
+    Resultado: "Hoy: backwardation. Las últimas N veces, NDX subió de media
+    +X% en 5 días (Y% de aciertos)."
+    """
+    try:
+        if "VIX_close" not in df_maestro.columns or \
+           "VIX3M_close" not in df_maestro.columns or \
+           "NDX_close" not in df_maestro.columns:
+            return None
+
+        df = df_maestro[["VIX_close", "VIX3M_close", "NDX_close"]].dropna().copy()
+        if len(df) < 100:
+            return None
+
+        # Clasificar cada día en un régimen
+        spread = (df["VIX3M_close"] - df["VIX_close"]) / df["VIX_close"] * 100
+
+        def _regimen(s):
+            if s < 0:    return "backwardation"
+            if s < 10:   return "contango_normal"
+            if s < 20:   return "contango_elevado"
+            return "contango_extremo"
+
+        df["regimen"]    = spread.apply(_regimen)
+        df["spread_pct"] = spread
+
+        # Retornos futuros de NDX (2d, 5d, 10d)
+        for d in (2, 5, 10):
+            df[f"ret_{d}d"] = df["NDX_close"].shift(-d) / df["NDX_close"] - 1
+
+        # Identificar el régimen actual
+        if spread1_pct_hoy is not None:
+            regimen_hoy = _regimen(spread1_pct_hoy)
+        else:
+            regimen_hoy = df["regimen"].iloc[-1]
+
+        # Estadísticas por régimen (excluir últimas 10 filas para no contaminar)
+        stats = {}
+        for reg in ("backwardation", "contango_normal", "contango_elevado", "contango_extremo"):
+            sub = df[df["regimen"] == reg].iloc[:-10]
+            n   = len(sub)
+            if n < 5:
+                stats[reg] = {"n": n}
+                continue
+            d2  = sub["ret_2d"].dropna()
+            d5  = sub["ret_5d"].dropna()
+            d10 = sub["ret_10d"].dropna()
+            stats[reg] = {
+                "n":             n,
+                "ret_2d_medio":  round(float(d2.mean())  * 100, 2) if len(d2)  else None,
+                "ret_5d_medio":  round(float(d5.mean())  * 100, 2) if len(d5)  else None,
+                "ret_10d_medio": round(float(d10.mean()) * 100, 2) if len(d10) else None,
+                "acierto_5d":    round(float((d5 > 0).mean()) * 100, 1) if len(d5) else None,
+                "acierto_2d":    round(float((d2 > 0).mean()) * 100, 1) if len(d2) else None,
+                "acierto_10d":   round(float((d10 > 0).mean()) * 100, 1) if len(d10) else None,
+            }
+
+        # Resumen legible del régimen actual
+        s_hoy = stats.get(regimen_hoy, {})
+        n     = s_hoy.get("n", 0)
+        r5    = s_hoy.get("ret_5d_medio")
+        a5    = s_hoy.get("acierto_5d")
+        if n >= 5 and r5 is not None:
+            signo  = "+" if r5 >= 0 else ""
+            desc   = (f"Régimen '{regimen_hoy}' — {n} casos históricos: "
+                      f"NDX {signo}{r5:.2f}% medio a 5d ({a5:.0f}% veces positivo)")
+        else:
+            desc = f"Régimen '{regimen_hoy}' — histórico insuficiente"
+
+        return {
+            "regimen_hoy":  regimen_hoy,
+            "stats":        stats,
+            "desc":         desc,
+            "n_hoy":        n,
+            "ret_5d_medio": r5,
+            "acierto_5d":   a5,
+        }
+    except Exception as e:
+        log.warning(f"  [VIX-BT] Error en backtest_vix_regimenes: {e}")
+        return None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  MÓDULO: parsear_vix_ts_txt — Lee VIX.txt descargado de Cboe VIX Futures
 #  Ruta esperada: BASE_DIR / "VIX.txt"
@@ -5759,6 +6008,11 @@ def main():
             f"spread={vix_ts.get('spread1'):+.2f} | slope={vix_ts.get('slope_1m2m')}"
         )
 
+    # ── Paso 3: backtest histórico de regímenes VIX ──────────────────────────
+    # Se ejecuta DESPUÉS de la capa CSV (sección 5.6) para poder usar el VVIX
+    # actual del CSV. La llamada real está justo tras el bloque CSV local.
+    # (marcador — se completa en 5.6-post)
+
     # ── 4. Giro, flujos y liquidez ────────────────────────────────────────────
     log.info("\n[4/8] Detectores de giro, flujos y liquidez...")
     giro     = detectar_giro(df, tecnicos_ndx)
@@ -5887,7 +6141,17 @@ def main():
             log.warning(f"  [CSV] VIX/VVIX/SKEW fallo (mantengo legacy): {e}")
             vix_vvix_skew_data = None
 
-        # CSV-3: DIX + GEX (no tiene equivalente directo en legacy: bloque nuevo)
+        # ── Paso 3 (5.6-post): backtest histórico VIX × VVIX ─────────────────
+        # Ahora sí disponemos del VVIX actual del CSV — ejecutar backtest 2D.
+        vvix_actual_bt = None
+        if vix_vvix_skew_data and vix_vvix_skew_data.get("vvix") is not None:
+            vvix_actual_bt = float(vix_vvix_skew_data["vvix"])
+        vix_bt = backtest_vix_regimenes(df, vix_ts.get("spread1Pct"), vvix_actual_bt)
+        if vix_bt:
+            vix_ts["backtest_regimenes"] = vix_bt
+            log.info(f"  [VIX-BT] {vix_bt.get('desc')}")
+            if vix_bt.get("desc_2d"):
+                log.info(f"  [VIX-BT] {vix_bt.get('desc_2d')}")
         try:
             dix_gex_data = leer_dix_gex_csv()
             if dix_gex_data:
