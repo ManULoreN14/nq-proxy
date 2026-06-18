@@ -1,19 +1,19 @@
 {
   "version": "2.4",
-  "generado": "2026-06-17T22:53:25+00:00",
+  "generado": "2026-06-18T05:28:44+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
     "precio_qqq": 722.51,
-    "precio_ndx": 29670.9473,
+    "precio_ndx": 29670.9492,
     "vix": 18.44,
     "rsi": 45.83,
     "ema20": 719.44,
     "ema50": 692.99,
     "atr14": 17.47,
     "roc5d": 4.15,
-    "vix3m": 20.62,
-    "vix_ts_ratio": 0.8943,
+    "vix3m": 20.51,
+    "vix_ts_ratio": 0.8991,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_tenso",
     "cot_lev_net": null,
@@ -24,8 +24,8 @@
     "exposicion_sugerida_pct": 80,
     "exposicion_semaforo": "verde",
     "dist_desde_max_pct": -3.17,
-    "fear_greed_score": 22.0,
-    "fear_greed_estado": "miedo",
+    "fear_greed_score": 15.0,
+    "fear_greed_estado": "miedo_extremo",
     "regimen_mercado": "tendencia_alcista",
     "regimen_confianza": 100,
     "risk_score": 0.5,
@@ -48,12 +48,12 @@
   },
   "vix_term_structure": {
     "vix": 18.44,
-    "vix3m": 20.62,
-    "ratio": 0.8943,
-    "spread": 2.18,
+    "vix3m": 20.51,
+    "ratio": 0.8991,
+    "spread": 2.07,
     "backwardation": false,
     "estado": "contango_tenso",
-    "descripcion": "VIX (18.44) < VIX3M (20.62): contango_tenso"
+    "descripcion": "VIX (18.44) < VIX3M (20.51): contango_tenso"
   },
   "cot": {
     "error": "No disponible"
@@ -128,8 +128,8 @@
     "divergencia": true
   },
   "fear_greed": {
-    "score": 22.0,
-    "estado": "miedo",
+    "score": 15.0,
+    "estado": "miedo_extremo",
     "rating": "Extreme Fear",
     "fuente": "alternative.me"
   },
@@ -187,7 +187,7 @@
     "fedfunds": {
       "valor": 3.63,
       "anterior": 3.63,
-      "fecha": "2026-06-17"
+      "fecha": "2026-06-18"
     },
     "us2y": {
       "valor": 4.05,
@@ -266,7 +266,7 @@
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-06-17T22:53:25+00:00",
+    "generado": "2026-06-18T05:28:44+00:00",
     "fecha_referencia": "2026-06-04",
     "fingerprint_hoy": {
       "dist_pct": -3.17,
@@ -384,16 +384,6 @@
     "interpretacion": "La mayoría (92%) de momentos similares se resolvió sin caídas significativas. Contexto históricamente benigno."
   },
   "historico_30d": [
-    {
-      "fecha": "2026-05-13",
-      "risk_score": null,
-      "fear_greed_score": null,
-      "regimen_mercado": null,
-      "exposicion_semaforo": null,
-      "exposicion_pct": null,
-      "precio_qqq": 714.71,
-      "vix": 17.87
-    },
     {
       "fecha": "2026-05-14",
       "risk_score": null,
@@ -643,6 +633,16 @@
       "exposicion_pct": 80,
       "precio_qqq": 722.51,
       "vix": 18.44
+    },
+    {
+      "fecha": "2026-06-18",
+      "risk_score": 0.5,
+      "fear_greed_score": 15.0,
+      "regimen_mercado": "tendencia_alcista",
+      "exposicion_semaforo": "verde",
+      "exposicion_pct": 80,
+      "precio_qqq": 722.51,
+      "vix": 18.44
     }
   ],
   "sentimiento": {
@@ -746,7 +746,7 @@
   },
   "pcr": {
     "equity": null,
-    "total": 1.917,
+    "total": 1.945,
     "index": null,
     "spx": null,
     "señal": "alcista_contrario",
