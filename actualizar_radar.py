@@ -5501,6 +5501,429 @@ CRISIS_LABELS = {
 }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  FASE 4b — KNN PREDICTOR MULTIVARIABLE v1.0
+#  Complementa el Market Regime Matching (Fase 4) con kNN libre:
+#  busca los top-50 días más similares al día actual en el histórico
+#  maestro enriquecido con DIX, GEX, VVIX y SKEW, y calcula la
+#  distribución real de retornos NDX a 2/5/10/20 días posteriores.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Rutas a CSVs externos enriquecedores (misma carpeta que el script)
+_KNN_CSV_PATHS = {
+    "dix":  ["DIX.csv"],
+    "vvix": ["VVIX_History.csv"],
+    "skew": ["SKEW_History.csv"],
+}
+
+def _knn_load_csv(nombre: str) -> "pd.DataFrame | None":
+    """Carga un CSV enriquecedor desde BASE_DIR o DATOS_CSV/."""
+    for ruta in [BASE_DIR / nombre, BASE_DIR / "DATOS_CSV" / nombre]:
+        if ruta.exists():
+            try:
+                return pd.read_csv(ruta)
+            except Exception as e:
+                log.warning(f"  [kNN] CSV {nombre} error al leer: {e}")
+    log.debug(f"  [kNN] CSV {nombre} no encontrado en disco")
+    return None
+
+
+def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
+    """
+    kNN Predictor Multivariable v1.0 para actualizar_radar.py.
+
+    Construye un fingerprint de 12 features para cada día del histórico
+    maestro (2014-hoy), normaliza con z-score rolling 504d y busca los
+    50 días más similares al día actual mediante distancia euclidiana
+    ponderada.
+
+    Devuelve distribución real de retornos NDX a 2/5/10/20d con
+    estadísticas completas (media, mediana, P10, P90, % positivo).
+
+    Args:
+        df: historico_maestro.csv como DataFrame con índice DatetimeIndex
+
+    Returns:
+        dict compatible con datos_radar.json → clave "knn_predictor"
+    """
+    RESULTADO_DEFAULT = {
+        "version": "1.0",
+        "error": "no_ejecutado",
+        "escenario_tipo": "sin_datos",
+        "fiable": False,
+        "n_vecinos": 0,
+        "interpretacion": "KNN no ejecutado",
+    }
+
+    try:
+        if df is None or df.empty or len(df) < 400:
+            log.warning("  [kNN] Histórico insuficiente")
+            return {**RESULTADO_DEFAULT, "error": "historico_insuficiente"}
+
+        log.info("  [kNN] Construyendo dataset enriquecido...")
+
+        # ── Cargar CSVs enriquecedores ────────────────────────────────────────
+        dix_df_raw  = _knn_load_csv("DIX.csv")
+        vvix_df_raw = _knn_load_csv("VVIX_History.csv")
+        skew_df_raw = _knn_load_csv("SKEW_History.csv")
+
+        merged = df.copy()
+        if not isinstance(merged.index, pd.DatetimeIndex):
+            if "fecha" in merged.columns:
+                merged = merged.set_index(pd.to_datetime(merged["fecha"]))
+            else:
+                merged.index = pd.to_datetime(merged.index)
+
+        def _merge_csv(raw_df, date_col_candidates, val_col_candidates):
+            """Merge un CSV externo al DataFrame maestro."""
+            if raw_df is None:
+                return None, None
+            date_col = next((c for c in raw_df.columns if c.lower() in
+                             [x.lower() for x in date_col_candidates]), None)
+            val_col  = next((c for c in raw_df.columns if any(
+                             k.lower() in c.lower() for k in val_col_candidates)), None)
+            if not date_col or not val_col:
+                return None, None
+            try:
+                tmp = raw_df.copy()
+                tmp["_d"] = pd.to_datetime(tmp[date_col], errors="coerce")
+                tmp = tmp.dropna(subset=["_d"]).set_index("_d")
+                return tmp[[val_col]].rename(columns={val_col: "_val"}), val_col
+            except Exception as e:
+                log.debug(f"  [kNN] merge error: {e}")
+                return None, None
+
+        dix_series, _  = _merge_csv(dix_df_raw,  ["date","fecha","DATE"], ["dix"])
+        gex_series, _  = _merge_csv(dix_df_raw,  ["date","fecha","DATE"], ["gex"])
+        vvix_series, _ = _merge_csv(vvix_df_raw, ["date","fecha","DATE"], ["VVIX","vvix"])
+        skew_series, _ = _merge_csv(skew_df_raw, ["date","fecha","DATE"], ["SKEW","skew"])
+
+        # Reindex con tolerancia de ±3 días para CSVs con gaps
+        def _reindex_tol(series_df, target_idx, col_name, scale=1.0):
+            if series_df is None:
+                return pd.Series(np.nan, index=target_idx, name=col_name)
+            try:
+                s = series_df["_val"].reindex(target_idx, method="nearest",
+                                               tolerance=pd.Timedelta("3d")) * scale
+                s.name = col_name
+                return s
+            except Exception:
+                return pd.Series(np.nan, index=target_idx, name=col_name)
+
+        merged["_dix"]  = _reindex_tol(dix_series,  merged.index, "_dix",  scale=100.0)
+        merged["_gex"]  = _reindex_tol(gex_series,   merged.index, "_gex",  scale=1/1e9)
+        merged["_vvix"] = _reindex_tol(vvix_series,  merged.index, "_vvix")
+        merged["_skew"] = _reindex_tol(skew_series,  merged.index, "_skew")
+
+        csv_enriched = sum(1 for s in [merged["_dix"], merged["_vvix"], merged["_skew"]]
+                           if s.notna().sum() > 100)
+        log.info(f"  [kNN] CSVs enriquecedores activos: {csv_enriched}/3 "
+                 f"(dix={merged['_dix'].notna().sum()}, vvix={merged['_vvix'].notna().sum()}, "
+                 f"skew={merged['_skew'].notna().sum()})")
+
+        # ── Feature engineering ───────────────────────────────────────────────
+        ndx  = _safe_col(merged, "NDX_close",  "NDX_Close").ffill()
+        qqq  = _safe_col(merged, "QQQ_close",  "QQQ_Close").ffill()
+        vix  = _safe_col(merged, "VIX_close",  "VIX_Close").ffill()
+        vix3m = _safe_col(merged, "VIX3M_close","VIX3M_Close")
+        if vix3m is not None:
+            vix3m = vix3m.ffill()
+        hyg  = _safe_col(merged, "HYG_close",  "HYG_Close")
+        if hyg is not None:
+            hyg = hyg.ffill()
+        hg   = _safe_col(merged, "HG_close",   "HG_Close")
+        if hg is not None:
+            hg = hg.ffill()
+        gc   = _safe_col(merged, "GC_close",   "GC_Close", "GLD_close", "GLD_Close")
+        if gc is not None:
+            gc = gc.ffill()
+
+        if ndx is None or vix is None:
+            raise ValueError("Columnas NDX_close o VIX_close no encontradas")
+
+        # RSI14 NDX
+        delta_ndx = ndx.diff()
+        gain = delta_ndx.clip(lower=0).ewm(com=13, adjust=False).mean()
+        loss = (-delta_ndx.clip(upper=0)).ewm(com=13, adjust=False).mean()
+        rsi_ndx = 100 - (100 / (1 + gain / loss.replace(0, np.nan)))
+
+        # Distancia a SMA200 (NDX)
+        sma200 = ndx.rolling(200, min_periods=200).mean()
+        dist_sma200 = (ndx - sma200) / sma200.replace(0, np.nan) * 100
+
+        # VIX Term Structure
+        spread_vix_pct = pd.Series(np.nan, index=merged.index)
+        if vix3m is not None:
+            spread_vix_pct = (vix3m - vix) / vix.replace(0, np.nan) * 100
+
+        # VVIX/VIX ratio
+        vvix_vix_ratio = merged["_vvix"] / vix.replace(0, np.nan)
+
+        # Momentum
+        roc5d_ndx  = ndx.pct_change(5)  * 100
+        roc20d_ndx = ndx.pct_change(20) * 100
+
+        # VIX aceleración
+        vix_ch3d = vix.pct_change(3) * 100
+
+        # GEX percentil rolling 252d
+        gex_pct = merged["_gex"].rolling(252, min_periods=63).rank(pct=True) * 100
+
+        # Cobre/Oro ratio momentum
+        cobre_oro_roc = pd.Series(np.nan, index=merged.index)
+        if hg is not None and gc is not None:
+            cobre_oro_roc = (hg / gc.replace(0, np.nan)).pct_change(20) * 100
+
+        # HY proxy (HYG inverso como proxy de spread)
+        hy_proxy = pd.Series(np.nan, index=merged.index)
+        if hyg is not None:
+            hy_proxy = hyg.pct_change(10) * -100
+
+        feat = pd.DataFrame({
+            "spread_vix_pct": spread_vix_pct,
+            "dist_sma200":    dist_sma200,
+            "vvix":           merged["_vvix"],
+            "vvix_vix_ratio": vvix_vix_ratio,
+            "dix":            merged["_dix"],
+            "gex_pct":        gex_pct,
+            "skew":           merged["_skew"],
+            "rsi_ndx":        rsi_ndx,
+            "roc5d_ndx":      roc5d_ndx,
+            "roc20d_ndx":     roc20d_ndx,
+            "vix_ch3d":       vix_ch3d,
+            "cobre_oro_roc":  cobre_oro_roc,
+        }, index=merged.index)
+
+        # Restringir ventana 2014+ (donde DIX/VVIX/SKEW tienen cobertura)
+        feat = feat[feat.index >= pd.Timestamp("2014-01-01")]
+        ndx_14 = ndx.reindex(feat.index)
+
+        # ── Z-score rolling 504d ──────────────────────────────────────────────
+        PESOS = {
+            "spread_vix_pct": 2.0,
+            "dist_sma200":    1.8,
+            "vvix":           1.5,
+            "vvix_vix_ratio": 1.5,
+            "dix":            1.5,
+            "gex_pct":        1.0,
+            "skew":           0.8,
+            "rsi_ndx":        1.2,
+            "roc5d_ndx":      1.2,
+            "roc20d_ndx":     1.0,
+            "vix_ch3d":       1.0,
+            "cobre_oro_roc":  0.8,
+        }
+
+        feat_norm = pd.DataFrame(index=feat.index)
+        for col in feat.columns:
+            s = feat[col]
+            rm = s.rolling(504, min_periods=100).mean()
+            rs = s.rolling(504, min_periods=100).std().replace(0, np.nan)
+            feat_norm[col] = ((s - rm) / rs).clip(-4, 4)
+
+        # Umbral de cobertura mínima: al menos 6 de 12 features no-NaN
+        feat_norm = feat_norm.dropna(thresh=6)
+
+        if len(feat_norm) < 200:
+            raise ValueError(f"Filas normalizadas insuficientes: {len(feat_norm)}")
+
+        log.info(f"  [kNN] Dataset normalizado: {len(feat_norm)} días")
+
+        # ── Fingerprint HOY (última fila disponible) ──────────────────────────
+        hoy_vec = feat_norm.iloc[-1].values.copy()
+        cols_order = list(feat_norm.columns)
+        w_vec = np.array([PESOS[c] for c in cols_order], dtype=float)
+
+        # ── kNN: distancia euclidiana ponderada ───────────────────────────────
+        LOOKAHEAD = 22      # días hábiles máximo (≈ 1 mes)
+        EXCL_TAIL = LOOKAHEAD + 5
+        K = 50
+
+        cands_vals  = feat_norm.values[:-EXCL_TAIL]
+        cands_dates = feat_norm.index[:-EXCL_TAIL]
+        n_total     = len(feat_norm)
+
+        # Tratar NaN como 0 en la distancia (no penaliza si la feature falta)
+        hoy_clean = np.where(np.isnan(hoy_vec), 0.0, hoy_vec)
+        cands_clean = np.where(np.isnan(cands_vals), 0.0, cands_vals)
+
+        diffs = (cands_clean - hoy_clean) * np.sqrt(w_vec)
+        dists = np.sqrt((diffs ** 2).sum(axis=1))
+        max_d = float(dists.max()) if dists.max() > 0 else 1.0
+        sims  = 1.0 - dists / max_d
+
+        idx_top = np.argsort(-sims)
+
+        # Índice global del histórico QQQ (para extraer retornos)
+        ndx_vals_all  = ndx_14.values
+        fechas_all    = feat_norm.index
+
+        vecinos_sel = []
+        for i in idx_top:
+            if len(vecinos_sel) >= K:
+                break
+            fecha_i   = cands_dates[i]
+            pos_global = np.searchsorted(fechas_all, fecha_i)
+
+            ndx_base = ndx_vals_all[pos_global] if pos_global < len(ndx_vals_all) else None
+            if ndx_base is None or np.isnan(ndx_base) or ndx_base == 0:
+                continue
+
+            rets = {}
+            for h, label in [(2, "2d"), (5, "5d"), (10, "10d"), (20, "20d")]:
+                pos_fut = pos_global + h
+                if pos_fut < len(ndx_vals_all):
+                    v_fut = ndx_vals_all[pos_fut]
+                    if not np.isnan(v_fut):
+                        rets[label] = round((v_fut / ndx_base - 1) * 100, 2)
+
+            if len(rets) < 3:
+                continue
+
+            vecinos_sel.append({
+                "fecha":     fecha_i.strftime("%Y-%m-%d"),
+                "similitud": round(float(sims[i]), 4),
+                "rets":      rets,
+            })
+
+        if len(vecinos_sel) < 10:
+            raise ValueError(f"Pocos vecinos válidos: {len(vecinos_sel)}")
+
+        log.info(f"  [kNN] {len(vecinos_sel)} vecinos | mejor_sim={vecinos_sel[0]['similitud']:.3f}")
+
+        # ── Estadísticas de distribución ─────────────────────────────────────
+        def _stats_h(label):
+            vals_h = np.array([v["rets"][label] for v in vecinos_sel if label in v["rets"]])
+            if len(vals_h) < 5:
+                return None
+            return {
+                "n":            int(len(vals_h)),
+                "media":        round(float(vals_h.mean()), 2),
+                "mediana":      round(float(np.median(vals_h)), 2),
+                "p10":          round(float(np.percentile(vals_h, 10)), 2),
+                "p25":          round(float(np.percentile(vals_h, 25)), 2),
+                "p75":          round(float(np.percentile(vals_h, 75)), 2),
+                "p90":          round(float(np.percentile(vals_h, 90)), 2),
+                "pct_positivo": round(float((vals_h > 0).mean() * 100), 1),
+                "pct_negativo": round(float((vals_h < 0).mean() * 100), 1),
+                "max":          round(float(vals_h.max()), 2),
+                "min":          round(float(vals_h.min()), 2),
+            }
+
+        stats = {h: _stats_h(h) for h in ["2d", "5d", "10d", "20d"]}
+
+        # ── Clasificación de escenario tipo ───────────────────────────────────
+        s5 = stats.get("5d")
+        if s5:
+            med5, pct5 = s5["mediana"], s5["pct_positivo"]
+            if pct5 >= 65 and med5 >= 0.8:
+                esc_tipo = "alcista_fuerte"
+                esc_desc = f"{len(vecinos_sel)} análogos. {pct5:.0f}% subió. Patrón alcista con sesgo fuerte."
+            elif pct5 >= 55 and med5 >= 0.2:
+                esc_tipo = "consolidacion"
+                esc_desc = f"{len(vecinos_sel)} análogos. {pct5:.0f}% positivo. Consolidación con sesgo alcista."
+            elif pct5 <= 35 and med5 <= -0.8:
+                esc_tipo = "bajista"
+                esc_desc = f"{len(vecinos_sel)} análogos. {100-pct5:.0f}% bajó. Patrón bajista claro."
+            elif pct5 <= 45 and med5 <= -0.2:
+                esc_tipo = "techo_mercado"
+                esc_desc = f"{len(vecinos_sel)} análogos. Sesgo bajista en análogos históricos."
+            elif pct5 >= 55 and (s5.get("p10") or 0) < -2.5:
+                esc_tipo = "suelo_panico"
+                esc_desc = f"{len(vecinos_sel)} análogos. Sesgo alcista pero cola bajista asimétrica (P10={s5.get('p10')}%)."
+            else:
+                esc_tipo = "neutro"
+                esc_desc = f"{len(vecinos_sel)} análogos. Sin sesgo claro en histórico."
+
+            interpretacion = (
+                f"{len(vecinos_sel)} análogos históricos — "
+                f"NDX {'+' if s5['media'] >= 0 else ''}{s5['media']:.1f}% medio a 5d "
+                f"({s5['pct_positivo']:.0f}% positivo, mediana {s5['mediana']:+.1f}%). "
+                f"Rango P10/P90: [{s5['p10']:+.1f}%, {s5['p90']:+.1f}%]."
+            )
+        else:
+            esc_tipo = "neutro"
+            esc_desc = "Datos insuficientes para clasificar escenario."
+            interpretacion = f"{len(vecinos_sel)} análogos encontrados."
+
+        log.info(f"  [kNN] Escenario: {esc_tipo} | {interpretacion[:80]}...")
+
+        # ── Top 10 vecinos para el dashboard ─────────────────────────────────
+        top10 = [
+            {
+                "fecha":     v["fecha"],
+                "similitud": v["similitud"],
+                "ret_2d":    v["rets"].get("2d"),
+                "ret_5d":    v["rets"].get("5d"),
+                "ret_10d":   v["rets"].get("10d"),
+                "ret_20d":   v["rets"].get("20d"),
+                # Campos legacy para compatibilidad con Fase 8 frontend
+                "caida_max_20d": v["rets"].get("20d", 0),
+                "categoria": (
+                    "ruido"   if abs(v["rets"].get("20d", 0)) <  3 else
+                    "leve"    if abs(v["rets"].get("20d", 0)) <  5 else
+                    "moderada"if abs(v["rets"].get("20d", 0)) < 10 else
+                    "fuerte"  if abs(v["rets"].get("20d", 0)) < 20 else "crash"
+                ),
+            }
+            for v in vecinos_sel[:10]
+        ]
+
+        # Distribución de categorías (para barras Fase 8)
+        n_vec = len(vecinos_sel)
+        def _n_cat(cat):
+            ranges = {"ruido":(0,3),"leve":(3,5),"moderada":(5,10),"fuerte":(10,20),"crash":(20,999)}
+            lo, hi = ranges[cat]
+            return sum(1 for v in vecinos_sel if lo <= abs(v["rets"].get("20d",0)) < hi)
+        distribucion = {
+            cat: {
+                "porcentaje": round(_n_cat(cat) / n_vec * 100, 1),
+                "n": _n_cat(cat),
+                "descripcion": {
+                    "ruido": "Sin caída (<3%)", "leve": "Leve (3-5%)",
+                    "moderada": "Moderada (5-10%)", "fuerte": "Fuerte (10-20%)",
+                    "crash": "Crash (>20%)",
+                }[cat],
+            }
+            for cat in ["ruido","leve","moderada","fuerte","crash"]
+        }
+
+        mejor_sim = vecinos_sel[0]["similitud"] if vecinos_sel else 0.0
+        fiable    = mejor_sim >= 0.75
+
+        return {
+            "version":             "1.0",
+            "generado":            datetime.now().isoformat(),
+            "fecha_referencia":    feat_norm.index[-1].strftime("%Y-%m-%d"),
+            "n_vecinos":           len(vecinos_sel),
+            "n_dias_historico":    n_total,
+            "ventana_historico":   "2014-hoy",
+            "fiable":              fiable,
+            "mejor_similitud":     round(mejor_sim, 4),
+            "escenario_tipo":      esc_tipo,
+            "escenario_desc":      esc_desc,
+            "interpretacion":      interpretacion,
+            "features_activas":    [c for c in cols_order if feat_norm[c].notna().sum() > 500],
+            "config": {
+                "k_vecinos":              K,
+                "horizonte_max_dias":     LOOKAHEAD,
+                "similitud_minima_fiable": 0.75,
+                "pesos":                  PESOS,
+                "csv_enriquecedores":     csv_enriched,
+            },
+            "retornos":     stats,
+            "distribucion": distribucion,
+            "vecinos_top10": top10,
+        }
+
+    except Exception as e:
+        log.error(f"  [kNN] Error: {e}")
+        import traceback
+        log.error(traceback.format_exc())
+        return {**RESULTADO_DEFAULT, "error": str(e)}
+
+
+
 def _safe_col(df: pd.DataFrame, *candidates) -> pd.Series | None:
     """Devuelve la primera columna existente entre candidatos. Case-insensitive."""
     df_cols_lower = {c.lower(): c for c in df.columns}
@@ -6219,6 +6642,30 @@ def main():
             "fuente": "market_regime_matching_v4",
         }
 
+    # ── 5.75 FASE 4b — kNN Predictor Multivariable ───────────────────────────
+    knn_predictor_data = None
+    log.info("\n[5.75/8] FASE 4b - kNN Predictor Multivariable (12 features + DIX/VVIX/SKEW)...")
+    try:
+        knn_predictor_data = calcular_knn_predictor(df)
+        if not knn_predictor_data.get("error"):
+            esc  = knn_predictor_data.get("escenario_tipo", "?")
+            n    = knn_predictor_data.get("n_vecinos", 0)
+            sim  = knn_predictor_data.get("mejor_similitud", 0)
+            fbl  = knn_predictor_data.get("fiable", False)
+            log.info(f"  OK kNN: {n} vecinos | sim={sim:.3f} | fiable={fbl} | escenario={esc}")
+            s5 = (knn_predictor_data.get("retornos") or {}).get("5d")
+            if s5:
+                log.info(f"     5d: media={s5['media']}% | mediana={s5['mediana']}% | pos={s5['pct_positivo']}%")
+        else:
+            log.warning(f"  [!] kNN error: {knn_predictor_data.get('error')}")
+    except Exception as e:
+        log.error(f"  X kNN Predictor fallo: {e}")
+        knn_predictor_data = {
+            "version": "1.0", "error": str(e),
+            "escenario_tipo": "error", "fiable": False, "n_vecinos": 0,
+            "interpretacion": f"Error: {e}",
+        }
+
     # ── 5.8 FASE 5: Amplitud, Estacionalidad y Kelly Sizing ──────────────────
     amplitud_data = None
     log.info("\n[5.8/8] FASE 5 - Amplitud de Mercado + Estacionalidad + Kelly Sizing...")
@@ -6401,6 +6848,12 @@ def main():
             "score_amplitud":                0,
             "fuente":                        "fase5_amplitud_v5",
             "error":                         "no_ejecutado",
+        },
+        # Fase 4b — kNN Predictor Multivariable
+        "knn_predictor": knn_predictor_data or {
+            "version": "1.0", "error": "no_ejecutado",
+            "escenario_tipo": "sin_datos", "fiable": False,
+            "n_vecinos": 0, "interpretacion": "kNN no ejecutado",
         },
         # Fase 7 — nuevos modulos
         "cta_levels":    cta_data or {"senal_cta": "neutro", "error": "no_ejecutado"},

@@ -474,108 +474,497 @@ def calcular_breadth(tickers, period="60d"):
 
 # ── SIMILITUD HISTORICA ───────────────────────────────────────────────────────
 
-def similitud_historica(rsi_v, vix_v, vix_ch3d, roc5d_v, breadth_v, dist_v):
+def _cargar_csv_externo(nombre_archivo):
+    """
+    Carga un CSV externo desde la carpeta del script (DATOS_CSV/ o raíz).
+    Busca en orden: SCRIPT_DIR/DATOS_CSV/, SCRIPT_DIR/, GitHub raw.
+    Devuelve DataFrame o None si no se encuentra.
+    """
+    import io
+    candidatos = [
+        SCRIPT_DIR / "DATOS_CSV" / nombre_archivo,
+        SCRIPT_DIR / nombre_archivo,
+    ]
+    # Intentar local primero
+    for ruta in candidatos:
+        if ruta.exists():
+            try:
+                return pd.read_csv(ruta)
+            except Exception as e:
+                print(f"  ! {nombre_archivo} local error: {e}")
+
+    # Fallback: GitHub raw (mismo repo que los JSON)
+    base_github = "https://raw.githubusercontent.com/ManULoreN14/nq-proxy/main/"
     try:
-        qqq_l = yf.Ticker("QQQ").history(period="max")["Close"]
-        vix_l = yf.Ticker("^VIX").history(period="max")["Close"]
-        if qqq_l.empty or len(qqq_l)<300:
-            raise ValueError("Historico insuficiente")
+        r = requests.get(base_github + nombre_archivo, timeout=15,
+                         headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code == 200:
+            return pd.read_csv(io.StringIO(r.text))
+    except Exception as e:
+        print(f"  ! {nombre_archivo} GitHub error: {e}")
+    return None
 
-        df = pd.DataFrame({"qqq":qqq_l,"vix":vix_l}).dropna()
-        # Normalizar index a tz-naive para comparaciones seguras
-        if df.index.tz is not None:
-            df.index = df.index.tz_localize(None)
-        df = df[df.index >= pd.Timestamp("2014-01-01")].copy()
 
-        df["rsi"]      = df["qqq"].ewm(span=14).mean()
-        df["roc5d"]    = df["qqq"].pct_change(5)*100
-        df["vix_ch3d"] = df["vix"].pct_change(3)*100
-        df["max60"]    = df["qqq"].rolling(60).max()
-        df["dist_max"] = (df["qqq"]-df["max60"])/df["max60"]*100
-        df["breadth"]  = 70.0
-        df = df.dropna()
+def similitud_historica_v2(
+    rsi_v, vix_v, vix_ch3d, roc5d_v, breadth_v, dist_v,
+    vvix_v=None, skew_v=None, dix_v=None, gex_v=None,
+    spread_vix_pct_v=None, dist_sma200_v=None
+):
+    """
+    kNN multivariable v2 — Predictor de Patrones Históricos enriquecido.
 
-        if len(df)<100: raise ValueError("Pocos datos tras limpieza")
+    Compara el fingerprint actual (hasta 12 features) contra todos los días
+    del histórico QQQ+VIX (2014-hoy) enriquecidos con DIX, GEX, VVIX y SKEW
+    desde los CSVs externos.
 
-        hoy = np.array([dist_v or 0, vix_v or 15, vix_ch3d or 0,
-                        rsi_v or 50, roc5d_v or 0, breadth_v or 70], dtype=float)
-        pesos      = np.array([2.0,1.5,1.5,1.0,1.0,1.2])
-        hist_feats = df[["dist_max","vix","vix_ch3d","rsi","roc5d","breadth"]].values.astype(float)
-        std = hist_feats.std(axis=0); std[std==0]=1.0
-        hist_n = hist_feats/std; hoy_n = hoy/std
+    Devuelve distribución de retornos reales NDX a 2/5/10/20d sobre los
+    k=50 días más similares, con estadísticas completas.
 
-        diffs = (hist_n-hoy_n)*pesos
-        dists = np.sqrt((diffs**2).sum(axis=1))
-        max_d = float(dists.max()) if dists.size>0 else 1.0
-        if max_d==0: max_d=1.0
-        sims = 1.0-dists/max_d
+    Features y pesos:
+      spread_vix_pct  2.0  (VIX Term Structure: contango vs backwardation)
+      dist_sma200     1.8  (distancia a media 200d: sobreextensión)
+      vvix            1.5  (volatilidad de volatilidad)
+      dix             1.5  (actividad dark pools / acumulación institucional)
+      rsi_ndx         1.2  (momentum técnico)
+      roc5d_ndx       1.2  (impulso reciente)
+      gex_pct         1.0  (régimen gamma, percentil rolling)
+      vvix_vix_ratio  1.5  (régimen de miedo relativo)
+      skew            0.8  (put/call OTM skew)
+      vix_ch3d        1.0  (aceleración del VIX)
+      roc20_ndx       1.0  (momentum 20d)
+      breadth         0.8  (amplitud Mag7)
+    """
+    try:
+        print("  [kNN-v2] Cargando histórico QQQ+VIX...")
+        qqq_hist = yf.Ticker("QQQ").history(period="max")["Close"]
+        vix_hist = yf.Ticker("^VIX").history(period="max")["Close"]
+        vix3m_hist = yf.Ticker("^VIX3M").history(period="max")["Close"]
 
-        idx_sorted=np.argsort(-sims); k=50; horizonte=20; vecinos_sel=[]
-        for i in idx_sorted:
-            if len(vecinos_sel)>=k: break
-            fecha_idx=df.index[i]
-            if (df.index[-1]-fecha_idx).days < horizonte+5: continue
-            fut_end=min(i+horizonte,len(df)-1)
-            window=df["qqq"].iloc[i:fut_end+1]
-            if len(window)<2: continue
-            caida=min(0.0,float(window.min()/window.iloc[0]*100-100))
-            cat=("ruido" if caida>-3 else "leve" if caida>-5 else
-                 "moderada" if caida>-10 else "fuerte" if caida>-20 else "crash")
+        if qqq_hist.empty or len(qqq_hist) < 500:
+            raise ValueError("Histórico QQQ insuficiente")
+
+        # Normalizar índices a tz-naive
+        for s in [qqq_hist, vix_hist, vix3m_hist]:
+            if s.index.tz is not None:
+                s.index = s.index.tz_localize(None)
+
+        base = pd.DataFrame({
+            "qqq": qqq_hist,
+            "vix": vix_hist,
+            "vix3m": vix3m_hist,
+        }).dropna(subset=["qqq", "vix"])
+        base = base[base.index >= pd.Timestamp("2014-01-01")].copy()
+
+        # ── Cargar CSVs externos (DIX, VVIX, SKEW) ──────────────────────────
+        dix_df = _cargar_csv_externo("DIX.csv")
+        vvix_df = _cargar_csv_externo("VVIX_History.csv")
+        skew_df = _cargar_csv_externo("SKEW_History.csv")
+
+        if dix_df is not None:
+            dix_df["_fecha"] = pd.to_datetime(dix_df.get("date", dix_df.columns[0]), errors="coerce")
+            dix_df = dix_df.dropna(subset=["_fecha"]).set_index("_fecha")
+            if "dix" in dix_df.columns:
+                base["dix"] = (dix_df["dix"] * 100).reindex(base.index, method="nearest", tolerance=pd.Timedelta("3d"))
+            if "gex" in dix_df.columns:
+                base["gex_raw"] = (dix_df["gex"] / 1e9).reindex(base.index, method="nearest", tolerance=pd.Timedelta("3d"))
+
+        if vvix_df is not None:
+            col_d = next((c for c in vvix_df.columns if c.upper() in ("DATE", "FECHA")), vvix_df.columns[0])
+            col_v = next((c for c in vvix_df.columns if "VVIX" in c.upper()), None)
+            if col_v:
+                vvix_df["_fecha"] = pd.to_datetime(vvix_df[col_d], errors="coerce")
+                vvix_df = vvix_df.dropna(subset=["_fecha"]).set_index("_fecha")
+                base["vvix"] = vvix_df[col_v].reindex(base.index, method="nearest", tolerance=pd.Timedelta("3d"))
+
+        if skew_df is not None:
+            col_d = next((c for c in skew_df.columns if c.upper() in ("DATE", "FECHA")), skew_df.columns[0])
+            col_v = next((c for c in skew_df.columns if "SKEW" in c.upper()), None)
+            if col_v:
+                skew_df["_fecha"] = pd.to_datetime(skew_df[col_d], errors="coerce")
+                skew_df = skew_df.dropna(subset=["_fecha"]).set_index("_fecha")
+                base["skew"] = skew_df[col_v].reindex(base.index, method="nearest", tolerance=pd.Timedelta("3d"))
+
+        print(f"  [kNN-v2] Base enriquecida: {len(base)} días | cols: {[c for c in base.columns if base[c].notna().sum() > 100]}")
+
+        # ── Feature engineering ──────────────────────────────────────────────
+        qqq_s = base["qqq"].ffill()
+        vix_s = base["vix"].ffill()
+        vix3m_s = base["vix3m"].ffill()
+
+        # VIX term structure
+        base["spread_vix_pct"] = (vix3m_s - vix_s) / vix_s.replace(0, np.nan) * 100
+
+        # RSI14
+        d = qqq_s.diff()
+        g = d.clip(lower=0).ewm(com=13, adjust=False).mean()
+        l = (-d.clip(upper=0)).ewm(com=13, adjust=False).mean()
+        base["rsi"] = 100 - (100 / (1 + g / l.replace(0, np.nan)))
+
+        # Distancia a SMA200
+        sma200 = qqq_s.rolling(200, min_periods=200).mean()
+        base["dist_sma200"] = (qqq_s - sma200) / sma200.replace(0, np.nan) * 100
+
+        # Momentum
+        base["roc5d"] = qqq_s.pct_change(5) * 100
+        base["roc20d"] = qqq_s.pct_change(20) * 100
+
+        # Aceleración VIX
+        base["vix_ch3d"] = vix_s.pct_change(3) * 100
+
+        # VVIX/VIX ratio
+        if "vvix" in base.columns:
+            base["vvix_vix_ratio"] = base["vvix"] / vix_s.replace(0, np.nan)
+        else:
+            base["vvix_vix_ratio"] = np.nan
+
+        # GEX percentil rolling 252d
+        if "gex_raw" in base.columns:
+            base["gex_pct"] = base["gex_raw"].rolling(252, min_periods=63).rank(pct=True) * 100
+        else:
+            base["gex_pct"] = np.nan
+
+        # Breadth proxy (constante del día actual si no hay histórico)
+        base["breadth"] = float(breadth_v or 70.0)
+
+        # Añadir columnas opcionales con NaN si no están disponibles
+        # (SKEW puede faltar si el CSV no existe — el kNN lo tolera con thresh=0.55)
+        for _opt_col in ["skew", "dix", "gex_pct", "vvix", "vvix_vix_ratio"]:
+            if _opt_col not in base.columns:
+                base[_opt_col] = np.nan
+
+        # Eliminar filas con demasiados NaN en features core
+        feat_df = base[[
+            "spread_vix_pct", "dist_sma200", "vvix", "vvix_vix_ratio",
+            "dix", "gex_pct", "skew", "rsi", "roc5d", "roc20d",
+            "vix_ch3d", "breadth",
+        ]].copy()
+
+        # ── Normalización Z-score rolling 504d ───────────────────────────────
+        feat_norm = pd.DataFrame(index=feat_df.index)
+        for col in feat_df.columns:
+            s = feat_df[col]
+            rm = s.rolling(504, min_periods=100).mean()
+            rs = s.rolling(504, min_periods=100).std().replace(0, np.nan)
+            feat_norm[col] = ((s - rm) / rs).clip(-4, 4)
+
+        feat_norm = feat_norm.dropna(thresh=int(len(feat_norm.columns) * 0.55))
+
+        if len(feat_norm) < 200:
+            raise ValueError(f"Insuficientes días normalizados: {len(feat_norm)}")
+
+        # ── Fingerprint del día actual ────────────────────────────────────────
+        cols_order = list(feat_norm.columns)
+
+        # Valores actuales: usar los pasados como parámetros; fallback = última fila
+        ultima = feat_norm.iloc[-1]
+
+        def _safe_z(col_name, valor_raw):
+            """Normaliza un valor raw al z-score de esa columna."""
+            if valor_raw is None or (isinstance(valor_raw, float) and np.isnan(valor_raw)):
+                return float(ultima[col_name]) if col_name in ultima.index else 0.0
+            s = feat_df[col_name].dropna() if col_name in feat_df.columns else pd.Series()
+            if len(s) < 50:
+                return 0.0
+            mean_val = s.rolling(504, min_periods=100).mean().iloc[-1]
+            std_val = s.rolling(504, min_periods=100).std().iloc[-1]
+            if np.isnan(mean_val) or np.isnan(std_val) or std_val == 0:
+                return 0.0
+            return float(np.clip((valor_raw - mean_val) / std_val, -4, 4))
+
+        # Construir el vector del fingerprint actual
+        # (usa valores externos si vienen, si no usa la última fila normalizada)
+        hoy_vec = np.array([
+            _safe_z("spread_vix_pct", spread_vix_pct_v),
+            _safe_z("dist_sma200", dist_sma200_v or dist_v),
+            _safe_z("vvix", vvix_v),
+            _safe_z("vvix_vix_ratio", (vvix_v / vix_v) if (vvix_v and vix_v) else None),
+            _safe_z("dix", dix_v),
+            _safe_z("gex_pct", None),   # siempre desde histórico
+            _safe_z("skew", skew_v),
+            _safe_z("rsi", rsi_v),
+            _safe_z("roc5d", roc5d_v),
+            _safe_z("roc20d", None),    # desde histórico
+            _safe_z("vix_ch3d", vix_ch3d),
+            _safe_z("breadth", breadth_v),
+        ], dtype=float)
+
+        # ── Pesos ─────────────────────────────────────────────────────────────
+        PESOS = np.array([
+            2.0,  # spread_vix_pct
+            1.8,  # dist_sma200
+            1.5,  # vvix
+            1.5,  # vvix_vix_ratio
+            1.5,  # dix
+            1.0,  # gex_pct
+            0.8,  # skew
+            1.2,  # rsi
+            1.2,  # roc5d
+            1.0,  # roc20d
+            1.0,  # vix_ch3d
+            0.8,  # breadth
+        ], dtype=float)
+
+        vals = feat_norm[cols_order].values
+        n_total = len(vals)
+
+        # ── kNN: distancia euclidiana ponderada ───────────────────────────────
+        lookahead_max = 22   # días hábiles (~1 mes)
+        exclude_tail = lookahead_max + 5
+        cands_vals = vals[:-exclude_tail]
+        cands_dates = feat_norm.index[:-exclude_tail]
+
+        diffs = (cands_vals - hoy_vec) * np.sqrt(PESOS)
+        dists = np.sqrt((diffs ** 2).sum(axis=1))
+        max_d = float(dists.max()) if dists.max() > 0 else 1.0
+        sims = 1.0 - dists / max_d
+
+        K = 50
+        idx_top = np.argsort(-sims)
+
+        # ── Calcular retornos reales para cada vecino ─────────────────────────
+        qqq_vals = base["qqq"].reindex(feat_norm.index).ffill().values
+        fechas_all = feat_norm.index
+
+        vecinos_sel = []
+        for i in idx_top:
+            if len(vecinos_sel) >= K:
+                break
+            fecha_i = cands_dates[i]
+            pos_global = np.searchsorted(fechas_all, fecha_i)
+
+            # Retornos a 2/5/10/20 días hábiles
+            rets = {}
+            qqq_base = qqq_vals[pos_global] if pos_global < len(qqq_vals) else None
+            if qqq_base is None or np.isnan(qqq_base) or qqq_base == 0:
+                continue
+
+            for h, label in [(2, "2d"), (5, "5d"), (10, "10d"), (20, "20d")]:
+                pos_fut = pos_global + h
+                if pos_fut < len(qqq_vals):
+                    v_fut = qqq_vals[pos_fut]
+                    if not np.isnan(v_fut):
+                        rets[label] = round((v_fut / qqq_base - 1) * 100, 2)
+
+            if len(rets) < 3:
+                continue
+
             vecinos_sel.append({
-                "fecha":fecha_idx.strftime("%Y-%m-%d"),
-                "similitud":round(float(sims[i]),4),
-                "categoria":cat,"caida_max_20d":round(float(caida),2),
+                "fecha": fecha_i.strftime("%Y-%m-%d"),
+                "similitud": round(float(sims[i]), 4),
+                "rets": rets,
             })
 
-        total_v=len(vecinos_sel)
-        descs={"ruido":"Sin caida (<3%)","leve":"Leve (3-5%)",
-               "moderada":"Moderada (5-10%)","fuerte":"Fuerte (10-20%)","crash":"Crash (>20%)"}
-        dist={}
-        for cat in descs:
-            n_cat=sum(1 for v in vecinos_sel if v["categoria"]==cat)
-            dist[cat]={"porcentaje":round(n_cat/total_v*100,1) if total_v else 0,
-                       "n":n_cat,"descripcion":descs[cat]}
+        if len(vecinos_sel) < 10:
+            raise ValueError(f"Pocos vecinos válidos: {len(vecinos_sel)}")
 
-        mejor_sim=vecinos_sel[0]["similitud"] if vecinos_sel else 0.0
-        fiable=mejor_sim>=0.3
-        pct_ok=dist["ruido"]["porcentaje"]+dist["leve"]["porcentaje"]
-        pct_mal=dist["fuerte"]["porcentaje"]+dist["crash"]["porcentaje"]
-        interp=(f"La mayoria ({pct_ok}%) sin caidas. Contexto benigno." if pct_ok>=80 else
-                f"Riesgo elevado: {pct_mal}% precedieron correcciones >10%." if pct_mal>=15 else
-                "Contexto mixto. Correcciones moderadas posibles.")
+        # ── Estadísticas de distribución de retornos ─────────────────────────
+        def _stats_horizonte(label):
+            vals_h = [v["rets"][label] for v in vecinos_sel if label in v["rets"]]
+            if len(vals_h) < 5:
+                return None
+            a = np.array(vals_h)
+            pct_pos = round(float((a > 0).mean() * 100), 1)
+            pct_neg = round(float((a < 0).mean() * 100), 1)
+            return {
+                "n": len(a),
+                "media": round(float(a.mean()), 2),
+                "mediana": round(float(np.median(a)), 2),
+                "p10": round(float(np.percentile(a, 10)), 2),
+                "p25": round(float(np.percentile(a, 25)), 2),
+                "p75": round(float(np.percentile(a, 75)), 2),
+                "p90": round(float(np.percentile(a, 90)), 2),
+                "pct_positivo": pct_pos,
+                "pct_negativo": pct_neg,
+                "max": round(float(a.max()), 2),
+                "min": round(float(a.min()), 2),
+            }
+
+        stats_2d  = _stats_horizonte("2d")
+        stats_5d  = _stats_horizonte("5d")
+        stats_10d = _stats_horizonte("10d")
+        stats_20d = _stats_horizonte("20d")
+
+        # ── Clasificación de similitud a escenarios tipo ──────────────────────
+        # Basado en retorno mediano esperado a 5d y % positivo
+        med5 = stats_5d["mediana"] if stats_5d else 0
+        pct5 = stats_5d["pct_positivo"] if stats_5d else 50
+
+        if pct5 >= 65 and med5 >= 0.8:
+            escenario_tipo = "alcista_fuerte"
+            escenario_desc = "Patrón alcista: la mayoría de análogos subió >0.8% en 5d"
+        elif pct5 >= 55 and med5 >= 0.2:
+            escenario_tipo = "consolidacion"
+            escenario_desc = "Consolidación con sesgo alcista: más subidas que bajadas pero moderadas"
+        elif pct5 <= 35 and med5 <= -0.8:
+            escenario_tipo = "bajista"
+            escenario_desc = "Patrón bajista: la mayoría de análogos bajó en 5d"
+        elif pct5 <= 45 and med5 <= -0.3:
+            escenario_tipo = "techo_mercado"
+            escenario_desc = "Patrón de techo o corrección: sesgo bajista en análogos históricos"
+        elif pct5 >= 55 and med5 >= 0 and (stats_5d["p10"] if stats_5d else 0) < -2.5:
+            escenario_tipo = "suelo_panico"
+            escenario_desc = "Zona de pánico/suelo: sesgo alcista pero con cola bajista asimétrica"
+        else:
+            escenario_tipo = "neutro"
+            escenario_desc = "Patrón sin sesgo claro: análogos mixtos sin dirección dominante"
+
+        # ── Interpretación automática ─────────────────────────────────────────
+        mejor_sim = vecinos_sel[0]["similitud"] if vecinos_sel else 0.0
+        fiable = mejor_sim >= 0.75  # umbral para similitud real (z-score euclidiana)
+
+        if stats_5d:
+            s5 = stats_5d
+            interp = (
+                f"{len(vecinos_sel)} análogos históricos. "
+                f"NDX +{s5['media']:.1f}% medio a 5d ({s5['pct_positivo']:.0f}% positivo, "
+                f"mediana {s5['mediana']:+.1f}%). "
+                f"Rango P10/P90: [{s5['p10']:+.1f}%, {s5['p90']:+.1f}%]."
+            )
+        else:
+            interp = f"{len(vecinos_sel)} análogos encontrados. Datos insuficientes para estadísticas."
+
+        # ── Top 10 vecinos para el dashboard ─────────────────────────────────
+        top10 = [
+            {
+                "fecha": v["fecha"],
+                "similitud": v["similitud"],
+                "ret_2d": v["rets"].get("2d"),
+                "ret_5d": v["rets"].get("5d"),
+                "ret_10d": v["rets"].get("10d"),
+                "ret_20d": v["rets"].get("20d"),
+                # Categoría de corrección (compatibilidad con Fase 8 frontend)
+                "caida_max_20d": v["rets"].get("20d", 0),
+                "categoria": (
+                    "ruido" if abs(v["rets"].get("20d", 0)) < 3 else
+                    "leve" if abs(v["rets"].get("20d", 0)) < 5 else
+                    "moderada" if abs(v["rets"].get("20d", 0)) < 10 else
+                    "fuerte" if abs(v["rets"].get("20d", 0)) < 20 else "crash"
+                ),
+            }
+            for v in vecinos_sel[:10]
+        ]
+
+        # Distribución de categorías (compatibilidad con Fase 8 existente)
+        descs = {
+            "ruido": "Sin caída (<3%)", "leve": "Leve (3-5%)",
+            "moderada": "Moderada (5-10%)", "fuerte": "Fuerte (10-20%)", "crash": "Crash (>20%)",
+        }
+        distribucion = {}
+        n_vec = len(vecinos_sel)
+        for cat, desc in descs.items():
+            n_cat = sum(1 for v in top10 if v["categoria"] == cat)
+            # Usar los 50 vecinos para la distribución real
+            n_cat_full = sum(
+                1 for v in vecinos_sel
+                if abs(v["rets"].get("20d", 0)) < (3 if cat == "ruido" else
+                       5 if cat == "leve" else 10 if cat == "moderada" else
+                       20 if cat == "fuerte" else 999)
+                and abs(v["rets"].get("20d", 0)) >= (0 if cat == "ruido" else
+                        3 if cat == "leve" else 5 if cat == "moderada" else
+                        10 if cat == "fuerte" else 20)
+            )
+            distribucion[cat] = {
+                "porcentaje": round(n_cat_full / n_vec * 100, 1) if n_vec else 0,
+                "n": n_cat_full,
+                "descripcion": desc,
+            }
+
+        print(f"  [kNN-v2] OK: {len(vecinos_sel)} vecinos | mejor_sim={mejor_sim:.3f} | "
+              f"5d media={stats_5d['media'] if stats_5d else '?'}% "
+              f"({stats_5d['pct_positivo'] if stats_5d else '?'}% pos)")
 
         return {
-            "version":"1.1","generado":utcnow_str(),
-            "fecha_referencia":datetime.date.today().isoformat(),
-            "fingerprint_hoy":{
-                "dist_pct":round(float(dist_v or 0),2),"rsi":rsi_v or 0,
-                "vix":vix_v or 0,"vix_change_3d_pct":round(float(vix_ch3d or 0),2),
-                "roc5d":roc5d_v or 0,"breadth_pct":breadth_v or 0,
+            "version": "2.0",
+            "generado": utcnow_str(),
+            "fecha_referencia": datetime.date.today().isoformat(),
+            "n_vecinos": len(vecinos_sel),
+            "n_dias_historico": n_total,
+            "ventana_historico": "2014-hoy",
+            "fiable": fiable,
+            "mejor_similitud": round(mejor_sim, 4),
+            "escenario_tipo": escenario_tipo,
+            "escenario_desc": escenario_desc,
+            "interpretacion": interp,
+            "fingerprint_hoy": {
+                "spread_vix_pct": round(spread_vix_pct_v, 2) if spread_vix_pct_v is not None else None,
+                "dist_sma200": round(dist_sma200_v or dist_v or 0, 2),
+                "vvix": vvix_v,
+                "dix": dix_v,
+                "skew": skew_v,
+                "rsi_ndx": rsi_v,
+                "roc5d": roc5d_v,
+                "vix": vix_v,
+                "vix_ch3d_pct": round(vix_ch3d or 0, 2),
             },
-            "config":{"k_vecinos":k,"horizonte_dias":horizonte,"n_dias_base":len(df),
-                      "pesos":{"dist_pct":2.0,"vix":1.5,"vix_change_3d_pct":1.5,
-                               "rsi":1.0,"roc5d":1.0,"breadth_pct":1.2},
-                      "similitud_minima_fiable":0.3},
-            "distribucion":dist,"fiable":fiable,"mejor_similitud":mejor_sim,
-            "vecinos_top10":vecinos_sel[:10],"interpretacion":interp,
+            "config": {
+                "k_vecinos": K,
+                "horizonte_dias": lookahead_max,
+                "n_dias_base": n_total,
+                "similitud_minima_fiable": 0.75,
+                "pesos": {
+                    "spread_vix_pct": 2.0, "dist_sma200": 1.8, "vvix": 1.5,
+                    "vvix_vix_ratio": 1.5, "dix": 1.5, "gex_pct": 1.0,
+                    "skew": 0.8, "rsi": 1.2, "roc5d": 1.2, "roc20d": 1.0,
+                    "vix_ch3d": 1.0, "breadth": 0.8,
+                },
+                "features_csv": ["dix", "gex", "vvix", "skew"],
+            },
+            "retornos": {
+                "2d": stats_2d,
+                "5d": stats_5d,
+                "10d": stats_10d,
+                "20d": stats_20d,
+            },
+            "distribucion": distribucion,
+            "vecinos_top10": top10,
         }
 
     except Exception as e:
-        print(f"  ! Similitud: {e}")
+        print(f"  ! kNN-v2: {e}")
+        import traceback; traceback.print_exc()
+        # Fallback: intentar cargar del JSON anterior si existe
         if OUTPUT_FILE.exists():
             try:
-                old=json.loads(OUTPUT_FILE.read_text(encoding="utf-8"))
-                sim=old.get("similitud_historica",{})
-                sim["generado"]=utcnow_str()
-                sim["fingerprint_hoy"]={
-                    "dist_pct":round(float(dist_v or 0),2),"rsi":rsi_v or 0,
-                    "vix":vix_v or 0,"vix_change_3d_pct":round(float(vix_ch3d or 0),2),
-                    "roc5d":roc5d_v or 0,"breadth_pct":breadth_v or 0,
-                }
-                return sim
-            except: pass
-        return {"version":"1.1","fiable":False,"generado":utcnow_str(),
-                "interpretacion":"Sin datos historicos."}
+                old = json.loads(OUTPUT_FILE.read_text(encoding="utf-8"))
+                sim = old.get("similitud_historica", {})
+                if sim.get("version") == "2.0":
+                    sim["generado"] = utcnow_str()
+                    sim["_cache"] = True
+                    return sim
+            except Exception:
+                pass
+        return {
+            "version": "2.0", "fiable": False, "n_vecinos": 0,
+            "generado": utcnow_str(),
+            "fecha_referencia": datetime.date.today().isoformat(),
+            "interpretacion": f"No disponible: {e}",
+            "escenario_tipo": "sin_datos",
+            "escenario_desc": "Sin datos históricos.",
+            "distribucion": {},
+            "vecinos_top10": [],
+        }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  LEGACY WRAPPER — mantiene compatibilidad con la llamada original de run()
+# ─────────────────────────────────────────────────────────────────────────────
+def similitud_historica(rsi_v, vix_v, vix_ch3d, roc5d_v, breadth_v, dist_v):
+    """
+    Wrapper legacy — delega en similitud_historica_v2 con los parámetros
+    disponibles. Los parámetros enriquecidos (vvix, skew, dix, gex) se
+    cargan internamente desde los CSVs externos en la v2.
+    """
+    return similitud_historica_v2(
+        rsi_v=rsi_v,
+        vix_v=vix_v,
+        vix_ch3d=vix_ch3d,
+        roc5d_v=roc5d_v,
+        breadth_v=breadth_v,
+        dist_v=dist_v,
+        # Los parámetros enriquecidos se cargan desde CSV en la v2
+        vvix_v=None, skew_v=None, dix_v=None, gex_v=None,
+        spread_vix_pct_v=None, dist_sma200_v=None,
+    )
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MOTOR PRINCIPAL
@@ -670,9 +1059,26 @@ def run():
     fg=fear_greed()
     print(f"  F&G={fg['score']} ({fg['estado']}) fuente={fg.get('fuente')}")
 
-    print("Similitud historica (kNN)...")
-    sim=similitud_historica(rsi_v,p_vix,vix_ch3d,roc5d_v,br_pct50,dist_max)
-    print(f"  fiable={sim.get('fiable')} | mejor_sim={sim.get('mejor_similitud')}")
+    print("Similitud historica (kNN v2 — 12 features + DIX/VVIX/SKEW)...")
+    # Calcular parametros enriquecidos disponibles en este punto de run()
+    _spread_vix_pct = None
+    if p_vix and p_v3m and p_vix > 0:
+        _spread_vix_pct = round((p_v3m - p_vix) / p_vix * 100, 2)
+    _dist_sma200 = None
+    if qqq is not None and len(qqq) >= 200:
+        _sma200_val = float(qqq.rolling(200).mean().iloc[-1])
+        if _sma200_val and _sma200_val > 0 and p_qqq:
+            _dist_sma200 = round((p_qqq - _sma200_val) / _sma200_val * 100, 2)
+    sim = similitud_historica_v2(
+        rsi_v=rsi_v, vix_v=p_vix, vix_ch3d=vix_ch3d,
+        roc5d_v=roc5d_v, breadth_v=br_pct50, dist_v=dist_max,
+        spread_vix_pct_v=_spread_vix_pct, dist_sma200_v=_dist_sma200,
+        vvix_v=None, skew_v=None, dix_v=None, gex_v=None,
+    )
+    print(f"  version={sim.get('version')} | fiable={sim.get('fiable')} | mejor_sim={sim.get('mejor_similitud')} | escenario={sim.get('escenario_tipo')}")
+    if sim.get("retornos", {}).get("5d"):
+        s5 = sim["retornos"]["5d"]
+        print(f"  5d: media={s5['media']}% | mediana={s5['mediana']}% | pos={s5['pct_positivo']}%")
 
     factores=[]; risk=0.0
     if rsi_v:
