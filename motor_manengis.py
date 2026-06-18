@@ -713,10 +713,15 @@ def similitud_historica_v2(
         cands_vals = vals[:-exclude_tail]
         cands_dates = feat_norm.index[:-exclude_tail]
 
-        diffs = (cands_vals - hoy_vec) * np.sqrt(PESOS)
+        # Sustituir NaN por 0 antes de calcular distancias
+        # (features ausentes no penalizan ni distorsionan)
+        hoy_clean   = np.where(np.isnan(hoy_vec), 0.0, hoy_vec)
+        cands_clean = np.where(np.isnan(cands_vals), 0.0, cands_vals)
+
+        diffs = (cands_clean - hoy_clean) * np.sqrt(PESOS)
         dists = np.sqrt((diffs ** 2).sum(axis=1))
-        max_d = float(dists.max()) if dists.max() > 0 else 1.0
-        sims = 1.0 - dists / max_d
+        max_d = float(np.nanmax(dists)) if np.nanmax(dists) > 0 else 1.0
+        sims  = 1.0 - dists / max_d
 
         K = 50
         idx_top = np.argsort(-sims)
