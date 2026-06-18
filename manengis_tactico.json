@@ -1,23 +1,23 @@
 {
   "version": "2.4",
-  "generado": "2026-06-18T08:18:48+00:00",
+  "generado": "2026-06-18T08:16:01+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
     "precio_qqq": 722.51,
     "precio_ndx": 29670.9492,
-    "vix": 16.96,
+    "vix": 17.05,
     "rsi": 45.83,
     "ema20": 719.44,
     "ema50": 692.99,
     "atr14": 17.47,
     "roc5d": 4.15,
     "vix3m": 20.51,
-    "vix_ts_ratio": 0.8269,
+    "vix_ts_ratio": 0.8313,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_normal",
-    "cot_lev_net": null,
-    "cot_sesgo": "sin_datos",
+    "cot_lev_net": -34306,
+    "cot_sesgo": "neutro",
     "breadth_pct_ema20": 0.0,
     "breadth_pct_ema50": 28.6,
     "breadth_divergencia": true,
@@ -35,8 +35,7 @@
     "us30y": 4.93,
     "spread_2_10": 0.38,
     "spread_3m_10": 0.64,
-    "curva_invertida": false,
-    "max_pain": 650.0
+    "curva_invertida": false
   },
   "tecnicos": {
     "precio": 722.51,
@@ -47,19 +46,39 @@
     "roc5d": 4.15
   },
   "vix_term_structure": {
-    "vix": 16.96,
+    "vix": 17.05,
     "vix3m": 20.51,
-    "ratio": 0.8269,
-    "spread": 3.55,
+    "ratio": 0.8313,
+    "spread": 3.46,
     "backwardation": false,
     "estado": "contango_normal",
-    "descripcion": "VIX (16.96) < VIX3M (20.51): contango_normal"
+    "descripcion": "VIX (17.05) < VIX3M (20.51): contango_normal"
   },
   "cot": {
-    "error": "No disponible"
+    "fecha_reporte": "2026-06-09",
+    "leveraged_long": 68287,
+    "leveraged_short": 102593,
+    "leveraged_net": -34306,
+    "leveraged_net_prev": -53650,
+    "asset_manager_long": 114627,
+    "asset_manager_short": 31260,
+    "asset_manager_net": 83367,
+    "dealer_long": 56113,
+    "dealer_short": 103454,
+    "dealer_net": -47341,
+    "pct_largo": 40.0,
+    "sesgo": "neutro",
+    "descripcion": "Leveraged Funds corto neto 34,306 contratos en NQ. Sesgo: NEUTRO. (40.0% largos · Dealers neto -47,341)"
   },
   "cot_vix": {
-    "error": "No disponible"
+    "fecha_reporte": "2026-06-09",
+    "nc_long": 67684,
+    "nc_short": 102974,
+    "neto": -35290,
+    "neto_prev": -33033,
+    "pct_largo": 39.7,
+    "senal": "alcista",
+    "descripcion": "Leveraged Money cortos netos en VIX: 35,290 contratos. Senal: ALCISTA."
   },
   "breadth": {
     "tickers_validos": 7,
@@ -177,7 +196,7 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX +4.69% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX +5.25% (3 dias)."
   },
   "fred": {
     "score": -1,
@@ -266,26 +285,26 @@
   },
   "similitud_historica": {
     "version": "2.0",
-    "generado": "2026-06-18T08:18:48+00:00",
+    "generado": "2026-06-18T08:16:01+00:00",
     "fecha_referencia": "2026-06-18",
     "n_vecinos": 50,
     "n_dias_historico": 3031,
     "ventana_historico": "2014-hoy",
     "fiable": true,
-    "mejor_similitud": 0.7997,
+    "mejor_similitud": 0.8018,
     "escenario_tipo": "alcista_fuerte",
     "escenario_desc": "Patrón alcista: la mayoría de análogos subió >0.8% en 5d",
     "interpretacion": "50 análogos históricos. NDX +0.2% medio a 5d (70% positivo, mediana +0.9%). Rango P10/P90: [-4.4%, +2.5%].",
     "fingerprint_hoy": {
-      "spread_vix_pct": 20.93,
+      "spread_vix_pct": 20.29,
       "dist_sma200": -3.17,
       "vvix": null,
       "dix": null,
       "skew": null,
       "rsi_ndx": 45.83,
       "roc5d": 4.15,
-      "vix": 16.96,
-      "vix_ch3d_pct": 4.69
+      "vix": 17.05,
+      "vix_ch3d_pct": 5.25
     },
     "config": {
       "k_vecinos": 50,
@@ -329,12 +348,12 @@
       },
       "5d": {
         "n": 50,
-        "media": 0.22,
+        "media": 0.25,
         "mediana": 0.87,
         "p10": -4.4,
         "p25": -0.75,
-        "p75": 1.73,
-        "p90": 2.47,
+        "p75": 1.74,
+        "p90": 2.52,
         "pct_positivo": 70.0,
         "pct_negativo": 30.0,
         "max": 8.4,
@@ -342,11 +361,11 @@
       },
       "10d": {
         "n": 50,
-        "media": 0.3,
-        "mediana": 1.5,
+        "media": 0.35,
+        "mediana": 1.59,
         "p10": -6.78,
         "p25": -1.66,
-        "p75": 2.67,
+        "p75": 2.92,
         "p90": 5.34,
         "pct_positivo": 70.0,
         "pct_negativo": 30.0,
@@ -355,11 +374,11 @@
       },
       "20d": {
         "n": 50,
-        "media": 0.44,
+        "media": 0.42,
         "mediana": 3.48,
         "p10": -8.75,
         "p25": -6.38,
-        "p75": 4.6,
+        "p75": 4.49,
         "p90": 7.84,
         "pct_positivo": 58.0,
         "pct_negativo": 42.0,
@@ -374,13 +393,13 @@
         "descripcion": "Sin caída (<3%)"
       },
       "leve": {
-        "porcentaje": 34.0,
-        "n": 17,
+        "porcentaje": 36.0,
+        "n": 18,
         "descripcion": "Leve (3-5%)"
       },
       "moderada": {
-        "porcentaje": 40.0,
-        "n": 20,
+        "porcentaje": 38.0,
+        "n": 19,
         "descripcion": "Moderada (5-10%)"
       },
       "fuerte": {
@@ -397,7 +416,7 @@
     "vecinos_top10": [
       {
         "fecha": "2022-04-19",
-        "similitud": 0.7997,
+        "similitud": 0.8018,
         "ret_2d": -3.5,
         "ret_5d": -8.41,
         "ret_10d": -7.92,
@@ -407,7 +426,7 @@
       },
       {
         "fecha": "2016-03-01",
-        "similitud": 0.7959,
+        "similitud": 0.7969,
         "ret_2d": -0.15,
         "ret_5d": -1.55,
         "ret_10d": 0.79,
@@ -417,7 +436,7 @@
       },
       {
         "fecha": "2015-04-06",
-        "similitud": 0.7893,
+        "similitud": 0.7904,
         "ret_2d": 0.62,
         "ret_5d": 1.42,
         "ret_10d": 1.53,
@@ -426,18 +445,8 @@
         "categoria": "leve"
       },
       {
-        "fecha": "2016-05-24",
-        "similitud": 0.7843,
-        "ret_2d": 1.01,
-        "ret_5d": 1.74,
-        "ret_10d": 1.76,
-        "ret_20d": -0.86,
-        "caida_max_20d": -0.86,
-        "categoria": "ruido"
-      },
-      {
         "fecha": "2019-02-19",
-        "similitud": 0.7808,
+        "similitud": 0.7844,
         "ret_2d": -0.38,
         "ret_5d": 0.82,
         "ret_10d": 1.32,
@@ -446,8 +455,18 @@
         "categoria": "leve"
       },
       {
+        "fecha": "2016-05-24",
+        "similitud": 0.7838,
+        "ret_2d": 1.01,
+        "ret_5d": 1.74,
+        "ret_10d": 1.76,
+        "ret_20d": -0.86,
+        "caida_max_20d": -0.86,
+        "categoria": "ruido"
+      },
+      {
         "fecha": "2016-03-04",
-        "similitud": 0.7769,
+        "similitud": 0.777,
         "ret_2d": -1.44,
         "ret_5d": 0.78,
         "ret_10d": 1.91,
@@ -457,7 +476,7 @@
       },
       {
         "fecha": "2015-04-02",
-        "similitud": 0.7754,
+        "similitud": 0.7749,
         "ret_2d": 0.65,
         "ret_5d": 2.5,
         "ret_10d": 0.85,
@@ -467,7 +486,7 @@
       },
       {
         "fecha": "2016-03-07",
-        "similitud": 0.7726,
+        "similitud": 0.7738,
         "ret_2d": -0.19,
         "ret_5d": 1.57,
         "ret_10d": 2.94,
@@ -476,24 +495,24 @@
         "categoria": "leve"
       },
       {
-        "fecha": "2022-03-24",
-        "similitud": 0.7713,
-        "ret_2d": 1.46,
-        "ret_5d": 0.8,
-        "ret_10d": -1.54,
-        "ret_20d": -9.52,
-        "caida_max_20d": -9.52,
-        "categoria": "moderada"
-      },
-      {
         "fecha": "2019-02-15",
-        "similitud": 0.7699,
+        "similitud": 0.7733,
         "ret_2d": 0.18,
         "ret_5d": 0.92,
         "ret_10d": 1.44,
         "ret_20d": 3.98,
         "caida_max_20d": 3.98,
         "categoria": "leve"
+      },
+      {
+        "fecha": "2022-03-24",
+        "similitud": 0.7725,
+        "ret_2d": 1.46,
+        "ret_5d": 0.8,
+        "ret_10d": -1.54,
+        "ret_20d": -9.52,
+        "caida_max_20d": -9.52,
+        "categoria": "moderada"
       }
     ]
   },
@@ -756,7 +775,7 @@
       "exposicion_semaforo": "verde",
       "exposicion_pct": 80,
       "precio_qqq": 722.51,
-      "vix": 16.96
+      "vix": 17.05
     }
   ],
   "sentimiento": {
@@ -768,89 +787,7 @@
     "tickers_72h": []
   },
   "derivados": {
-    "precio_qqq": 722.51,
-    "vencimientos": [
-      "Tue Jun 16 2026",
-      "Wed Jun 17 2026",
-      "Thu Jun 18 2026",
-      "Mon Jun 22 2026",
-      "Tue Jun 23 2026",
-      "Wed Jun 24 2026",
-      "Thu Jun 25 2026",
-      "Fri Jun 26 2026",
-      "Mon Jun 29 2026",
-      "Tue Jun 30 2026",
-      "Thu Jul 02 2026",
-      "Fri Jul 10 2026",
-      "Fri Jul 17 2026",
-      "Fri Jul 24 2026",
-      "Fri Jul 31 2026",
-      "Fri Aug 21 2026",
-      "Mon Aug 31 2026",
-      "Fri Sep 18 2026",
-      "Wed Sep 30 2026",
-      "Fri Oct 16 2026",
-      "Fri Dec 18 2026",
-      "Thu Dec 31 2026",
-      "Fri Jan 15 2027",
-      "Fri Mar 19 2027",
-      "Wed Mar 31 2027",
-      "Thu Jun 17 2027",
-      "Fri Sep 17 2027",
-      "Fri Dec 17 2027",
-      "Fri Jan 21 2028",
-      "Fri Jun 16 2028",
-      "Fri Dec 15 2028"
-    ],
-    "top_call_strikes": [
-      {
-        "strike": 740.0,
-        "oi": 44377,
-        "dist": 0.93
-      },
-      {
-        "strike": 750.0,
-        "oi": 31827,
-        "dist": 2.29
-      },
-      {
-        "strike": 735.0,
-        "oi": 29205,
-        "dist": 0.24
-      }
-    ],
-    "top_put_strikes": [
-      {
-        "strike": 590.0,
-        "oi": 84724,
-        "dist": -19.53
-      },
-      {
-        "strike": 580.0,
-        "oi": 84303,
-        "dist": -20.9
-      },
-      {
-        "strike": 600.0,
-        "oi": 80584,
-        "dist": -18.17
-      }
-    ],
-    "resistencia_principal": {
-      "strike": 740.0,
-      "oi": 44377,
-      "dist": 0.93
-    },
-    "soporte_principal": {
-      "strike": 590.0,
-      "oi": 84724,
-      "dist": -19.53
-    },
-    "rango_semana": {
-      "techo": 740.0,
-      "suelo": 590.0,
-      "amplitudPct": 20.46
-    }
+    "precio_qqq": 722.51
   },
   "skew": {},
   "barrida_estructural": {
@@ -858,28 +795,6 @@
     "zona_barrida": false
   },
   "pcr": {
-    "equity": null,
-    "total": 5.748,
-    "index": null,
-    "spx": null,
-    "señal": "alcista_contrario",
-    "fecha": null,
-    "fuente": "yahoo_qqq_options"
-  },
-  "vixTermStructure": {
-    "spot": 16.2,
-    "vx1": 18.63,
-    "vx2": 20.62,
-    "vx1_symbol": "^VIX9D",
-    "vx2_symbol": "^VIX3M",
-    "vx1_expiry": null,
-    "spread1": 2.18,
-    "spread1Pct": 11.8,
-    "backwardation": false,
-    "vixPercentil": 40.4,
-    "señal": "bajista",
-    "desc": "Contango elevado — complacencia, vigilar",
-    "fuente": "yfinance_auto (VIX9D/VIX3M)",
-    "usando_settlement": false
+    "error": "pcr_cboe: 403 Client Error: Forbidden for url: https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv"
   }
 }
