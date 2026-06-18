@@ -1954,44 +1954,45 @@ def detectar_giro(df_maestro: pd.DataFrame, tecnicos: dict) -> dict:
 #  FLUJO NETO REAL QQQ (shares outstanding × NAV)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def calcular_etf_flows_reales(dias: int = 5) -> dict:
+def calcular_etf_flows_reales(dias: int = 5, gex_percentil: float = None) -> dict:
     """
-    Calcula flujo neto diario QQQ en millones USD usando:
-      flujo_dia = (shares_outstanding_hoy - shares_outstanding_ayer) × NAV_hoy
+    Calcula tres métricas avanzadas de flujo QQQ via yfinance:
 
-    yfinance expone shares_outstanding como dato puntual (no histórico).
-    Usamos la aproximación volume-based como proxy diario:
-      flujo_estimado_dia = (close - open) × volume  → proxy del flujo neto
-    y normalizado a M$ dividiendo entre 1e6.
+    1. FLUJO NETO DIARIO (M$)
+       flujo_dia = (close - open) × volume / 1e6
+       Correlación ~0.70 con flujos reales de ETF.com
 
-    Esta aproximación tiene correlación ~0.70 con flujos reales de ETF.com
-    (suficiente como señal de dirección).
+    2. Z-SCORE FLUJO ACUMULADO
+       Flujo acumulado 20d normalizado por su media/std histórica (252d).
+       Un z-score > +2σ o < -2σ es anomalía estadística → señal anticipatoria.
+       Feature para kNN: flujo_zscore_20d
 
-    Returns dict con:
-      - dias: lista de {fecha, flujo_estimado_m, cambio_pct, señal}
-      - flujo_neto_5d_m: suma de los últimos 5 días en M$
-      - señal: alcista / bajista / neutro
-      - descripcion: texto legible
+    3. CONFLUENCIA FLUJO × GEX
+       Cruza dirección del flujo 5d con el percentil del GEX:
+         - flujo alcista + GEX alto (>60p)  → tendencia sostenible
+         - flujo alcista + GEX bajo (<40p)  → rally frágil
+         - flujo bajista + GEX bajo (<40p)  → caída con aceleración
+         - flujo bajista + GEX alto (>60p)  → posible soporte dealer
+       Feature para kNN: flujo_gex_confluencia (-2 a +2)
+
+    Returns dict con todas las métricas + campos legacy compatibles.
     """
     try:
         import yfinance as yf
 
-        # Descargar 10 días de datos OHLCV de QQQ (sin auto-adjust para tener
-        # el volumen real de creaciones/redenciones implícito)
-        hist = yf.download("QQQ", period=f"{dias + 5}d", progress=False,
-                           auto_adjust=False)
+        # ── Descargar histórico amplio para z-score (252d hábiles ≈ 1 año) ──
+        hist = yf.download("QQQ", period="300d", progress=False, auto_adjust=False)
 
-        if hist.empty or len(hist) < 2:
+        if hist.empty or len(hist) < 20:
             return {"error": "yfinance vacío", "dias": [], "flujo_neto_5d_m": None, "señal": "neutro"}
 
-        # Aplanar columnas MultiIndex si yfinance las devuelve así
+        # Aplanar MultiIndex
         if isinstance(hist.columns, pd.MultiIndex):
             hist.columns = ['_'.join(c).strip('_') for c in hist.columns]
 
-        # Detectar columnas
-        close_col  = next((c for c in hist.columns if 'Close' in c or 'close' in c), None)
-        open_col   = next((c for c in hist.columns if 'Open'  in c or 'open'  in c), None)
-        volume_col = next((c for c in hist.columns if 'Volume' in c or 'volume' in c), None)
+        close_col  = next((c for c in hist.columns if 'Close'  in c), None)
+        open_col   = next((c for c in hist.columns if 'Open'   in c), None)
+        volume_col = next((c for c in hist.columns if 'Volume' in c), None)
 
         if not close_col or not volume_col:
             return {"error": "columnas no encontradas", "dias": [], "flujo_neto_5d_m": None, "señal": "neutro"}
@@ -2000,67 +2001,171 @@ def calcular_etf_flows_reales(dias: int = 5) -> dict:
         volume = hist[volume_col].reindex(close.index).fillna(0)
         opens  = hist[open_col].reindex(close.index).fillna(close) if open_col else close
 
-        # Últimos N días hábiles
-        ultimos = close.index[-dias:]
-        dias_resultado = []
+        # ── Serie completa de flujo diario (M$) ──────────────────────────────
+        flujo_serie = ((close - opens) * volume / 1e6).round(1)
 
-        for fecha in ultimos:
+        # ── MÉTRICA 1: Flujo neto últimos N días ─────────────────────────────
+        ultimos_idx = close.index[-dias:]
+        dias_resultado = []
+        for fecha in ultimos_idx:
             c   = float(close.loc[fecha])
             o   = float(opens.loc[fecha])
-            v   = float(volume.loc[fecha])
-            # Flujo estimado: (close - open) × volumen → escalar a M$
-            flujo_m = round((c - o) * v / 1e6, 1)
             cambio_pct = round((c / o - 1) * 100, 2) if o > 0 else 0.0
             dias_resultado.append({
                 "fecha":          str(fecha)[:10],
-                "flujo_estimado": flujo_m,   # M$  (positivo = entrada, negativo = salida)
-                "cambio":         cambio_pct  # % del día
+                "flujo_estimado": round(float(flujo_serie.loc[fecha]), 1),
+                "cambio":         cambio_pct
             })
 
-        # Flujo neto acumulado 5d
         flujo_5d = round(sum(d["flujo_estimado"] for d in dias_resultado), 1)
 
-        # Días consecutivos negativos (desde hoy hacia atrás)
         dias_neg_consec = 0
         for d in reversed(dias_resultado):
-            if d["flujo_estimado"] < 0:
-                dias_neg_consec += 1
-            else:
-                break
+            if d["flujo_estimado"] < 0: dias_neg_consec += 1
+            else: break
 
         dias_pos_consec = 0
         for d in reversed(dias_resultado):
-            if d["flujo_estimado"] > 0:
-                dias_pos_consec += 1
-            else:
-                break
+            if d["flujo_estimado"] > 0: dias_pos_consec += 1
+            else: break
 
-        # Señal
-        if dias_neg_consec >= 3 and flujo_5d < 0:
-            senal = "bajista"
-            desc  = f"{dias_neg_consec} días consecutivos de salidas · flujo neto {flujo_5d:+.0f}M$"
-        elif dias_pos_consec >= 3 and flujo_5d > 0:
-            senal = "alcista"
-            desc  = f"{dias_pos_consec} días consecutivos de entradas · flujo neto {flujo_5d:+.0f}M$"
-        elif flujo_5d < -500:
-            senal = "bajista"
-            desc  = f"Flujo neto negativo {flujo_5d:+.0f}M$ en 5 días"
-        elif flujo_5d > 500:
-            senal = "alcista"
-            desc  = f"Flujo neto positivo {flujo_5d:+.0f}M$ en 5 días"
-        else:
-            senal = "neutro"
-            desc  = f"Flujo neto mixto {flujo_5d:+.0f}M$ en 5 días"
+        if   dias_neg_consec >= 3 and flujo_5d < 0:  senal = "bajista"
+        elif dias_pos_consec >= 3 and flujo_5d > 0:  senal = "alcista"
+        elif flujo_5d < -500:                         senal = "bajista"
+        elif flujo_5d >  500:                         senal = "alcista"
+        else:                                          senal = "neutro"
+
+        desc = (f"{dias_neg_consec} días consecutivos de salidas · flujo neto {flujo_5d:+.0f}M$"
+                if senal == "bajista" and dias_neg_consec >= 3 else
+                f"{dias_pos_consec} días consecutivos de entradas · flujo neto {flujo_5d:+.0f}M$"
+                if senal == "alcista" and dias_pos_consec >= 3 else
+                f"Flujo neto {flujo_5d:+.0f}M$ en 5 días")
+
+        # ── MÉTRICA 2: Z-score flujo acumulado 20d ───────────────────────────
+        # Ventana acumulada rodante de 20d
+        flujo_acum20 = flujo_serie.rolling(20).sum().dropna()
+        zscore_20d   = None
+        zscore_label = "sin datos"
+        zscore_senal = "neutro"
+        flujo_acum_actual = None
+
+        if len(flujo_acum20) >= 60:
+            # Media y std sobre la ventana histórica completa disponible
+            mu  = float(flujo_acum20.mean())
+            std = float(flujo_acum20.std())
+            if std > 0:
+                acum_actual    = float(flujo_acum20.iloc[-1])
+                flujo_acum_actual = round(acum_actual, 1)
+                zscore_20d     = round((acum_actual - mu) / std, 2)
+                if   zscore_20d >  2.0:
+                    zscore_label = f"+{zscore_20d:.2f}σ — flujo extremo alcista (anomalía)"
+                    zscore_senal = "alcista_extremo"
+                elif zscore_20d >  1.0:
+                    zscore_label = f"+{zscore_20d:.2f}σ — flujo por encima de media"
+                    zscore_senal = "alcista"
+                elif zscore_20d < -2.0:
+                    zscore_label = f"{zscore_20d:.2f}σ — flujo extremo bajista (anomalía)"
+                    zscore_senal = "bajista_extremo"
+                elif zscore_20d < -1.0:
+                    zscore_label = f"{zscore_20d:.2f}σ — flujo por debajo de media"
+                    zscore_senal = "bajista"
+                else:
+                    zscore_label = f"{zscore_20d:+.2f}σ — flujo en rango normal"
+                    zscore_senal = "neutro"
+
+        # Serie normalizada 20d para el gráfico divergencia (últimos 20 días)
+        ultimos_20_idx   = close.index[-20:]
+        serie_precio_20d = [round(float(close.loc[f]), 2) for f in ultimos_20_idx]
+        serie_acum_20d   = []
+        for i, fecha in enumerate(ultimos_20_idx):
+            if fecha in flujo_serie.index:
+                # acumulado desde el primer día de la ventana de 20d
+                acum_parcial = float(flujo_serie.loc[ultimos_20_idx[0]:fecha].sum())
+                serie_acum_20d.append(round(acum_parcial, 1))
+            else:
+                serie_acum_20d.append(None)
+
+        fechas_20d = [str(f)[:10] for f in ultimos_20_idx]
+
+        # Detectar divergencia precio-flujo en los últimos 10d
+        divergencia = False
+        div_desc    = "Sin divergencia detectada"
+        if len(serie_precio_20d) >= 10 and len(serie_acum_20d) >= 10:
+            p_ini  = serie_precio_20d[-10]
+            p_fin  = serie_precio_20d[-1]
+            a_ini  = serie_acum_20d[-10]
+            a_fin  = serie_acum_20d[-1]
+            if p_ini and p_fin and a_ini is not None and a_fin is not None:
+                precio_sube = p_fin > p_ini * 1.005   # +0.5% mínimo
+                flujo_baja  = a_fin < a_ini - 200      # -200M$ mínimo
+                flujo_sube  = a_fin > a_ini + 200
+                precio_baja = p_fin < p_ini * 0.995
+                if precio_sube and flujo_baja:
+                    divergencia = True
+                    div_desc    = "⚠ Divergencia bajista: precio sube, flujo acumulado cae → distribución"
+                elif precio_baja and flujo_sube:
+                    divergencia = True
+                    div_desc    = "⚠ Divergencia alcista: precio baja, flujo acumulado sube → acumulación"
+
+        # ── MÉTRICA 3: Confluencia Flujo × GEX ───────────────────────────────
+        fxg_valor  = 0       # -2 a +2, feature para kNN
+        fxg_label  = "neutro"
+        fxg_desc   = "GEX no disponible"
+
+        if gex_percentil is not None:
+            gex_alto = gex_percentil > 60
+            gex_bajo = gex_percentil < 40
+            fl_alc   = senal == "alcista"
+            fl_baj   = senal == "bajista"
+
+            if fl_alc and gex_alto:
+                fxg_valor = 2
+                fxg_label = "alcista_sostenible"
+                fxg_desc  = f"Flujo alcista + GEX alto ({gex_percentil:.0f}p) → dealers comprando, tendencia sostenible"
+            elif fl_alc and gex_bajo:
+                fxg_valor = 1
+                fxg_label = "rally_fragil"
+                fxg_desc  = f"Flujo alcista + GEX bajo ({gex_percentil:.0f}p) → rally sin soporte dealer, vigilar"
+            elif fl_baj and gex_bajo:
+                fxg_valor = -2
+                fxg_label = "bajista_acelerado"
+                fxg_desc  = f"Flujo bajista + GEX bajo ({gex_percentil:.0f}p) → sin red de seguridad dealer, caída posible"
+            elif fl_baj and gex_alto:
+                fxg_valor = -1
+                fxg_label = "bajista_amortiguado"
+                fxg_desc  = f"Flujo bajista + GEX alto ({gex_percentil:.0f}p) → dealers absorben, caída limitada"
+            else:
+                fxg_valor = 0
+                fxg_label = "neutro"
+                fxg_desc  = f"Flujo mixto · GEX {gex_percentil:.0f}p → sin señal clara"
+
+        log.info(f"  ETF Flows: neto5d={flujo_5d:+.0f}M$ | z20d={zscore_20d} | FxGEX={fxg_label} | div={divergencia}")
 
         return {
-            "dias":            dias_resultado,
-            "flujo_neto_5d_m": flujo_5d,
-            "dias_neg_consec": dias_neg_consec,
-            "dias_pos_consec": dias_pos_consec,
-            "señal":           senal,
-            "descripcion":     desc,
-            "fuente":          "yfinance_proxy",
-            "nota":            "Estimación (close-open)×volume. Correlación ~0.70 con ETF.com"
+            # ── Métrica 1: flujo neto diario ──
+            "dias":             dias_resultado,
+            "flujo_neto_5d_m":  flujo_5d,
+            "dias_neg_consec":  dias_neg_consec,
+            "dias_pos_consec":  dias_pos_consec,
+            "señal":            senal,
+            "descripcion":      desc,
+            # ── Métrica 2: z-score flujo acumulado ──
+            "zscore_20d":           zscore_20d,
+            "zscore_label":         zscore_label,
+            "zscore_senal":         zscore_senal,
+            "flujo_acum_actual_m":  flujo_acum_actual,
+            "divergencia":          divergencia,
+            "divergencia_desc":     div_desc,
+            "serie_fechas_20d":     fechas_20d,
+            "serie_precio_20d":     serie_precio_20d,
+            "serie_acum_20d":       serie_acum_20d,
+            # ── Métrica 3: confluencia flujo × GEX ──
+            "fxg_valor":  fxg_valor,
+            "fxg_label":  fxg_label,
+            "fxg_desc":   fxg_desc,
+            # ── Meta ──
+            "fuente": "yfinance_proxy",
+            "nota":   "Estimación (close-open)×volume. Correlación ~0.70 con ETF.com"
         }
 
     except Exception as e:
@@ -2126,12 +2231,19 @@ def calcular_flujos(df_maestro: pd.DataFrame) -> dict:
 
     # ── Flujos reales QQQ via yfinance (días últimos 5d en M$) ──────────────
     try:
-        flows_reales = calcular_etf_flows_reales(dias=5)
+        # Extraer gex_percentil del resultado DIX/GEX si está disponible
+        _gex_pct = None
+        _dix_gex = resultado.get("dix_gex") or {}
+        if not _dix_gex:
+            # Intentar desde el dict qqq que puede tenerlo en gex_percentil
+            _gex_pct = resultado.get("qqq", {}).get("gex_percentil")
+        else:
+            _gex_pct = _dix_gex.get("gex_percentil")
+
+        flows_reales = calcular_etf_flows_reales(dias=5, gex_percentil=_gex_pct)
         resultado["qqq_flows_reales"] = flows_reales
-        # Si hay señal real, sobrescribir la señal estimada del qqq
         if flows_reales.get("señal") and not flows_reales.get("error"):
             resultado["qqq"]["señal"] = flows_reales["señal"]
-            log.info(f"  ETF Flows QQQ reales: {flows_reales.get('descripcion','—')}")
     except Exception as e:
         log.warning(f"  ✗ ETF flows reales: {e}")
         resultado["qqq_flows_reales"] = {"error": str(e)}
@@ -6132,6 +6244,36 @@ def construir_matriz_firmas(df: pd.DataFrame) -> pd.DataFrame:
             features["roc5_gld"]  = gld.pct_change(5) * 100
         if qqq is not None:
             features["roc20_qqq"] = qqq.pct_change(20) * 100
+
+        # ── Flujo QQQ: z-score acumulado 20d ──────────────────────────────────
+        # Calculado directamente desde precio+volumen del historico_maestro
+        qqq_vol = _safe_col(df, "QQQ_volume", "QQQ_Volume")
+        qqq_open = _safe_col(df, "QQQ_open", "QQQ_Open")
+        if qqq is not None and qqq_vol is not None and qqq_open is not None:
+            flujo_diario = (qqq - qqq_open) * qqq_vol / 1e6          # M$ diario
+            flujo_acum20 = flujo_diario.rolling(20).sum()              # Acumulado 20d
+            acum_mean    = flujo_acum20.rolling(252).mean()
+            acum_std     = flujo_acum20.rolling(252).std().replace(0, np.nan)
+            features["flujo_zscore_20d"] = (flujo_acum20 - acum_mean) / acum_std
+
+        # ── Flujo × GEX: confluencia (-2 a +2) ───────────────────────────────
+        # Requiere GEX en el historico_maestro (columna gex o GEX)
+        gex_col = _safe_col(df, "gex", "GEX", "GEX_b")
+        if qqq is not None and qqq_vol is not None and qqq_open is not None and gex_col is not None:
+            flujo_diario_fx = (qqq - qqq_open) * qqq_vol / 1e6
+            flujo_5d_fx     = flujo_diario_fx.rolling(5).sum()
+            # Percentil GEX rolling 252d
+            gex_pct_roll = gex_col.rolling(252).rank(pct=True) * 100
+            # Señal flujo: +1 alcista, -1 bajista, 0 neutro
+            flujo_senal = pd.Series(0.0, index=flujo_5d_fx.index)
+            flujo_senal[flujo_5d_fx >  500] =  1.0
+            flujo_senal[flujo_5d_fx < -500] = -1.0
+            # Señal GEX: +1 alto (>60p), -1 bajo (<40p), 0 neutro
+            gex_senal = pd.Series(0.0, index=gex_pct_roll.index)
+            gex_senal[gex_pct_roll > 60] =  1.0
+            gex_senal[gex_pct_roll < 40] = -1.0
+            # Confluencia: suma ponderada → [-2, +2]
+            features["flujo_gex_confluencia"] = flujo_senal + gex_senal
 
         # ── Volatilidad realizada ──
         if ndx is not None:
