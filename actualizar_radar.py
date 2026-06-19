@@ -2360,6 +2360,210 @@ def extraer_precios(df_maestro: pd.DataFrame) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  MÓDULO FASE 6 — RÉGIMEN MACRO (Opción B: percentiles compuestos)
+#
+#  Lee los CSV locales con histórico largo para calcular el entorno macro:
+#    VIX   (1990+)  → stress primario de mercado
+#    VVIX  (2006+)  → volatilidad implícita de la vol → nerviosismo opciones
+#    NFCI  (1971+)  → condiciones financieras Chicago Fed (semanal, fill fwd)
+#    WALCL (2003+)  → balance Fed: expansión = QE, contracción = QT
+#    SKEW  (1990+)  → coste puts OTM → tail risk percibido
+#
+#  Score compuesto (0-100): cuanto más alto, más estrés macro.
+#  Umbrales calibrados por percentil histórico 2006-hoy (límite VVIX).
+#  Regímenes:
+#    0-p33  → expansión      (entorno favorable, riesgo bajo)
+#    p33-p66 → desaceleración (señales mixtas, cautela moderada)
+#    p66-p88 → estrés         (condiciones restrictivas, reducir exposición)
+#    p88+    → crisis         (extremo, señal de alarma)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def calcular_regimen_macro() -> dict:
+    """
+    Régimen macro por percentiles compuestos — versión mejorada.
+
+    Fuentes (todas locales, sin APIs):
+      historico_maestro.csv  →  VXN, HYG, VIX3M, TNX, IRX  (desde 2007)
+      VIX_History.csv        →  VIX spot                     (desde 1990)
+      NFCI.csv               →  condiciones financieras       (desde 1971)
+      WALCL.csv              →  balance Fed QE/QT             (desde 2003)
+      SKEW_History.csv       →  tail risk opciones            (desde 1990)
+
+    Score compuesto de estrés (0-100):
+      VIX    30%  — stress primario de mercado
+      VXN    20%  — volatilidad Nasdaq (más relevante que VVIX para NQ)
+      HYG    20%  — proxy spread HY (HYG bajo = crédito caro = estrés)
+      NFCI   15%  — condiciones financieras Chicago Fed
+      SKEW    5%  — coste puts OTM (tail risk)
+      VTS     5%  — VIX term structure (backwardation = pánico)
+      Curva   5%  — TNX-IRX yield curve (inversión = señal recesión)
+      WALCL  -5pts si QE activo (Fed expansiva amortigua el estrés)
+
+    Regímenes (calibrados por percentil histórico 2007-hoy):
+      🟢 Expansión      — p0-p33   entorno favorable
+      🟡 Desaceleración — p33-p66  señales mixtas, cautela moderada
+      🟠 Estrés         — p66-p88  condiciones restrictivas
+      🔴 Crisis         — p88+     extremo, máxima cautela
+    """
+    try:
+        # ── Cargar historico_maestro.csv ───────────────────────────────────
+        hm = pd.read_csv(HISTORICO_PATH, index_col=0, parse_dates=True).sort_index()
+
+        # ── Cargar CSVs individuales ───────────────────────────────────────
+        def _load_csv(fname, date_col, val_col):
+            for base in (DATA_CSV_DIR, BASE_DIR):
+                p = base / fname
+                if p.exists():
+                    s = pd.read_csv(p, parse_dates=[date_col])
+                    return s.set_index(date_col).sort_index()[val_col].dropna()
+            return pd.Series(dtype=float)
+
+        vix_s   = _load_csv("VIX_History.csv",   "DATE",             "CLOSE")
+        nfci_s  = _load_csv("NFCI.csv",           "observation_date", "NFCI")
+        walcl_s = _load_csv("WALCL.csv",          "observation_date", "WALCL")
+        skew_s  = _load_csv("SKEW_History.csv",   "DATE",             "SKEW")
+
+        # ── Índice de días hábiles (desde HYG: 2007-04-11) ───────────────
+        idx = pd.date_range("2007-04-11", pd.Timestamp.today(), freq="B")
+
+        def _align(s):
+            return s.reindex(idx, method="ffill").ffill()
+
+        # ── Percentiles históricos globales ───────────────────────────────
+
+        # 1. VIX (stress primario)
+        vix_p = _align(vix_s.rank(pct=True) * 100)
+
+        # 2. VXN — vol Nasdaq (sustituto VVIX, más largo desde 2001)
+        vxn_p = _align(hm["VXN_close"].dropna().rank(pct=True) * 100)
+
+        # 3. HYG inverso — proxy HY spread (HYG bajo = spread alto = estrés)
+        hyg_p = _align(100 - hm["HYG_close"].dropna().rank(pct=True) * 100)
+
+        # 4. NFCI (semanal → fill forward diario)
+        nfci_d = nfci_s.resample("D").last().ffill()
+        nfci_p = _align(nfci_d.rank(pct=True) * 100)
+
+        # 5. SKEW (tail risk)
+        skew_p = _align(skew_s.rank(pct=True) * 100)
+
+        # 6. VIX term structure: VIX3M/VIX — ratio bajo = backwardation = estrés
+        vts_raw  = (hm["VIX3M_close"] / hm["VIX_close"]).dropna()
+        vts_p    = _align(100 - vts_raw.rank(pct=True) * 100)   # invertido
+
+        # 7. Curva yield: TNX-IRX — negativa = inversión = estrés
+        curva_raw = (hm["TNX_close"] - hm["IRX_close"]).dropna()
+        curva_p   = _align(100 - curva_raw.rank(pct=True) * 100) # invertido
+
+        # 8. WALCL dirección 13 semanas (QE=1, QT=0)
+        walcl_dir  = (walcl_s.diff(13) > 0).astype(float)
+        walcl_daily = walcl_dir.resample("D").last().ffill()
+        walcl_qe    = _align(walcl_daily)
+
+        # ── Ensamblar DataFrame ───────────────────────────────────────────
+        df = pd.DataFrame({
+            "vix_p":    vix_p,
+            "vxn_p":    vxn_p,
+            "hyg_p":    hyg_p,
+            "nfci_p":   nfci_p,
+            "skew_p":   skew_p,
+            "vts_p":    vts_p,
+            "curva_p":  curva_p,
+            "walcl_qe": walcl_qe,
+        }).dropna()
+
+        if len(df) < 100:
+            return {"error": "datos_insuficientes", "regimen": "desconocido"}
+
+        # ── Score compuesto ───────────────────────────────────────────────
+        df["stress"] = (
+            df["vix_p"]   * 0.30 +
+            df["vxn_p"]   * 0.20 +
+            df["hyg_p"]   * 0.20 +
+            df["nfci_p"]  * 0.15 +
+            df["skew_p"]  * 0.05 +
+            df["vts_p"]   * 0.05 +
+            df["curva_p"] * 0.05
+        ) - df["walcl_qe"] * 5
+        df["stress"] = df["stress"].clip(0, 100)
+
+        # ── Umbrales por percentil histórico ─────────────────────────────
+        p33 = float(df["stress"].quantile(0.33))
+        p66 = float(df["stress"].quantile(0.66))
+        p88 = float(df["stress"].quantile(0.88))
+
+        # ── Valor actual ──────────────────────────────────────────────────
+        hoy    = df.iloc[-1]
+        stress = round(float(hoy["stress"]), 1)
+        fed_qe = bool(hoy["walcl_qe"] > 0.5)
+
+        # ── Clasificar régimen ────────────────────────────────────────────
+        if   stress < p33: regimen = "expansion"
+        elif stress < p66: regimen = "desaceleracion"
+        elif stress < p88: regimen = "estres"
+        else:              regimen = "crisis"
+
+        _labels = {
+            "expansion":      {"es": "Expansión",      "color": "gr", "emoji": "🟢"},
+            "desaceleracion": {"es": "Desaceleración", "color": "am", "emoji": "🟡"},
+            "estres":         {"es": "Estrés",         "color": "am", "emoji": "🟠"},
+            "crisis":         {"es": "Crisis",         "color": "rd", "emoji": "🔴"},
+        }
+        meta = _labels.get(regimen, {"es": regimen, "color": "am", "emoji": "—"})
+
+        # ── Señal textual ─────────────────────────────────────────────────
+        señales = {
+            "expansion":      "Condiciones favorables · volatilidad baja · crédito fluido · Fed acomodaticia",
+            "desaceleracion": "Señales mixtas · tensiones moderadas · vigilar HYG y curva de tipos",
+            "estres":         "Condiciones restrictivas · crédito endureciéndose · reducir exposición",
+            "crisis":         "Extremo · alarma sistémica · máxima cautela · revisar coberturas",
+        }
+
+        # ── Tendencia (stress hoy vs media 20 días) ───────────────────────
+        stress_4w = float(df["stress"].iloc[-20:].mean()) if len(df) >= 20 else stress
+        if   stress > stress_4w + 3: tendencia = "empeorando"
+        elif stress < stress_4w - 3: tendencia = "mejorando"
+        else:                         tendencia = "estable"
+
+        # ── Componentes individuales para el dashboard ────────────────────
+        componentes = {
+            "vix_pct":   round(float(hoy["vix_p"]),   1),
+            "vxn_pct":   round(float(hoy["vxn_p"]),   1),
+            "hyg_pct":   round(float(hoy["hyg_p"]),   1),
+            "nfci_pct":  round(float(hoy["nfci_p"]),  1),
+            "skew_pct":  round(float(hoy["skew_p"]),  1),
+            "vts_pct":   round(float(hoy["vts_p"]),   1),
+            "curva_pct": round(float(hoy["curva_p"]), 1),
+        }
+
+        log.info(f"  [RÉGIMEN] {meta['emoji']} {regimen.upper()} · stress={stress:.1f} "
+                 f"(p33={p33:.0f} p66={p66:.0f} p88={p88:.0f}) · tendencia={tendencia} · "
+                 f"VIX=p{componentes['vix_pct']:.0f} VXN=p{componentes['vxn_pct']:.0f} "
+                 f"HYG=p{componentes['hyg_pct']:.0f} NFCI=p{componentes['nfci_pct']:.0f}")
+
+        return {
+            "regimen":    regimen,
+            "regimen_es": meta["es"],
+            "color":      meta["color"],
+            "emoji":      meta["emoji"],
+            "stress":     stress,
+            "tendencia":  tendencia,
+            "señal":      señales.get(regimen, ""),
+            "fed_qe":     fed_qe,
+            "componentes": componentes,
+            "umbrales": {
+                "p33": round(p33, 1),
+                "p66": round(p66, 1),
+                "p88": round(p88, 1),
+            },
+        }
+
+    except Exception as e:
+        log.warning(f"  ✗ calcular_regimen_macro: {e}")
+        return {"error": str(e), "regimen": "desconocido"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  ██████╗  MÓDULO FASE 2 — MACRO FRED COMPLETO
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -6741,6 +6945,16 @@ def main():
     else:
         log.info("\n[5/8] Módulo macro FRED saltado (--nomacro)")
 
+    # ── 5.4 RÉGIMEN MACRO (Opción B: percentiles compuestos sobre CSV locales) ─
+    log.info("\n[5.4] 📊 Régimen macro por percentiles compuestos...")
+    try:
+        regimen_macro = calcular_regimen_macro()
+        log.info(f"  {regimen_macro.get('emoji','')} Régimen={regimen_macro.get('regimen_es','?')} "
+                 f"stress={regimen_macro.get('stress','?')} tendencia={regimen_macro.get('tendencia','?')}")
+    except Exception as e:
+        log.error(f"  ✗ Error en régimen macro: {e}")
+        regimen_macro = {"error": str(e), "regimen": "desconocido"}
+
     # ── 5.5 FASE 3: COT + Opciones + PCR ─────────────────────────────────────
     cot_data      = None
     opciones_data = None
@@ -7082,6 +7296,7 @@ def main():
         "flows":        flows,
         "liquidez":     liquidez,
         "macro":        macro,
+        "regimen_macro": regimen_macro,
         "scores":       scores,
         # Fase 3 — datos reales
         "cot":          cot_data or {
