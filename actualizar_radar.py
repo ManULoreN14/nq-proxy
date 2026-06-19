@@ -147,6 +147,13 @@ SIMBOLOS = {
     "SOXX": "SOXX",       # Semiconductores (Fase 2)
     "HG":   "HG=F",       # Cobre Futuros (Fase 5)
     "CNY":  "CNY=X",      # Yuan Chino (Fase 7 — proxy liquidez PBoC)
+    # ── Fase 9 — nuevas señales de mercado ────────────────────────────────
+    "MOVE": "^MOVE",      # VIX de bonos (estrés tipos antes que equity)
+    "BTC":  "BTC-USD",    # Bitcoin como proxy risk-on extremo / alerta temprana
+    "LQD":  "LQD",        # Investment grade credit (complementa HYG)
+    "XLK":  "XLK",        # Sector tech (rotación sectorial)
+    "XLF":  "XLF",        # Sector financiero (salud banca / crédito)
+    "XLE":  "XLE",        # Sector energía (inflación real / ciclo)
 }
 
 # Series FRED a descargar
@@ -2360,7 +2367,360 @@ def extraer_precios(df_maestro: pd.DataFrame) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  MÓDULO FASE 6 — RÉGIMEN MACRO (Opción B: percentiles compuestos)
+#  MÓDULO FASE 9 — SEÑALES DERIVADAS + SCORE RENTA FIJA
+#
+#  Calcula métricas derivadas del historico_maestro sin APIs externas:
+#
+#  RATIOS DE MERCADO (posicionamiento relativo):
+#    QQQ/SPY   — tech premium vs mercado amplio (percentil 99 = extremo)
+#    IWM/SPY   — small vs large cap (risk appetite breadth)
+#    SOXX/QQQ  — semiconductores vs Nasdaq (liderazgo sectorial tech)
+#    Cu/Au     — cobre/oro ratio (ciclo global risk-on vs risk-off)
+#    EEM/SPY   — emergentes vs EEUU (apetito riesgo global)
+#
+#  VOLATILIDAD AVANZADA:
+#    Realized vol QQQ 20d — vol real del mercado
+#    VIX risk premium     — VIX vs realized (sobre/infra valoración miedo)
+#    VIX9D/VIX ratio      — pánico inmediato vs estructural
+#    MOVE percentil        — estrés bonos (adelanta al VIX en estrés tipos)
+#
+#  CORRELACIONES CRUZADAS:
+#    QQQ-TLT 20d          — correlación normal (<0) vs crisis (>0)
+#
+#  SCORE RENTA FIJA (0-100, más alto = más atractiva como alternativa):
+#    Yield attractiveness TNX  40%  — yield alto sobre histórico = bueno
+#    Duration cheapness TLT    25%  — bono largo barato = yield alto bloqueado
+#    Pendiente curva            35%  — curva empinada = 10y paga bien vs 3m
+# ─────────────────────────────────────────────────────────────────────────────
+
+def calcular_señales_derivadas(df: "pd.DataFrame") -> dict:
+    """
+    Señales de mercado derivadas del historico_maestro.
+    df = historico_maestro con columnas {NOMBRE}_{ohlcv}.
+    Devuelve dict listo para JSON, sin APIs externas.
+    Incluye series temporales 90d para sparklines en el dashboard.
+    """
+    try:
+        SPARK_N = 90    # puntos para sparklines del dashboard
+
+        def _col(name, field="close"):
+            col = f"{name}_{field}"
+            return df[col].dropna() if col in df.columns else pd.Series(dtype=float)
+
+        def _pct(s):
+            """Percentil histórico global (0-100)."""
+            if len(s) < 10: return None
+            r = s.rank(pct=True)
+            return round(float(r.iloc[-1]) * 100, 1)
+
+        def _last(s):
+            return round(float(s.iloc[-1]), 4) if len(s) else None
+
+        def _spark(s, n=SPARK_N, decimals=4):
+            """Convierte serie a lista para sparkline JSON."""
+            if len(s) < 2: return []
+            return [round(float(v), decimals) for v in s.tail(n).tolist()]
+
+        qqq  = _col("QQQ")
+        spy  = _col("SPY")
+        iwm  = _col("IWM")
+        soxx = _col("SOXX")
+        hg   = _col("HG")      # cobre
+        gld  = _col("GLD")     # oro
+        eem  = _col("EEM")
+        tlt  = _col("TLT")
+        vix  = _col("VIX")
+        vix9d= _col("VIX9D")
+        tnx  = _col("TNX")
+        irx  = _col("IRX")
+        move = _col("MOVE")    # nuevo
+        btc  = _col("BTC")     # nuevo
+        xlk  = _col("XLK")     # nuevo
+        xlf  = _col("XLF")     # nuevo
+        xle  = _col("XLE")     # nuevo
+        lqd  = _col("LQD")     # nuevo
+
+        result = {}
+
+        # ── 1. RATIOS DE MERCADO ─────────────────────────────────────────
+        ratios = {}
+
+        if len(qqq) > 20 and len(spy) > 20:
+            r = (qqq / spy).dropna()
+            ratios["qqq_spy"] = {
+                "valor": _last(r),
+                "pct":   _pct(r),
+                "spark": _spark(r),
+                "señal": "extremo_alcista" if _pct(r) > 90 else
+                         "alto"            if _pct(r) > 70 else
+                         "normal"          if _pct(r) > 30 else "bajo",
+                "desc":  "Tech premium vs mercado amplio",
+            }
+
+        if len(iwm) > 20 and len(spy) > 20:
+            r = (iwm / spy).dropna()
+            ratios["iwm_spy"] = {
+                "valor": _last(r),
+                "pct":   _pct(r),
+                "spark": _spark(r),
+                "señal": "risk_on"   if _pct(r) > 60 else
+                         "neutro"    if _pct(r) > 40 else "risk_off",
+                "desc":  "Small caps vs large caps (breadth de riesgo)",
+            }
+
+        if len(soxx) > 20 and len(qqq) > 20:
+            r = (soxx / qqq).dropna()
+            ratios["soxx_qqq"] = {
+                "valor": _last(r),
+                "pct":   _pct(r),
+                "spark": _spark(r),
+                "señal": "liderazgo_semis" if _pct(r) > 70 else
+                         "neutro"          if _pct(r) > 30 else "rezago_semis",
+                "desc":  "Semiconductores vs Nasdaq (liderazgo tech)",
+            }
+
+        if len(hg) > 20 and len(gld) > 20:
+            r = (hg / gld).dropna()
+            ratios["cu_au"] = {
+                "valor": _last(r),
+                "pct":   _pct(r),
+                "spark": _spark(r),
+                "señal": "risk_on"    if _pct(r) > 60 else
+                         "neutro"     if _pct(r) > 40 else "risk_off",
+                "desc":  "Cobre/Oro — ciclo global (alto=expansión, bajo=refugio)",
+            }
+
+        if len(eem) > 20 and len(spy) > 20:
+            r = (eem / spy).dropna()
+            ratios["eem_spy"] = {
+                "valor": _last(r),
+                "pct":   _pct(r),
+                "spark": _spark(r),
+                "señal": "global_risk_on"  if _pct(r) > 60 else
+                         "neutro"          if _pct(r) > 40 else "refugio_eeuu",
+                "desc":  "Emergentes vs EEUU (apetito riesgo global)",
+            }
+
+        # Sectores: XLK/SPY, XLF/SPY, XLE/SPY
+        for nombre, serie, desc in [
+            ("xlk_spy", xlk, "Tech/SPY — concentración tech"),
+            ("xlf_spy", xlf, "Financiero/SPY — salud banca"),
+            ("xle_spy", xle, "Energía/SPY — ciclo inflación"),
+        ]:
+            if len(serie) > 20 and len(spy) > 20:
+                r = (serie / spy).dropna()
+                ratios[nombre] = {
+                    "valor": _last(r),
+                    "pct":   _pct(r),
+                    "spark": _spark(r),
+                    "desc":  desc,
+                }
+
+        result["ratios"] = ratios
+
+        # ── 2. VOLATILIDAD AVANZADA ──────────────────────────────────────
+        vol = {}
+
+        # Realized vol QQQ 20d (desviación típica anualizada retornos diarios)
+        if len(qqq) > 25:
+            rets = qqq.pct_change().dropna()
+            rv20 = rets.rolling(20).std() * np.sqrt(252) * 100  # en %
+            rv_actual = round(float(rv20.iloc[-1]), 1)
+            vol["realized_vol_20d"] = rv_actual
+            vol["realized_vol_20d_spark"] = _spark(rv20.dropna(), decimals=2)
+
+            # VIX risk premium = VIX implícita - realizada
+            if len(vix) > 25:
+                vix_aligned = vix.reindex(rv20.index, method="ffill")
+                rp = (vix_aligned - rv20).dropna()
+                rp_actual = round(float(rp.iloc[-1]), 1)
+                rp_pct    = round(float(rp.rank(pct=True).iloc[-1]) * 100, 1)
+                vol["vix_risk_premium"] = {
+                    "valor": rp_actual,
+                    "pct":   rp_pct,
+                    "vix_actual": round(float(vix.iloc[-1]), 1),
+                    "rv_actual":  rv_actual,
+                    "spark": _spark(rp.dropna(), decimals=2),
+                    "señal": "mercado_sobre_asustado" if rp_actual > 5 else
+                             "equilibrado"            if rp_actual > -2 else
+                             "peligro_subestimado",
+                    "desc":  f"VIX {vix.iloc[-1]:.1f} vs RV20d {rv_actual:.1f}% → prima={rp_actual:+.1f}",
+                }
+
+        # VIX9D/VIX — pánico inmediato vs estructural
+        if len(vix9d) > 10 and len(vix) > 10:
+            r = (vix9d / vix).reindex(vix9d.index).dropna()
+            if len(r):
+                vol["vix9d_vix"] = {
+                    "valor": round(float(r.iloc[-1]), 3),
+                    "spark": _spark(r),
+                    "señal": "panico_inmediato"  if r.iloc[-1] > 1.1 else
+                             "normal"            if r.iloc[-1] > 0.9 else "calma_corto",
+                    "desc":  "VIX9D/VIX: >1.1=pánico spot, <0.9=calma inmediata",
+                }
+
+        # MOVE Index — estrés bonos
+        if len(move) > 20:
+            vol["move"] = {
+                "valor": round(float(move.iloc[-1]), 1),
+                "pct":   _pct(move),
+                "spark": _spark(move, decimals=2),
+                "señal": "estres_bonos"  if _pct(move) > 75 else
+                         "elevado"       if _pct(move) > 55 else "normal",
+                "desc":  "MOVE Index: VIX de los bonos del Tesoro",
+            }
+
+        result["volatilidad"] = vol
+
+        # ── 3. CORRELACIÓN QQQ-TLT 20d ───────────────────────────────────
+        if len(qqq) > 25 and len(tlt) > 25:
+            qqq_r = qqq.pct_change().dropna()
+            tlt_r = tlt.pct_change().dropna()
+            aligned = pd.concat([qqq_r, tlt_r], axis=1, join="inner").dropna()
+            aligned.columns = ["qqq", "tlt"]
+            corr20 = aligned["qqq"].rolling(20).corr(aligned["tlt"]).dropna()
+            corr_actual = round(float(corr20.iloc[-1]), 3)
+            corr_pct    = round(float(corr20.rank(pct=True).iloc[-1]) * 100, 1)
+            result["corr_qqq_tlt_20d"] = {
+                "valor": corr_actual,
+                "pct":   corr_pct,
+                "spark": _spark(corr20, decimals=3),
+                "señal": "crisis_liquidez"     if corr_actual > 0.3 else
+                         "regimen_inflacion"   if corr_actual > 0.0 else
+                         "normal_divergencia"  if corr_actual > -0.3 else
+                         "vuelo_calidad",
+                "desc":  f"Corr {corr_actual:+.2f} · Normal<0 · Crisis>0",
+            }
+
+        # ── 4. BTC como indicador risk-on ────────────────────────────────
+        if len(btc) > 30:
+            btc_ret20 = btc.pct_change(20) * 100
+            result["btc_momentum"] = {
+                "precio":   round(float(btc.iloc[-1]), 0),
+                "ret_20d":  round(float(btc_ret20.iloc[-1]), 1),
+                "pct_ret":  round(float(btc_ret20.rank(pct=True).iloc[-1]) * 100, 1),
+                "spark":    _spark(btc.dropna(), decimals=0),
+                "señal":    "risk_on_extremo" if btc_ret20.iloc[-1] > 20 else
+                            "risk_on"         if btc_ret20.iloc[-1] > 5  else
+                            "neutro"          if btc_ret20.iloc[-1] > -5 else
+                            "risk_off",
+                "desc":     "Bitcoin momentum 20d como termómetro risk-on",
+            }
+
+        # ── 5. SCORE RENTA FIJA (0-100) ──────────────────────────────────
+        if len(tnx) > 100 and len(tlt) > 100 and len(irx) > 100:
+            idx = pd.date_range(
+                max(tnx.index.min(), tlt.index.min(), irx.index.min()),
+                pd.Timestamp.today(), freq="B"
+            )
+            def _al(s): return s.reindex(idx, method="ffill").ffill()
+
+            tnx_p   = _al(tnx.rank(pct=True) * 100)           # yield alto = atractivo
+            tlt_dur = _al((100 - tlt.rank(pct=True) * 100))    # precio bajo = yield alto = atractivo
+            curva   = (tnx - irx).dropna()
+            curva_p = _al(curva.rank(pct=True) * 100)          # curva empinada = 10y > 3m = atractivo
+
+            score_rf = (tnx_p * 0.40 + tlt_dur * 0.25 + curva_p * 0.35).dropna().clip(0, 100)
+            score_actual = round(float(score_rf.iloc[-1]), 1)
+
+            # Clasificación
+            if   score_actual >= 75: rf_label = "Muy atractiva";   rf_color = "gr"
+            elif score_actual >= 55: rf_label = "Atractiva";        rf_color = "gr"
+            elif score_actual >= 40: rf_label = "Moderada";         rf_color = "am"
+            elif score_actual >= 25: rf_label = "Poco atractiva";   rf_color = "am"
+            else:                    rf_label = "Poco atractiva";   rf_color = "rd"
+
+            # Yields actuales en %
+            tnx_v   = round(float(tnx.iloc[-1]),  2)
+            irx_v   = round(float(irx.iloc[-1]),  2)
+            curva_v = round(tnx_v - irx_v,        2)
+            tlt_v   = round(float(tlt.iloc[-1]),  2)
+            tyx_v   = round(float(tyx.iloc[-1]),  2) if len(tyx) else None
+            fvx_v   = round(float(fvx.iloc[-1]),  2) if len(fvx) else None
+
+            # Cambio 30 días para detectar si tipos suben o bajan
+            tnx_30d_ago = float(tnx.iloc[-22]) if len(tnx) > 22 else None
+            tnx_chg30   = round(tnx_v - tnx_30d_ago, 2) if tnx_30d_ago else None
+            tlt_30d_ago = float(tlt.iloc[-22]) if len(tlt) > 22 else None
+            tlt_chg30   = round((tlt_v/tlt_30d_ago - 1) * 100, 1) if tlt_30d_ago else None
+
+            # Forma de la curva
+            if   curva_v < -0.10: curva_forma = "Invertida"
+            elif curva_v <  0.50: curva_forma = "Plana"
+            elif curva_v <  1.50: curva_forma = "Normal"
+            else:                  curva_forma = "Empinada"
+
+            # Recomendación de plazo
+            #   Curva invertida/plana → corto plazo más atractivo (IRX paga similar o más que TNX)
+            #   Curva normal/empinada → largo plazo más atractivo (más yield + duración)
+            #   Si yields cayendo → favorable para precios bonos largos (TLT)
+            #   Si yields subiendo → preferir corto plazo (evitar pérdida capital)
+            if curva_v < 0.50:
+                plazo_recomendado = "Corto plazo (T-Bills/IRX)"
+                plazo_desc = f"Letras 3m pagan {irx_v}% — similar al 10y ({tnx_v}%) sin riesgo de duración."
+            elif tnx_chg30 and tnx_chg30 > 0.30:
+                plazo_recomendado = "Corto plazo (T-Bills/IRX)"
+                plazo_desc = f"Yields subiendo (+{tnx_chg30}% en 30d) — evitar bonos largos hasta estabilizar."
+            elif tnx_chg30 and tnx_chg30 < -0.30:
+                plazo_recomendado = "Largo plazo (TLT/30y)"
+                plazo_desc = f"Yields bajando ({tnx_chg30}% en 30d) — TLT se beneficia de bajadas adicionales."
+            else:
+                plazo_recomendado = "Mixto / barbell"
+                plazo_desc = f"Yields estables, curva {curva_forma.lower()}. Combinar IRX + bonos medios (5-10y)."
+
+            result["score_rf"] = {
+                "score":      score_actual,
+                "label":      rf_label,
+                "color":      rf_color,
+                # Yields actuales por plazo
+                "yields": {
+                    "irx_3m":  irx_v,
+                    "fvx_5y":  fvx_v,
+                    "tnx_10y": tnx_v,
+                    "tyx_30y": tyx_v,
+                },
+                # Movimientos recientes
+                "tnx_chg30":  tnx_chg30,
+                "tlt_chg30":  tlt_chg30,
+                # Curva
+                "curva":      curva_v,
+                "curva_forma": curva_forma,
+                # Componentes del score
+                "tnx_pct":    round(float(tnx_p.iloc[-1]),   1),
+                "tlt_dur_pct":round(float(tlt_dur.iloc[-1]), 1),
+                "curva_pct":  round(float(curva_p.iloc[-1]), 1),
+                # Sparklines
+                "spark_score": _spark(score_rf, decimals=1),
+                "spark_tnx":   _spark(tnx.tail(SPARK_N*2), decimals=2),
+                "spark_tlt":   _spark(tlt.tail(SPARK_N*2), decimals=2),
+                # Recomendación
+                "plazo":      plazo_recomendado,
+                "plazo_desc": plazo_desc,
+                "desc":       (
+                    f"Yield 10y: {tnx_v}% (p{round(float(tnx_p.iloc[-1]))}) · "
+                    f"Curva 10y-3m: {curva_v:+.2f}% ({curva_forma}) · "
+                    f"TLT: ${tlt_v}"
+                ),
+            }
+            log.info(
+                f"  [RF SCORE] {rf_label} · score={score_actual:.1f} · "
+                f"TNX={tnx_v}% (p{round(float(tnx_p.iloc[-1]))}) · "
+                f"curva={curva_v:+.2f}% ({curva_forma}) · plazo={plazo_recomendado}"
+            )
+
+        log.info(
+            f"  [SEÑALES] ratios={len(result.get('ratios',{}))} · "
+            f"vol keys={list(result.get('volatilidad',{}).keys())} · "
+            f"RF={result.get('score_rf',{}).get('score','—')}"
+        )
+        return result
+
+    except Exception as e:
+        log.warning(f"  ✗ calcular_señales_derivadas: {e}")
+        return {"error": str(e)}
+
+
+
 #
 #  Lee los CSV locales con histórico largo para calcular el entorno macro:
 #    VIX   (1990+)  → stress primario de mercado
@@ -6955,6 +7315,14 @@ def main():
         log.error(f"  ✗ Error en régimen macro: {e}")
         regimen_macro = {"error": str(e), "regimen": "desconocido"}
 
+    # ── 5.5 SEÑALES DERIVADAS + SCORE RENTA FIJA ─────────────────────────────
+    log.info("\n[5.5] 📐 Señales derivadas (ratios, vol avanzada, RF score)...")
+    try:
+        señales_derivadas = calcular_señales_derivadas(df)
+    except Exception as e:
+        log.error(f"  ✗ Error en señales derivadas: {e}")
+        señales_derivadas = {"error": str(e)}
+
     # ── 5.5 FASE 3: COT + Opciones + PCR ─────────────────────────────────────
     cot_data      = None
     opciones_data = None
@@ -7296,8 +7664,9 @@ def main():
         "flows":        flows,
         "liquidez":     liquidez,
         "macro":        macro,
-        "regimen_macro": regimen_macro,
-        "scores":       scores,
+        "regimen_macro":    regimen_macro,
+        "señales_derivadas": señales_derivadas,
+        "scores":           scores,
         # Fase 3 — datos reales
         "cot":          cot_data or {
             "error": "no_ejecutado", "señal": "neutro",
