@@ -1979,9 +1979,15 @@ def calcular_etf_flows_reales(dias: int = 5, gex_percentil: float = None) -> dic
     """
     try:
         import yfinance as yf
+        from datetime import datetime as _dt, timedelta as _td
 
         # ── Descargar histórico amplio para z-score (252d hábiles ≈ 1 año) ──
-        hist = yf.download("QQQ", period="300d", progress=False, auto_adjust=False)
+        # NOTA: period="300d" NO es un período válido en yfinance (acepta "1d","5d",
+        # "1mo","3mo","6mo","1y","2y"…). En GitHub Actions devolvía hist vacío →
+        # error silencioso → etf-advanced nunca visible. Fix: usar start/end explícitos.
+        _end   = _dt.now()
+        _start = (_end - _td(days=420)).strftime('%Y-%m-%d')   # 420d calendar ≈ 300 sesiones
+        hist = yf.download("QQQ", start=_start, progress=False, auto_adjust=False)
 
         if hist.empty or len(hist) < 20:
             return {"error": "yfinance vacío", "dias": [], "flujo_neto_5d_m": None, "señal": "neutro"}
@@ -2240,7 +2246,7 @@ def calcular_flujos(df_maestro: pd.DataFrame) -> dict:
         else:
             _gex_pct = _dix_gex.get("gex_percentil")
 
-        flows_reales = calcular_etf_flows_reales(dias=5, gex_percentil=_gex_pct)
+        flows_reales = calcular_etf_flows_reales(dias=10, gex_percentil=_gex_pct)
         resultado["qqq_flows_reales"] = flows_reales
         if flows_reales.get("señal") and not flows_reales.get("error"):
             resultado["qqq"]["señal"] = flows_reales["señal"]
