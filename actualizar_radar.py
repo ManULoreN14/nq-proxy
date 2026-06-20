@@ -3914,10 +3914,23 @@ def leer_qqq_opciones_csv():
     """
     Lee qqq_quotedata.csv de Barchart.
     Calcula Max Pain, top resistencias (calls), top soportes (puts) y PCR.
+    Sprint 5 D.3: avisa si el CSV tiene más de 7 días (descarga manual obsoleta).
     """
     if not QQQ_OPC_CSV.exists():
         _csv_log(f"QQQ opciones: {QQQ_OPC_CSV} no existe - saltando capa CSV opciones")
         return None
+
+    # Sprint 5 D.3: verificar antigüedad del CSV (descarga manual Barchart)
+    import os
+    csv_dias = None
+    csv_mtime = None
+    try:
+        csv_mtime = os.path.getmtime(QQQ_OPC_CSV)
+        csv_dias = (datetime.now().timestamp() - csv_mtime) / 86400
+        if csv_dias > 7:
+            _csv_log(f"⚠ AVISO: qqq_quotedata.csv tiene {csv_dias:.1f} días. Descarga uno nuevo de Barchart.")
+    except Exception:
+        pass
 
     _csv_log("QQQ opciones: leyendo CSV Barchart...")
 
@@ -4167,6 +4180,9 @@ def leer_qqq_opciones_csv():
         "gex_estado":         gex_estado,
         "gex_desc":           gex_desc,
         "fuente":           "Barchart QQQ CSV local",
+        # Sprint 5 D.3: antigüedad del CSV manual para que el frontend pueda avisar
+        "csv_dias_antiguedad":  round(csv_dias, 1) if csv_dias is not None else None,
+        "csv_obsoleto":         bool(csv_dias is not None and csv_dias > 7),
     }
 
 
