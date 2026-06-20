@@ -548,6 +548,9 @@ def calcular_proxy_china(df: "pd.DataFrame") -> dict:
         log.info("  [China] roc_cny=" + str(roc_cny) + "% roc_soxx=" + str(roc_soxx) + "% senal=" + senal)
 
         return {
+            # Sprint 5: CNY=X cotiza USD/CNY por convención yfinance (inverso).
+            # Cuando "CNY=X" BAJA, el dólar se debilita vs Yuan → Yuan se fortalece.
+            # Por eso roc_cny < 0 + roc_soxx > 0 = "Yuan fuerte + semis subiendo".
             "roc_cny_20d":      roc_cny,
             "roc_soxx_20d":     roc_soxx,
             "corr_cny_soxx_30d": corr_30d,
@@ -555,6 +558,7 @@ def calcular_proxy_china(df: "pd.DataFrame") -> dict:
             "desc":             desc,
             "score":            score,
             "fuente":           "proxy_pboc_cny_soxx",
+            "nota_cny":         "CNY=X = USD/CNY (inverso). Si baja, Yuan se fortalece.",
             "error":            None
         }
     except Exception as e:
@@ -569,9 +573,17 @@ def calcular_proxy_china(df: "pd.DataFrame") -> dict:
 def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
     """
     Calcula Net New Highs - New Lows de 52 semanas sobre los 100
-    componentes del Nasdaq-100. Usa historico local cuando posible,
-    yfinance como fallback.
+    componentes del Nasdaq-100.
+
+    Sprint 1 D.1: ANTES descargaba los 100 tickers UNO POR UNO con
+    yf.download() en bucle (100 requests HTTP secuenciales). Eso causaba
+    timeout en GitHub Actions → JSON con "error: sin_datos" permanentemente.
+    AHORA: una sola llamada yf.download(lista_completa) con group_by='ticker'
+    en paralelo. Pasa de ~3-5 minutos a ~15-30 segundos.
     """
+    # Lista actualizada del NDX100 (revisada periódicamente)
+    # Sprint 1: LCID, ZM, JD, BMRN salieron del índice. Sustituidos por
+    # los reemplazos confirmados 2025-2026.
     NDX100_TICKERS = [
         "AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","COST",
         "ASML","NFLX","AMD","PEP","LIN","QCOM","ADBE","INTU","CSCO","TXN",
@@ -581,40 +593,79 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
         "FAST","ODFL","GEHC","ROST","IDXX","PAYX","EXC","BIIB","MRNA","CEG",
         "DLTR","VRSK","ON","XEL","CPRT","CTSH","CSGP","FANG","KHC","ARM",
         "TTD","PCAR","ZS","MCHP","CCEP","SMCI","CDW","DDOG","TTWO","WBD",
-        "ILMN","GFS","NXPI","CHTR","SIRI","SBUX","DASH","MTCH","LCID","ZM",
-        "RIVN","OKTA","ALGN","ENPH","LULU","MDB","EBAY","JD","SWKS","BMRN"
+        "ILMN","GFS","NXPI","CHTR","SIRI","SBUX","DASH","MTCH","APP","PLTR",
+        "RIVN","OKTA","ALGN","ENPH","LULU","MDB","EBAY","AXON","SWKS","ARGX"
     ]
-    # Sustituciones 2024-2026:
-    # ANSS (adquirida por Synopsys) → ARM (ARM Holdings, entró NDX-100 2024)
-    # WBA (Walgreens, delisted 2024) → DASH (DoorDash)
-    # SPLK (adquirida por Cisco 2024) → MDB (MongoDB)
     import time
     t0 = time.time()
     try:
         import yfinance as yf
+
+        # ── 1. Separar tickers en CSV local vs los que hay que descargar ──
+        tickers_locales = []
+        tickers_descargar = []
+        series_por_ticker = {}
+
+        for ticker in NDX100_TICKERS:
+            col_close = ticker + "_close"
+            if col_close in df.columns:
+                serie = df[col_close].dropna()
+                if len(serie) >= 252:
+                    series_por_ticker[ticker] = serie
+                    tickers_locales.append(ticker)
+                    continue
+            tickers_descargar.append(ticker)
+
+        # ── 2. Descarga MASIVA en una sola llamada de los que faltan ──
+        errores = 0
+        if tickers_descargar:
+            try:
+                log.info(f"  [Amplitud NDX100] Descargando {len(tickers_descargar)} tickers en bloque...")
+                bulk = yf.download(
+                    tickers_descargar,
+                    period="1y",
+                    progress=False,
+                    auto_adjust=True,
+                    group_by="ticker",
+                    threads=True,    # paralelo
+                )
+                # Estructura del bulk: MultiIndex (ticker, OHLCV) o single ticker
+                if bulk.empty:
+                    log.warning("  [Amplitud NDX100] bulk yfinance devolvió vacío")
+                    errores += len(tickers_descargar)
+                else:
+                    if isinstance(bulk.columns, pd.MultiIndex):
+                        for ticker in tickers_descargar:
+                            try:
+                                if ticker in bulk.columns.get_level_values(0):
+                                    sub = bulk[ticker]
+                                    if "Close" in sub.columns:
+                                        serie = sub["Close"].dropna()
+                                        if len(serie) >= 252:
+                                            series_por_ticker[ticker] = serie
+                                            continue
+                                errores += 1
+                            except Exception:
+                                errores += 1
+                    else:
+                        # Single ticker — solo si descargas exactamente 1
+                        if len(tickers_descargar) == 1:
+                            t = tickers_descargar[0]
+                            if "Close" in bulk.columns:
+                                serie = bulk["Close"].dropna()
+                                if len(serie) >= 252:
+                                    series_por_ticker[t] = serie
+            except Exception as e_bulk:
+                log.error(f"  [Amplitud NDX100] Error en bulk download: {e_bulk}")
+                errores += len(tickers_descargar)
+
+        # ── 3. Calcular NH/NL sobre las series disponibles ──
         new_highs = 0
         new_lows  = 0
         total_ok  = 0
-        errores   = 0
 
-        for ticker in NDX100_TICKERS:
+        for ticker, serie in series_por_ticker.items():
             try:
-                col_close = ticker + "_close"
-                if col_close in df.columns:
-                    serie = df[col_close].dropna()
-                else:
-                    raw = yf.download(ticker, period="1y", progress=False, auto_adjust=True)
-                    if raw.empty:
-                        errores += 1
-                        continue
-                    if isinstance(raw.columns, pd.MultiIndex):
-                        raw.columns = [c[0] for c in raw.columns]
-                    serie = raw["Close"].dropna()
-
-                if len(serie) < 252:
-                    errores += 1
-                    continue
-
                 precio_actual = float(serie.iloc[-1])
                 max_52w = float(serie.iloc[-252:].max())
                 min_52w = float(serie.iloc[-252:].min())
@@ -624,10 +675,8 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
                 elif precio_actual <= min_52w * 1.005:
                     new_lows += 1
                 total_ok += 1
-
             except Exception:
                 errores += 1
-                continue
 
         elapsed = round(time.time() - t0, 1)
 
@@ -659,7 +708,8 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
 
         log.info("  [Amplitud NDX100] " + str(new_highs) + " NH / " + str(new_lows) + " NL / "
                  + str(total_ok) + " ok / " + str(errores) + " err -> "
-                 + str(net_breadth) + "% (" + senal + ") en " + str(elapsed) + "s")
+                 + str(net_breadth) + "% (" + senal + ") en " + str(elapsed) + "s "
+                 + f"(local={len(tickers_locales)}, descarga_bulk={len(tickers_descargar)})")
 
         return {
             "new_highs_52w":     new_highs,
@@ -670,7 +720,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
             "desc":              desc,
             "score":             score,
             "errores_descarga":  errores,
-            "fuente":            "ndx100_yfinance",
+            "fuente":            "ndx100_yfinance_bulk",
             "error":             None
         }
 
@@ -1406,8 +1456,12 @@ def calcular_vix_ts(df_maestro: pd.DataFrame) -> dict:
         "spot":          vix_spot,
         "vix3m":         vix3m,
         "vix9d":         vix9d,
-        "vx1":           vix9d,   # proxy automatico VX1 (~1 mes) -- madurez constante 9D (^VIX9D)
-        "vx2":           vix3m,   # proxy automatico VX2 (~2 meses) -- madurez constante 3M (^VIX3M)
+        # Sprint 5: estos son ÍNDICES de madurez constante (^VIX9D, ^VIX3M), NO
+        # son futuros (VX1/VX2 reales tienen madurez variable según vencimiento).
+        # Para análisis aproximado son equivalentes; para precisión usar futuros CME.
+        "vx1":           vix9d,   # PROXY VX1 (índice 9D madurez constante)
+        "vx2":           vix3m,   # PROXY VX2 (índice 3M madurez constante)
+        "vx_proxy_nota": "vx1/vx2 son índices de madurez constante, NO futuros reales",
         "spread1":       spread1,
         "spread1Pct":    spread1_pct,
         "backwardation": back,
@@ -2894,12 +2948,25 @@ def calcular_regimen_macro() -> dict:
         else:                         tendencia = "estable"
 
         # ── Componentes individuales para el dashboard ────────────────────
+        # Sprint 2 A.2: clarificar qué métricas están INVERTIDAS.
+        # Para el score compuesto, todas las features han sido alineadas como
+        # "alto = más estrés" (para que sumen coherentemente). Pero al exponer
+        # al dashboard, hay que decir si el percentil viene invertido o no.
+        # Las invertidas se renombran con sufijo "_estres_pct" para que el
+        # frontend pueda saber que un valor alto = más estrés (no = valor alto
+        # de la métrica original).
         componentes = {
+            # Métricas no invertidas (valor alto = métrica original alta)
             "vix_pct":   round(float(hoy["vix_p"]),   1),
             "vxn_pct":   round(float(hoy["vxn_p"]),   1),
-            "hyg_pct":   round(float(hoy["hyg_p"]),   1),
             "nfci_pct":  round(float(hoy["nfci_p"]),  1),
             "skew_pct":  round(float(hoy["skew_p"]),  1),
+            # Métricas invertidas (valor alto = más estrés, no más métrica)
+            "hyg_estres_pct":   round(float(hoy["hyg_p"]),   1),  # HYG bajo precio = spread alto = estrés
+            "vts_estres_pct":   round(float(hoy["vts_p"]),   1),  # VIX3M/VIX bajo = backwardation = estrés
+            "curva_estres_pct": round(float(hoy["curva_p"]), 1),  # Curva invertida = estrés
+            # Alias retro-compatibles (deprecated, retirar en limpieza futura)
+            "hyg_pct":   round(float(hoy["hyg_p"]),   1),
             "vts_pct":   round(float(hoy["vts_p"]),   1),
             "curva_pct": round(float(hoy["curva_p"]), 1),
         }
@@ -3722,6 +3789,13 @@ def leer_vix_vvix_skew_csv():
         "vix_mom_5d_pct": mom_5d,
         "vix_mom_señal":  mom_senal,
         "ts_spread_pct":  round(ts_spread, 1) if ts_spread is not None else None,
+        # Sprint 2 A.3: la métrica que aquí se llama "ts_señal" NO mide
+        # backwardation clásica (VIX3M/VIX_spot) sino MOMENTUM del VIX corto
+        # (MA5 vs MA20). Antes esto se etiquetaba como "backwardation" lo cual
+        # contradecía el campo vixTS.backwardation. Renombrado a más claro.
+        "momentum_vix_corto_señal": ts_senal,
+        "momentum_vix_corto_texto": ts_txt,
+        # Aliases retro-compatibles (deprecated)
         "ts_señal":       ts_senal,
         "ts_texto":       ts_txt,
         "vix_señal":      vix_senal,
@@ -4128,6 +4202,8 @@ def mapear_cot_csv_al_legacy(cot_csv: dict, cot_legacy: dict = None) -> dict:
         "trend4w":       trend4w_num,
         "tendencia_4s":  cot_csv.get("tendencia_4s"),  # string subiendo/bajando/estable -> icono frontend
         "señal":         cot_csv.get("señal"),
+        # Sprint 2 E.4: señal CANÓNICA por percentil histórico — para score_cot_fn
+        "señal_percentil": cot_csv.get("señal"),  # esta es por percentil en csv_cot
         "desc":          cot_csv.get("señal_texto"),
         "señalDealers":  "neutro",  # CSV no clasifica dealers como "acumulacion/distribucion"
         "netoDealers":   cot_csv.get("dealer_neto"),
@@ -4294,6 +4370,10 @@ def mapear_vix_csv_al_legacy(vix_csv: dict, vix_ts_legacy: dict = None) -> dict:
         "vix_ma5":        vix_csv.get("vix_ma5"),
         "vix_ma20":       vix_csv.get("vix_ma20"),
         "vix_mom_5d_pct": vix_csv.get("vix_mom_5d_pct"),
+        # Sprint 2 A.3: usar el nombre claro (proxy de momentum corto, NO backwardation real)
+        "momentum_vix_corto_señal": vix_csv.get("momentum_vix_corto_señal") or vix_csv.get("ts_señal"),
+        "momentum_vix_corto_texto": vix_csv.get("momentum_vix_corto_texto") or vix_csv.get("ts_texto"),
+        # Alias retro-compatibles
         "ts_proxy_señal": vix_csv.get("ts_señal"),
         "ts_proxy_texto": vix_csv.get("ts_texto"),
         "señal_compuesta_csv": vix_csv.get("señal_global"),
@@ -5507,11 +5587,17 @@ def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
         return max(-5, min(5, round(s, 1)))
 
     # ── Score COT — REAL en Fase 3 ────────────────────────────────────────────
+    # Sprint 2 E.4: ANTES había dos lógicas paralelas — cot.señal (umbrales
+    # absolutos 25/35/65/75) y csv_cot.señal (percentil histórico). Podían
+    # contradecirse. AHORA preferimos siempre la del percentil histórico cuando
+    # esté disponible (más robusta), con fallback a la lógica absoluta.
     def score_cot_fn():
         if not cot or cot.get("error"):
             return 0.0
         s = 0.0
-        señal = cot.get("señal") or "neutro"
+        # Preferir señal del CSV (percentil histórico). Si no hay, usar la legacy.
+        señal_csv = cot.get("señal_percentil")  # rellenado abajo desde csv_cot
+        señal = señal_csv or cot.get("señal") or "neutro"
         if señal == "bajista":       s -= 3.0
         elif señal == "bajista_mod": s -= 1.5
         elif señal == "alcista":     s += 3.0
@@ -7026,9 +7112,12 @@ def calcular_similitud_escenario(firma_actual: np.ndarray,
     resto_mean = np.mean(similitudes_sorted[2:]) if len(similitudes_sorted) > 2 else top2_mean
     score_final = 0.60 * top2_mean + 0.40 * resto_mean
 
+    # Sprint 1 A.1: ANTES había un boost artificial `adjusted = 50 + (raw - 50) × 1.4`
+    # que amplificaba las probabilidades hacia los extremos. Esto causaba que
+    # un score crudo de 46% se mostrara como 44% en el dashboard, dando falsa
+    # sensación de cola gorda. Ahora devolvemos el % crudo sin amplificar.
     raw_pct = score_final * 100
-    adjusted = 50 + (raw_pct - 50) * 1.4
-    return int(np.clip(adjusted, 0, 100))
+    return int(np.clip(raw_pct, 0, 100))
 
 
 def calcular_market_regime_matching(df: pd.DataFrame,
