@@ -1038,10 +1038,29 @@ def run():
         pcr_d = {"error": f"crash: {e}"}
     print(f"  PCR Total={pcr_d.get('total','?')} Equity={pcr_d.get('equity','?')} fecha={pcr_d.get('fecha','?')}")
 
-    print("Breadth Mag7...")
-    br=calcular_breadth(MAG7)
+    # ── Breadth: preferir el QQQ100 real de datos_radar.json (corre primero en el cron)
+    # Si no existe o falla, caer en el Mag7 como fallback.
+    print("Breadth (QQQ100 desde radar o Mag7 fallback)...")
+    _radar_breadth_usado = False
+    _radar_json_path = SCRIPT_DIR / "datos_radar.json"
+    if _radar_json_path.exists():
+        try:
+            _rd = json.loads(_radar_json_path.read_text(encoding="utf-8"))
+            _rb = _rd.get("breadth_real") or _rd.get("breadth") or {}
+            _rb20 = _rb.get("pct_sobre_ema20")
+            _rb50 = _rb.get("pct_sobre_ema50")
+            if _rb20 is not None and _rb50 is not None:
+                br = {"pct_sobre_ema20": _rb20, "pct_sobre_ema50": _rb50,
+                      "divergencia": _rb50 < 60, "fuente": "QQQ100_radar",
+                      "tickers_validos": _rb.get("tickers_validos", 100)}
+                _radar_breadth_usado = True
+        except Exception as _e:
+            print(f"  ! breadth radar: {_e}")
+    if not _radar_breadth_usado:
+        br = calcular_breadth(MAG7)
+        br["fuente"] = "Mag7_fallback"
     br_pct20=br["pct_sobre_ema20"]; br_pct50=br["pct_sobre_ema50"]; br_div=br["divergencia"]
-    print(f"  EMA20={br_pct20}%  EMA50={br_pct50}%  div={br_div}")
+    print(f"  EMA20={br_pct20}%  EMA50={br_pct50}%  div={br_div}  fuente={br.get('fuente','?')}")
 
     print("FRED (API JSON con clave)...")
     ff_v,ff_p   = fred_series("DFF")
@@ -1115,10 +1134,24 @@ def run():
         except: pass
     cutoff=(datetime.date.today()-datetime.timedelta(days=35)).isoformat()
     hist30=[e for e in hist30 if e.get("fecha","")>=cutoff]
+
+    # ── Leer score_avg del Radar desde datos_radar.json (corre antes en el cron)
+    _score_avg_radar = None
+    _radar_json_path2 = SCRIPT_DIR / "datos_radar.json"
+    if _radar_json_path2.exists():
+        try:
+            _rd2 = json.loads(_radar_json_path2.read_text(encoding="utf-8"))
+            _horizontes = _rd2.get("scores", {}).get("horizontes", {})
+            _hor_vals = [v.get("score") for v in _horizontes.values() if v.get("score") is not None]
+            if _hor_vals:
+                _score_avg_radar = round(sum(_hor_vals) / len(_hor_vals), 3)
+        except Exception as _e2:
+            print(f"  ! score_avg radar: {_e2}")
+
     hist30=[e for e in hist30 if e.get("fecha")!=today]+[{
         "fecha":today,"risk_score":risk_score,"fear_greed_score":fg["score"],
         "regimen_mercado":regimen,"exposicion_semaforo":semaforo,"exposicion_pct":exp_pct,
-        "precio_qqq":p_qqq,"vix":p_vix}]
+        "precio_qqq":p_qqq,"vix":p_vix,"score_avg_radar":_score_avg_radar}]
     hist30.sort(key=lambda e:e.get("fecha",""))
 
     doc={

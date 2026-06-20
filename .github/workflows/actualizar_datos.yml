@@ -1,19 +1,15 @@
 name: Actualizar datos NQ
-
 on:
   schedule:
-    - cron: '30 20 * * 1-5'
+    - cron: '30 20 * * 1-5'   # 22:30 Madrid (20:30 UTC en verano)
   workflow_dispatch:
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   actualizar:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -30,15 +26,9 @@ jobs:
           pip install --upgrade pip
           pip install yfinance requests pandas numpy
 
-      - name: Ejecutar motor_manengis.py
-        env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-        run: |
-          set -e
-          python motor_manengis.py
-          echo "=== manengis_tactico.json primeras líneas ==="
-          head -5 manengis_tactico.json
-
+      # ── 1. RADAR PRIMERO ─────────────────────────────────────────────────
+      # Genera datos_radar.json con breadth QQQ100 real y scores de horizontes.
+      # Motor_manengis lo leerá en el paso siguiente para tomar breadth y score_avg.
       - name: Ejecutar actualizar_radar.py
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
@@ -48,6 +38,19 @@ jobs:
           echo "=== datos_radar.json primeras líneas ==="
           head -5 datos_radar.json
 
+      # ── 2. MANENGIS SEGUNDO ──────────────────────────────────────────────
+      # Lee datos_radar.json para enriquecer breadth (QQQ100) y score_avg en
+      # historico_30d, en lugar de usar solo Mag7 o dejar score_avg=null.
+      - name: Ejecutar motor_manengis.py
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          set -e
+          python motor_manengis.py
+          echo "=== manengis_tactico.json primeras líneas ==="
+          head -5 manengis_tactico.json
+
+      # ── 3. COMMIT ÚNICO AL FINAL ─────────────────────────────────────────
       - name: Commit y push de los JSON
         run: |
           git config user.name  "github-actions[bot]"
