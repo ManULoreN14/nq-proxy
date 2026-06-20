@@ -1003,8 +1003,16 @@ def run():
     vts_ratio=vts_spread=vix_ch3d=None; vts_back=False; vts_est="sin_datos"; vts_desc="Sin datos"
     if p_vix and p_v3m:
         vts_ratio=round(p_vix/p_v3m,4); vts_spread=round(p_v3m-p_vix,2); vts_back=p_vix>p_v3m
-        vts_est=("backwardation" if vts_back else
-                 "contango_normal" if vts_ratio<0.85 else "contango_tenso")
+        # Clasificación correcta del contango:
+        #   ratio < 0.85  → contango profundo (curva muy empinada, calma extrema)
+        #   ratio 0.85-1  → contango normal
+        #   ratio > 1     → backwardation (capturado por vts_back)
+        if vts_back:
+            vts_est = "backwardation"
+        elif vts_ratio < 0.85:
+            vts_est = "contango_profundo"
+        else:
+            vts_est = "contango_normal"
         vts_desc=f"VIX ({p_vix}) {'>' if vts_back else '<'} VIX3M ({p_v3m}): {vts_est}"
     if vix is not None and len(vix)>=4:
         vn=float(vix.iloc[-1]); v3d=float(vix.iloc[-4])
@@ -1038,29 +1046,42 @@ def run():
         pcr_d = {"error": f"crash: {e}"}
     print(f"  PCR Total={pcr_d.get('total','?')} Equity={pcr_d.get('equity','?')} fecha={pcr_d.get('fecha','?')}")
 
-    # ── Breadth: preferir el QQQ100 real de datos_radar.json (corre primero en el cron)
-    # Si no existe o falla, caer en el Mag7 como fallback.
-    print("Breadth (QQQ100 desde radar o Mag7 fallback)...")
-    _radar_breadth_usado = False
+    # ── Breadth: dos métricas complementarias ─────────────────────────────────
+    # 1) Breadth Mag7 (EMA20/50) — local, cálculo propio
+    # 2) Breadth NDX100 New Highs/Lows 52w — leído de datos_radar.json si existe
+    # Son MÉTRICAS DIFERENTES, no intercambiables:
+    #   · Mag7 EMA20/50 mide momentum corto plazo de las 7 mega-caps
+    #   · NDX100 NH/NL mide amplitud estructural 52w sobre los 100 componentes
+    print("Breadth Mag7 (EMA20/50)...")
+    br = calcular_breadth(MAG7)
+    br["fuente"] = "Mag7_local"
+    br_pct20 = br["pct_sobre_ema20"]
+    br_pct50 = br["pct_sobre_ema50"]
+    br_div   = br["divergencia"]
+    print(f"  EMA20={br_pct20}%  EMA50={br_pct50}%  div={br_div}")
+
+    # Señal adicional NDX100 desde radar (si el cron del radar corrió antes)
+    ndx100_breadth_signal = None
     _radar_json_path = SCRIPT_DIR / "datos_radar.json"
     if _radar_json_path.exists():
         try:
             _rd = json.loads(_radar_json_path.read_text(encoding="utf-8"))
-            _rb = _rd.get("breadth_real") or _rd.get("breadth") or {}
-            _rb20 = _rb.get("pct_sobre_ema20")
-            _rb50 = _rb.get("pct_sobre_ema50")
-            if _rb20 is not None and _rb50 is not None:
-                br = {"pct_sobre_ema20": _rb20, "pct_sobre_ema50": _rb50,
-                      "divergencia": _rb50 < 60, "fuente": "QQQ100_radar",
-                      "tickers_validos": _rb.get("tickers_validos", 100)}
-                _radar_breadth_usado = True
+            _ndx_b = _rd.get("amplitud_mercado", {}).get("ndx100_breadth", {})
+            if _ndx_b and not _ndx_b.get("error"):
+                ndx100_breadth_signal = {
+                    "new_highs_52w": _ndx_b.get("new_highs_52w"),
+                    "new_lows_52w":  _ndx_b.get("new_lows_52w"),
+                    "net_breadth_pct": _ndx_b.get("net_breadth_pct"),
+                    "senal": _ndx_b.get("senal"),
+                    "score": _ndx_b.get("score"),
+                    "fuente": "NDX100_radar",
+                }
+                print(f"  NDX100 NH/NL={ndx100_breadth_signal.get('net_breadth_pct')}% "
+                      f"señal={ndx100_breadth_signal.get('senal')}")
+            else:
+                print(f"  NDX100 breadth no disponible en radar (error: {_ndx_b.get('error') if _ndx_b else 'sin campo'})")
         except Exception as _e:
-            print(f"  ! breadth radar: {_e}")
-    if not _radar_breadth_usado:
-        br = calcular_breadth(MAG7)
-        br["fuente"] = "Mag7_fallback"
-    br_pct20=br["pct_sobre_ema20"]; br_pct50=br["pct_sobre_ema50"]; br_div=br["divergencia"]
-    print(f"  EMA20={br_pct20}%  EMA50={br_pct50}%  div={br_div}  fuente={br.get('fuente','?')}")
+            print(f"  ! lectura ndx100_breadth radar: {_e}")
 
     print("FRED (API JSON con clave)...")
     ff_v,ff_p   = fred_series("DFF")
@@ -1117,6 +1138,15 @@ def run():
     if fg["score"] and fg["score"]>80: risk+=1.0; factores.append(f"F&G={fg['score']} euforia extrema")
     if cot_sesgo=="bajista": risk+=0.5; factores.append("COT specs muy largos NQ")
     if br_div: risk+=0.5; factores.append("Breadth Mag7 debil vs precio")
+    # Señal adicional NDX100 (cuando está disponible desde el radar)
+    if ndx100_breadth_signal:
+        _ndx_senal = ndx100_breadth_signal.get("senal")
+        if _ndx_senal == "bajista_fuerte":
+            risk += 1.0
+            factores.append(f"Breadth NDX100 muy debil ({ndx100_breadth_signal.get('net_breadth_pct')}%)")
+        elif _ndx_senal == "bajista":
+            risk += 0.5
+            factores.append(f"Breadth NDX100 negativa ({ndx100_breadth_signal.get('net_breadth_pct')}%)")
     if nfci_v and nfci_v>0.1: risk+=0.5; factores.append(f"NFCI={nfci_v} condiciones tensas")
 
     risk_score=round(min(risk,10.0),1)
@@ -1151,7 +1181,7 @@ def run():
     hist30=[e for e in hist30 if e.get("fecha")!=today]+[{
         "fecha":today,"risk_score":risk_score,"fear_greed_score":fg["score"],
         "regimen_mercado":regimen,"exposicion_semaforo":semaforo,"exposicion_pct":exp_pct,
-        "precio_qqq":p_qqq,"vix":p_vix,"score_avg_radar":_score_avg_radar}]
+        "precio_qqq":p_qqq,"vix":p_vix,"score_avg":_score_avg_radar}]
     hist30.sort(key=lambda e:e.get("fecha",""))
 
     doc={
@@ -1176,7 +1206,9 @@ def run():
             "spread":vts_spread,"backwardation":vts_back,"estado":vts_est,"descripcion":vts_desc},
         "cot":cot_nq_d or {"error":"No disponible"},
         "cot_vix":cot_vix_d or {"error":"No disponible"},
-        "breadth":br,"fear_greed":fg,
+        "breadth":br,
+        "ndx100_breadth": ndx100_breadth_signal,   # señal complementaria desde radar
+        "fear_greed":fg,
         "risk_compuesto":{"valor":risk_score,
             "estado":("Bajo riesgo" if risk_score<3.5 else
                       "Neutral / Vigilar" if risk_score<5.5 else
@@ -1213,7 +1245,9 @@ def run():
                 f"{'ACELERACION DE RIESGO.' if risk_score>=6 else 'Sin aceleracion.'} "
                 f"VIX {'+' if (vix_ch3d or 0)>=0 else ''}{vix_ch3d or 0}% (3 dias).")},
         "fred":{
-            "score":-1 if sp_2_10 and sp_2_10>0 else 1,
+            # Curva normal (spread>0) = saludable = score positivo
+            # Curva invertida (spread<0) = recesionaria = score negativo
+            "score":1 if sp_2_10 and sp_2_10>0 else -1,
             "estado":"normal" if not inv else "alerta_curva",
             "curva_invertida":inv,
             "curva_descripcion":(f"2Y={u2_v}% 10Y={u10_v}% 30Y={u30_v}% | Spread={sp_2_10}"
