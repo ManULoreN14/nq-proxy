@@ -2429,6 +2429,8 @@ def calcular_señales_derivadas(df: "pd.DataFrame") -> dict:
         gld  = _col("GLD")     # oro
         eem  = _col("EEM")
         tlt  = _col("TLT")
+        tyx  = _col("TYX")     # yield 30y  ← FALTABA
+        fvx  = _col("FVX")     # yield 5y   ← FALTABA
         vix  = _col("VIX")
         vix9d= _col("VIX9D")
         tnx  = _col("TNX")
@@ -5868,8 +5870,32 @@ def git_push() -> bool:
         "Sistema Cuantitativo Avanzado con Histórico 2000 e Incremental Diario"
     )
 
+    # Archivos base siempre
+    archivos = ["datos_radar.json", "manengis_tactico.json"]
+
+    # Añadir historico_maestro.csv SOLO si git detecta cambios en él
+    # (evita commits de 9.8MB innecesarios en días sin nuevos datos)
+    hm = HISTORICO_PATH
+    if hm.exists():
+        check = subprocess.run(
+            ["git", "-C", str(BASE_DIR), "diff", "--name-only", str(hm.name)],
+            capture_output=True, text=True
+        )
+        if hm.name in (check.stdout or ""):
+            archivos.append(str(hm.name))
+            log.info(f"  historico_maestro.csv incluido en commit (hay cambios)")
+        else:
+            # También verificar si es un archivo nuevo (untracked)
+            status = subprocess.run(
+                ["git", "-C", str(BASE_DIR), "status", "--porcelain", str(hm.name)],
+                capture_output=True, text=True
+            )
+            if status.stdout.strip():
+                archivos.append(str(hm.name))
+                log.info(f"  historico_maestro.csv incluido en commit (nuevo/modificado)")
+
     comandos = [
-        ["git", "-C", str(BASE_DIR), "add", "datos_radar.json", "manengis_tactico.json"],
+        ["git", "-C", str(BASE_DIR), "add"] + archivos,
         ["git", "-C", str(BASE_DIR), "commit", "-m", commit_msg],
         ["git", "-C", str(BASE_DIR), "push", "origin", "main"],
     ]
