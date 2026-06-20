@@ -60,10 +60,16 @@ def calc_ema(s, n):
     return round(float(v),2) if not np.isnan(v) else None
 
 def calc_rsi(s, n=14):
+    """
+    RSI Wilder con EWM (no SMA).
+    Sprint 4 E.1: ANTES motor usaba rolling().mean() (SMA), pero actualizar_radar.py
+    usa ewm(com=n-1, adjust=False).mean() (Wilder). Para el mismo activo daban
+    valores distintos. Ahora ambos scripts calculan RSI igual.
+    """
     if s is None or len(s)<n+2: return None
     d = s.diff().dropna()
-    g = d.clip(lower=0).rolling(n).mean()
-    l = (-d.clip(upper=0)).rolling(n).mean()
+    g = d.clip(lower=0).ewm(com=n-1, adjust=False).mean()
+    l = (-d.clip(upper=0)).ewm(com=n-1, adjust=False).mean()
     rs = g/l.replace(0,np.nan)
     r  = 100-(100/(1+rs))
     v  = r.dropna().iloc[-1]
@@ -623,8 +629,10 @@ def similitud_historica_v2(
         else:
             base["gex_pct"] = np.nan
 
-        # Breadth proxy (constante del día actual si no hay histórico)
-        base["breadth"] = float(breadth_v or 70.0)
+        # Sprint 3 C.2: ANTES había una feature "breadth" que se asignaba COMO
+        # CONSTANTE (valor de HOY a todas las filas históricas). Eso significaba
+        # que la feature tenía peso 0.8 pero NO aportaba información (todas las
+        # diferencias eran 0). Ahora se elimina del conjunto de features.
 
         # Añadir columnas opcionales con NaN si no están disponibles
         # (SKEW puede faltar si el CSV no existe — el kNN lo tolera con thresh=0.55)
@@ -633,10 +641,11 @@ def similitud_historica_v2(
                 base[_opt_col] = np.nan
 
         # Eliminar filas con demasiados NaN en features core
+        # Sprint 3 C.2: "breadth" eliminada del conjunto (era constante = información 0)
         feat_df = base[[
             "spread_vix_pct", "dist_sma200", "vvix", "vvix_vix_ratio",
             "dix", "gex_pct", "skew", "rsi", "roc5d", "roc20d",
-            "vix_ch3d", "breadth",
+            "vix_ch3d",
         ]].copy()
 
         # ── Normalización Z-score rolling 504d ───────────────────────────────
@@ -673,6 +682,7 @@ def similitud_historica_v2(
 
         # Construir el vector del fingerprint actual
         # (usa valores externos si vienen, si no usa la última fila normalizada)
+        # Sprint 3 C.2: "breadth" eliminado (era constante = información 0)
         hoy_vec = np.array([
             _safe_z("spread_vix_pct", spread_vix_pct_v),
             _safe_z("dist_sma200", dist_sma200_v or dist_v),
@@ -685,10 +695,10 @@ def similitud_historica_v2(
             _safe_z("roc5d", roc5d_v),
             _safe_z("roc20d", None),    # desde histórico
             _safe_z("vix_ch3d", vix_ch3d),
-            _safe_z("breadth", breadth_v),
         ], dtype=float)
 
         # ── Pesos ─────────────────────────────────────────────────────────────
+        # Sprint 3 C.2: peso de "breadth" (0.8) eliminado del array
         PESOS = np.array([
             2.0,  # spread_vix_pct
             1.8,  # dist_sma200
@@ -701,7 +711,6 @@ def similitud_historica_v2(
             1.2,  # roc5d
             1.0,  # roc20d
             1.0,  # vix_ch3d
-            0.8,  # breadth
         ], dtype=float)
 
         vals = feat_norm[cols_order].values
@@ -1104,23 +1113,61 @@ def run():
     fg=fear_greed()
     print(f"  F&G={fg['score']} ({fg['estado']}) fuente={fg.get('fuente')}")
 
-    print("Similitud historica (kNN v2 — 12 features + DIX/VVIX/SKEW)...")
-    # Calcular parametros enriquecidos disponibles en este punto de run()
-    _spread_vix_pct = None
-    if p_vix and p_v3m and p_vix > 0:
-        _spread_vix_pct = round((p_v3m - p_vix) / p_vix * 100, 2)
-    _dist_sma200 = None
-    if qqq is not None and len(qqq) >= 200:
-        _sma200_val = float(qqq.rolling(200).mean().iloc[-1])
-        if _sma200_val and _sma200_val > 0 and p_qqq:
-            _dist_sma200 = round((p_qqq - _sma200_val) / _sma200_val * 100, 2)
-    sim = similitud_historica_v2(
-        rsi_v=rsi_v, vix_v=p_vix, vix_ch3d=vix_ch3d,
-        roc5d_v=roc5d_v, breadth_v=br_pct50, dist_v=dist_max,
-        spread_vix_pct_v=_spread_vix_pct, dist_sma200_v=_dist_sma200,
-        vvix_v=None, skew_v=None, dix_v=None, gex_v=None,
-    )
-    print(f"  version={sim.get('version')} | fiable={sim.get('fiable')} | mejor_sim={sim.get('mejor_similitud')} | escenario={sim.get('escenario_tipo')}")
+    # ── Sprint 3 C.1: PRIORIZAR el kNN del radar (radar corre antes) ────
+    # Antes el motor hacía su propio kNN duplicando trabajo (~30s/noche).
+    # Ahora intenta leer datos_radar.knn_predictor primero. Si no existe o
+    # falla, recurre al cálculo propio como fallback.
+    print("Similitud histórica (kNN — preferir radar, fallback local)...")
+    sim = None
+    _knn_radar_used = False
+    _radar_knn_path = SCRIPT_DIR / "datos_radar.json"
+    if _radar_knn_path.exists():
+        try:
+            _rd_knn = json.loads(_radar_knn_path.read_text(encoding="utf-8"))
+            _knn_r = _rd_knn.get("knn_predictor", {})
+            if _knn_r and not _knn_r.get("error") and _knn_r.get("n_vecinos", 0) >= 10:
+                # Mapear al formato esperado (compatible con similitud_historica_v2)
+                sim = {
+                    "version":           _knn_r.get("version", "1.0"),
+                    "generado":          _knn_r.get("generado"),
+                    "fecha_referencia":  _knn_r.get("fecha_referencia"),
+                    "n_vecinos":         _knn_r.get("n_vecinos"),
+                    "n_dias_historico":  _knn_r.get("n_dias_historico"),
+                    "ventana_historico": _knn_r.get("ventana_historico"),
+                    "fiable":            _knn_r.get("fiable"),
+                    "mejor_similitud":   _knn_r.get("mejor_similitud"),
+                    "escenario_tipo":    _knn_r.get("escenario_tipo"),
+                    "escenario_desc":    _knn_r.get("escenario_desc"),
+                    "interpretacion":    _knn_r.get("interpretacion"),
+                    "config":            _knn_r.get("config", {}),
+                    "retornos":          _knn_r.get("retornos", {}),
+                    "distribucion":      _knn_r.get("distribucion", {}),
+                    "vecinos_top10":     _knn_r.get("vecinos_top10", []),
+                    "fuente":            "radar.knn_predictor",
+                }
+                _knn_radar_used = True
+                print(f"  ✓ kNN leído del radar: {sim['n_vecinos']} vecinos · escenario={sim['escenario_tipo']}")
+        except Exception as _e:
+            print(f"  ! kNN radar: {_e}")
+
+    if not _knn_radar_used:
+        print("  ↪ fallback: calculando kNN local con similitud_historica_v2")
+        _spread_vix_pct = None
+        if p_vix and p_v3m and p_vix > 0:
+            _spread_vix_pct = round((p_v3m - p_vix) / p_vix * 100, 2)
+        _dist_sma200 = None
+        if qqq is not None and len(qqq) >= 200:
+            _sma200_val = float(qqq.rolling(200).mean().iloc[-1])
+            if _sma200_val and _sma200_val > 0 and p_qqq:
+                _dist_sma200 = round((p_qqq - _sma200_val) / _sma200_val * 100, 2)
+        sim = similitud_historica_v2(
+            rsi_v=rsi_v, vix_v=p_vix, vix_ch3d=vix_ch3d,
+            roc5d_v=roc5d_v, breadth_v=br_pct50, dist_v=dist_max,
+            spread_vix_pct_v=_spread_vix_pct, dist_sma200_v=_dist_sma200,
+            vvix_v=None, skew_v=None, dix_v=None, gex_v=None,
+        )
+        sim["fuente"] = "motor_local_fallback"
+    print(f"  version={sim.get('version')} | fiable={sim.get('fiable')} | mejor_sim={sim.get('mejor_similitud')} | escenario={sim.get('escenario_tipo')} | fuente={sim.get('fuente')}")
     if sim.get("retornos", {}).get("5d"):
         s5 = sim["retornos"]["5d"]
         print(f"  5d: media={s5['media']}% | mediana={s5['mediana']}% | pos={s5['pct_positivo']}%")
@@ -1149,7 +1196,34 @@ def run():
             factores.append(f"Breadth NDX100 negativa ({ndx100_breadth_signal.get('net_breadth_pct')}%)")
     if nfci_v and nfci_v>0.1: risk+=0.5; factores.append(f"NFCI={nfci_v} condiciones tensas")
 
-    risk_score=round(min(risk,10.0),1)
+    # ── Sprint 1 B.1: FACTORES REDUCTORES ──────────────────────────────
+    # Antes el risk_score solo tenía factores aditivos. Imposible llegar a verde
+    # (<3.5) sin que TODOS los factores fueran inactivos a la vez. Sesgo permanente
+    # hacia amarillo/naranja. Ahora se restan puntos cuando hay señales positivas
+    # confirmadas (mínimo del risk = 0).
+    if p_qqq is not None and ema20_v and ema50_v:
+        # Tendencia alcista clara: precio > EMA20 > EMA50
+        if p_qqq > ema20_v > ema50_v:
+            risk -= 0.5
+            factores.append(f"Tendencia alcista (precio>EMA20>EMA50)")
+    if br_pct50 is not None and br_pct50 > 80:
+        # Breadth fuerte: más del 80% de Mag7 sobre EMA50
+        risk -= 0.5
+        factores.append(f"Breadth Mag7 fuerte ({br_pct50}% sobre EMA50)")
+    if roc5d_v is not None and roc5d_v > 2:
+        # Momentum positivo confirmado
+        risk -= 0.3
+        factores.append(f"Momentum 5d positivo (+{roc5d_v}%)")
+    if sp_2_10 is not None and sp_2_10 > 0.5:
+        # Curva claramente positiva (no invertida ni plana)
+        risk -= 0.3
+        factores.append(f"Curva sana (10Y-2Y={sp_2_10})")
+    if p_vix and 14 <= p_vix <= 18:
+        # VIX en zona óptima (ni complacencia extrema ni alerta)
+        risk -= 0.3
+        factores.append(f"VIX={p_vix} zona óptima")
+
+    risk_score=round(max(0.0, min(risk,10.0)),1)
     semaforo=("verde" if risk_score<3.5 else "amarillo" if risk_score<5.5 else
               "naranja" if risk_score<7.5 else "rojo")
     regimen=("tendencia_alcista" if semaforo in("verde","amarillo") and (roc5d_v or 0)>0
@@ -1278,7 +1352,11 @@ def run():
                 "senalRecesion":"alta" if inv else "baja",
                 "descripcion":"CURVA INVERTIDA" if inv else "Curva normal"}},
         "similitud_historica":sim,"historico_30d":hist30,
-        "sentimiento":{"score":0,"descripcion":"No calculado"},
+        # Sprint 5 E.2: sentimiento es un placeholder PERMANENTE (nunca se ha
+        # implementado realmente). Mantenido para no romper consumers del JSON,
+        # pero el frontend debería ignorarlo o no mostrarlo prominentemente.
+        # Para implementarlo de verdad haría falta GDELT/NewsAPI o similar.
+        "sentimiento":{"score":None,"descripcion":"No implementado (placeholder)","placeholder":True},
         "earnings":{"alerta_volatilidad":False,"tickers_72h":[]},
         "derivados":{"precio_qqq":p_qqq},"skew":{},
         "barrida_estructural":{"nivel_barrida":min90_v,"zona_barrida":False},
