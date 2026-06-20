@@ -2769,7 +2769,13 @@ def calcular_regimen_macro() -> dict:
     """
     try:
         # ── Cargar historico_maestro.csv ───────────────────────────────────
-        hm = pd.read_csv(HISTORICO_PATH, index_col=0, parse_dates=True).sort_index()
+        # FIX bug RangeIndex: usar index_col="fecha" (no index_col=0) y forzar
+        # to_datetime por si la fecha llega como string sin parsear.
+        hm = pd.read_csv(HISTORICO_PATH, index_col="fecha", parse_dates=True)
+        if not isinstance(hm.index, pd.DatetimeIndex):
+            hm.index = pd.to_datetime(hm.index, errors="coerce")
+            hm = hm[hm.index.notna()]
+        hm = hm.sort_index()
 
         # ── Cargar CSVs individuales ───────────────────────────────────────
         def _load_csv(fname, date_col, val_col):
@@ -3003,7 +3009,7 @@ def calcular_macro_fred(df_maestro: pd.DataFrame, precios: dict) -> dict:
 
     if tipo_real_v is not None:
         if tipo_real_v < 0:
-            señal_oro_real = "favorable_qqqqqq"  # dinero fiat se devalúa → activos alternativos
+            señal_oro_real = "favorable_qqq"  # dinero fiat se devalúa → activos alternativos
             desc_oro_real  = f"Tipos reales negativos ({tipo_real_v}%) — entorno favorable para tecnológicas y activos de riesgo"
         elif tipo_real_v < 0.5:
             señal_oro_real = "neutro_bajo"
@@ -3892,11 +3898,46 @@ def leer_qqq_opciones_csv():
         _csv_log("QQQ opciones: no se pudo parsear el CSV")
         return None
 
-    # Vencimiento con mas OI (mas liquido)
+    # Vencimiento con mas OI (mas liquido) — pero EXCLUYENDO vencimientos ya expirados.
+    # Bug previo: el CSV manual de Barchart puede tener vencimientos pasados con OI alto,
+    # y el código antiguo seleccionaba esos vencimientos expirados como target.
+    import datetime as _dt
+    hoy_dt = _dt.date.today()
+
+    def _exp_a_fecha(exp_str):
+        """Convierte fechas tipo 'Thu Jun 18 2026' o '2026-06-18' a date. None si falla."""
+        if not exp_str:
+            return None
+        s = str(exp_str).strip()
+        for fmt in ("%a %b %d %Y", "%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%b %d %Y"):
+            try:
+                return _dt.datetime.strptime(s, fmt).date()
+            except Exception:
+                continue
+        return None
+
+    # Filtrar vencimientos no expirados
+    exp_data_validos = {}
+    for exp, strikes in exp_data.items():
+        fecha_exp = _exp_a_fecha(exp)
+        if fecha_exp is None:
+            _csv_log(f"  ! vencimiento '{exp}' formato no parseado — incluido por defecto")
+            exp_data_validos[exp] = strikes
+        elif fecha_exp >= hoy_dt:
+            exp_data_validos[exp] = strikes
+        else:
+            _csv_log(f"  ! vencimiento '{exp}' ya expirado ({fecha_exp}) — excluido")
+
+    if not exp_data_validos:
+        _csv_log(f"QQQ opciones: TODOS los vencimientos del CSV están expirados (hoy={hoy_dt}). "
+                 f"Descarga un CSV nuevo de Barchart.")
+        return None
+
+    # Vencimiento con mas OI dentro de los NO expirados
     exp_oi_total = {exp: sum(d["c_oi"] + d["p_oi"] for d in strikes.values())
-                    for exp, strikes in exp_data.items()}
+                    for exp, strikes in exp_data_validos.items()}
     exp_target = max(exp_oi_total, key=exp_oi_total.get)
-    strikes_data = exp_data[exp_target]
+    strikes_data = exp_data_validos[exp_target]
     _csv_log(f"Vencimiento seleccionado: {exp_target} (OI total: {exp_oi_total[exp_target]:,})")
 
     # Filtrado +-25% del precio
@@ -3923,8 +3964,9 @@ def leer_qqq_opciones_csv():
     max_pain = calcular_max_pain(strikes_filtrados)
 
     # Max Pain por TODOS los vencimientos del CSV (alimenta derivados.vencimientos)
+    # Solo vencimientos NO expirados.
     maxpain_por_vencimiento = {}
-    for exp, sd in exp_data.items():
+    for exp, sd in exp_data_validos.items():
         mp_exp = calcular_max_pain(sd)
         if mp_exp is not None:
             maxpain_por_vencimiento[exp] = mp_exp
@@ -5422,9 +5464,12 @@ def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
     def score_tecnico():
         s = 0
         rsi = t.get("rsi14") or 50
-        if 45 < rsi < 65:   s += 2
-        elif rsi > 70:       s -= 1
-        elif rsi < 30:       s += 1
+        # Cubrir todo el rango RSI sin huecos (fix bug: antes 30-45 y 65-70 no daban señal)
+        if   rsi >= 70:        s -= 1     # sobrecomprado → contrarian bajista
+        elif rsi >= 65:        s += 0.5   # zona alta, momentum alcista
+        elif rsi >  45:        s += 2     # zona alcista saludable
+        elif rsi >  30:        s -= 1     # zona bajista
+        else:                   s += 1     # sobrevendido → contrarian alcista
 
         macd_hist = (t.get("macd") or {}).get("hist") or 0
         if macd_hist > 0:    s += 2
@@ -5454,9 +5499,11 @@ def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
             return float(macro["score"])
         s = 0.0
         vix = precios.get("vix") or 20
-        if vix < 16:    s += 1.5
-        elif vix > 25:  s -= 1.5
-        elif vix > 30:  s -= 3.0
+        # Fix bug: orden invertido — antes `elif vix > 30` era inalcanzable
+        # porque `elif vix > 25` lo capturaba primero.
+        if   vix > 30:  s -= 3.0   # pánico extremo
+        elif vix > 25:  s -= 1.5   # estrés elevado
+        elif vix < 16:  s += 1.5   # complacencia / risk-on
         return max(-5, min(5, round(s, 1)))
 
     # ── Score COT — REAL en Fase 3 ────────────────────────────────────────────
