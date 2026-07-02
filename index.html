@@ -11371,17 +11371,23 @@ function aplicarRadarAuto(radar) {
     // Motivos (solo los que tienen impacto != 0)
     const motivosBox = document.getElementById('plan-expo-motivos');
     if (motivosBox) {
-      const conImpacto = (plan.motivos || []).filter(m => m.delta_pct !== 0);
-      if (conImpacto.length) {
-        motivosBox.style.display = 'block';
-        motivosBox.innerHTML = conImpacto.map(m => {
-          const signo = m.delta_pct > 0 ? '+' : '';
-          const cd = m.delta_pct > 0 ? 'var(--gr)' : 'var(--rd)';
-          return '<div style="display:flex; gap:8px; align-items:flex-start; font-size:11px; ' +
-                 'color:var(--t2); padding:5px 0; border-bottom:1px solid var(--b1); line-height:1.4;">' +
-                 '<span style="color:' + cd + '; font-weight:700; flex-shrink:0; font-family:JetBrains Mono,monospace;">' +
-                 signo + m.delta_pct + '%</span><span>' + m.texto + '</span></div>';
-        }).join('');
+      const motivosArr = plan.motivos || [];
+         if (motivosArr.length) {
+           motivosBox.style.display = 'block';
+                    motivosBox.innerHTML = motivosArr.map(m => {
+                                 const esObj = m && typeof m === 'object';
+             const texto = esObj ? (m.texto || '') : String(m);
+                                 const delta = esObj ? m.delta_pct : null;
+                                 if (delta !== null && delta !== undefined && delta !== 0) {
+                                                const signo = delta > 0 ? '+' : '';
+                                                const cd = delta > 0 ? 'var(--gr)' : 'var(--rd)';
+               return '<div style="display:flex; gap:8px; align-items:flex-start; font-size:11px; ' +
+                                     'color:var(--t2); padding:5px 0; border-bottom:1px solid var(--b1); line-height:1.4;">' +
+                                     '<span style="color:' + cd + '; font-weight:700; flex-shrink:0; font-family:JetBrains Mono,monospace;">' +
+                                     signo + delta + '%</span><span>' + texto + '</span></div>';
+   }
+             return '<div style="font-size:11px; color:var(--t2); padding:5px 0; border-bottom:1px solid var(--b1); line-height:1.4;">• ' + texto + '</div>';
+                    }).join('');
       } else {
         motivosBox.style.display = 'none';
       }
