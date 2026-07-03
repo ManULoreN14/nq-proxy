@@ -5405,6 +5405,50 @@ def parsear_pcr_txt(base_dir: Path = None) -> dict:
 #  ██████╗  MÓDULO FASE 3 — PCR CBOE (Put/Call Ratio diario)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def calcular_pcr_percentil_csv(valor_total: float = None) -> dict:
+    """
+    Percentil histórico del PCR (TOTAL_PUT_CALL_RATIO) contra
+    DATOS_CSV/PCR_RATIOS_HISTORICO.csv, con la MISMA metodología que ya
+    se usa para el COT (_csv_percentil: percentil histórico completo,
+    no umbrales fijos). Miedo extremo (percentil alto) = señal contraria
+    alcista; euforia extrema (percentil bajo) = señal contraria bajista.
+
+    Devuelve None si el archivo no existe o no hay valor de referencia
+    (ej. antes de que exista PCR_RATIOS_HISTORICO.csv en el repo).
+    """
+    ruta = DATA_CSV_DIR / "PCR_RATIOS_HISTORICO.csv"
+    if not ruta.exists() or valor_total is None:
+        return None
+    try:
+        import csv as _csv
+        serie = []
+        with open(ruta, newline="", encoding="utf-8", errors="replace") as f:
+            reader = _csv.DictReader(f)
+            for row in reader:
+                v = _csv_safe_float(row.get("TOTAL_PUT_CALL_RATIO"))
+                # mismo filtro de outliers de captura que preparar_datos.py
+                if v is not None and 0.1 <= v <= 3.0:
+                    serie.append(v)
+        if len(serie) < 60:
+            return None
+        pct = _csv_percentil(serie, valor_total)
+        if pct is None:
+            return None
+        if pct >= 90:    señal = "alcista_extremo"
+        elif pct >= 75:  señal = "alcista"
+        elif pct <= 10:  señal = "bajista_extremo"
+        elif pct <= 25:  señal = "bajista"
+        else:            señal = "neutro"
+        return {
+            "percentil_historico": pct,
+            "señal_percentil": señal,
+            "n_dias_historico": len(serie),
+        }
+    except Exception as e:
+        log.warning(f"  [PCR-PCTL] Error calculando percentil: {e}")
+        return None
+
+
 def calcular_pcr_cboe(opciones_data: dict = None) -> dict:
     """
     PCR Put/Call Ratio — tres fuentes con fallback en orden de prioridad:
@@ -5542,6 +5586,175 @@ def calcular_pcr_cboe(opciones_data: dict = None) -> dict:
     }
 
 
+def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
+    """
+    Backtest historico 2006-hoy: reconstruye un risk_score simplificado
+    dia a dia (RSI, VIX, VIX Term Structure backwardation, COT percentil) y
+    lo traduce a exposicion sugerida con el MISMO semaforo que usa
+    motor_manengis.py (<3.5 verde 80%, <5.5 amarillo 65%, <7.5 naranja 45%,
+    resto rojo 20%), para poder comparar contra Buy&Hold NDX y asignaciones
+    fijas (30/70, 50/50, 60/40, 70/30 NDX/liquidez).
+
+    LIMITACION CONOCIDA (documentada, no oculta): no reconstruye Fear&Greed,
+    breadth Mag7/NDX100 ni curva 2Y-10Y por falta de historico diario de esas
+    variables. El risk_score real de produccion seria por tanto MAS
+    defensivo en crisis que esta aproximacion — el backtest es un suelo
+    conservador, no un techo.
+
+    Devuelve dict listo para la clave "backtest_comparativo" de
+    datos_radar.json: series mensuales de cada curva + metricas CAGR/
+    MaxDD/Sharpe, para que el frontend solo tenga que pintarlas.
+    """
+    try:
+        cols_necesarias = ["NDX_close", "VIX_close", "VIX3M_close", "IRX_close"]
+        faltan = [c for c in cols_necesarias if c not in df_maestro.columns]
+        if faltan:
+            return {"error": f"faltan columnas en historico_maestro: {faltan}"}
+
+        hm = df_maestro[cols_necesarias].dropna(subset=["NDX_close"]).copy()
+        primer_vix3m = hm["VIX3M_close"].dropna().index.min()
+        if primer_vix3m is None:
+            return {"error": "sin datos VIX3M en historico_maestro"}
+        hm = hm.loc[primer_vix3m:]
+        if len(hm) < 500:
+            return {"error": "historico insuficiente para backtest"}
+
+        def _rsi(serie, n=14):
+            delta = serie.diff()
+            up = delta.clip(lower=0).rolling(n).mean()
+            down = -delta.clip(upper=0).rolling(n).mean()
+            rs = up / down
+            return 100 - 100 / (1 + rs)
+
+        hm["rsi14"] = _rsi(hm["NDX_close"])
+        hm["ema20"] = hm["NDX_close"].ewm(span=20).mean()
+        hm["ema50"] = hm["NDX_close"].ewm(span=50).mean()
+        hm["roc5d"] = hm["NDX_close"].pct_change(5) * 100
+        hm["vts_ratio"] = hm["VIX3M_close"] / hm["VIX_close"]
+
+        # COT percentil (semanal, forward-fill a diario)
+        lev_net_pctl_diario = None
+        try:
+            import csv as _csv2
+            txts = sorted(COT_CSV_DIR.glob("*.txt")) if COT_CSV_DIR.exists() else []
+            filas_cot = {}
+            for path in txts:
+                with open(path, newline="", encoding="utf-8", errors="replace") as f:
+                    for row in _csv2.DictReader(f):
+                        if (row.get("CFTC_Contract_Market_Code") or "").strip() != "209742":
+                            continue
+                        d = _csv_parse_fecha(row.get("Report_Date_as_YYYY-MM-DD"))
+                        if not d:
+                            continue
+                        try:
+                            l = float(row.get("Lev_Money_Positions_Long_All") or "nan")
+                            s = float(row.get("Lev_Money_Positions_Short_All") or "nan")
+                            filas_cot[d] = l - s
+                        except (ValueError, TypeError):
+                            pass
+            if filas_cot:
+                serie_cot = pd.Series(filas_cot).sort_index()
+                pctl_cot = serie_cot.rolling(156, min_periods=52).apply(
+                    lambda s: (s < s.iloc[-1]).mean() * 100)
+                lev_net_pctl_diario = pctl_cot.reindex(hm.index, method="ffill")
+        except Exception as e:
+            log.warning(f"  [BACKTEST] COT no disponible: {e}")
+
+        def risk_score_row(i, row):
+            risk = 0.0
+            if pd.notna(row["rsi14"]):
+                if row["rsi14"] > 75: risk += 1.5
+                elif row["rsi14"] > 70: risk += 1.0
+            if pd.notna(row["VIX_close"]):
+                if row["VIX_close"] > 28: risk += 2.0
+                elif row["VIX_close"] > 22: risk += 1.5
+                elif row["VIX_close"] < 13: risk += 0.5
+            if pd.notna(row["vts_ratio"]) and row["vts_ratio"] < 1.0:
+                risk += 2.0
+            if lev_net_pctl_diario is not None:
+                pctl = lev_net_pctl_diario.get(i)
+                if pctl is not None and pd.notna(pctl) and pctl >= 85:
+                    risk += 0.5
+            if pd.notna(row["ema20"]) and pd.notna(row["ema50"]) and row["NDX_close"] > row["ema20"] > row["ema50"]:
+                risk -= 0.5
+            if pd.notna(row["roc5d"]) and row["roc5d"] > 2:
+                risk -= 0.3
+            if pd.notna(row["VIX_close"]) and 14 <= row["VIX_close"] <= 18:
+                risk -= 0.3
+            return max(0.0, min(risk, 10.0))
+
+        hm["risk_score"] = [risk_score_row(i, r) for i, r in hm.iterrows()]
+
+        def _exp_pct(risk):
+            if risk < 3.5: return 0.80
+            if risk < 5.5: return 0.65
+            if risk < 7.5: return 0.45
+            return 0.20
+        hm["exp_pct"] = hm["risk_score"].apply(_exp_pct)
+
+        hm["ndx_ret"] = hm["NDX_close"].pct_change()
+        hm["rf_ret"] = (hm["IRX_close"] / 100) / 252
+        hm = hm.dropna(subset=["ndx_ret"])
+
+        def _equity(ret):
+            return (1 + ret.fillna(0)).cumprod()
+
+        curvas = {
+            "buyhold": _equity(hm["ndx_ret"]),
+            "estrategia": _equity(hm["exp_pct"] * hm["ndx_ret"] + (1 - hm["exp_pct"]) * hm["rf_ret"]),
+        }
+        for w, nombre in [(0.3, "b30"), (0.5, "b50"), (0.6, "b60"), (0.7, "b70")]:
+            curvas[nombre] = _equity(w * hm["ndx_ret"] + (1 - w) * hm["rf_ret"])
+
+        def _cagr(eq):
+            years = (eq.index[-1] - eq.index[0]).days / 365.25
+            return round(((eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1) * 100, 2) if years > 0 else None
+
+        def _maxdd(eq):
+            peak = eq.cummax()
+            return round(((eq / peak) - 1).min() * 100, 2)
+
+        def _sharpe(eq, rf):
+            r = eq.pct_change().dropna()
+            ex = r - rf.reindex(r.index)
+            sd = ex.std()
+            return round((ex.mean() / sd) * (252 ** 0.5), 2) if sd else None
+
+        metricas = {}
+        for k, eq in curvas.items():
+            metricas[k] = {"cagr_pct": _cagr(eq), "max_dd_pct": _maxdd(eq), "sharpe": _sharpe(eq, hm["rf_ret"])}
+
+        mensual = pd.DataFrame(curvas).resample("MS").first().dropna()
+        # asegurar el ultimo punto real (no solo el primero de mes)
+        ultimo = pd.DataFrame(curvas).iloc[[-1]]
+        mensual = pd.concat([mensual, ultimo]).sort_index()
+        mensual = mensual[~mensual.index.duplicated(keep="last")]
+
+        return {
+            "fechas": [d.strftime("%Y-%m-%d") for d in mensual.index],
+            "buyhold_ndx": [round(v, 3) for v in mensual["buyhold"]],
+            "estrategia_score": [round(v, 3) for v in mensual["estrategia"]],
+            "asignacion_30_70": [round(v, 3) for v in mensual["b30"]],
+            "asignacion_50_50": [round(v, 3) for v in mensual["b50"]],
+            "asignacion_60_40": [round(v, 3) for v in mensual["b60"]],
+            "asignacion_70_30": [round(v, 3) for v in mensual["b70"]],
+            "metricas": metricas,
+            "periodo": {"desde": hm.index[0].strftime("%Y-%m-%d"), "hasta": hm.index[-1].strftime("%Y-%m-%d")},
+            "limitaciones": (
+                "Risk score simplificado: RSI+VIX+VIX Term Structure+COT percentil. "
+                "No incluye Fear&Greed, breadth Mag7/NDX100 ni curva 2Y-10Y por falta "
+                "de historico diario — el score real de produccion seria mas defensivo "
+                "en crisis que esta aproximacion."
+            ),
+            "fuente": "calcular_backtest_comparativo (historico_maestro.csv + COT real)",
+        }
+    except Exception as e:
+        log.warning(f"  [BACKTEST] Error: {e}")
+        import traceback
+        log.warning(traceback.format_exc())
+        return {"error": str(e)}
+
+
 def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
                     vix_ts: dict, giro: dict, flows: dict,
                     precios: dict, macro: dict | None = None,
@@ -5655,12 +5868,23 @@ def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
             if mp_señal == "alcista":  s += 0.5
             elif mp_señal == "bajista": s -= 0.5
 
-        # PCR (señal contraria)
+        # PCR (señal contraria) — preferir percentil histórico real
+        # (PCR_RATIOS_HISTORICO.csv, misma metodología que el COT) sobre
+        # umbrales fijos. Fallback a umbrales fijos si aún no hay histórico
+        # suficiente (ej. arranque en seco), y a PCR de opciones si CBOE
+        # no está disponible en absoluto.
         pcr_ref = None
+        pcr_pctl = None
         if pcr and not pcr.get("error"):
             pcr_ref = pcr.get("total") or pcr.get("equity")
+            pcr_pctl = pcr.get("percentil_historico")
 
-        if pcr_ref is not None:
+        if pcr_pctl is not None:
+            if pcr_pctl >= 90:    s += 2.0   # miedo extremo histórico → contrarian alcista fuerte
+            elif pcr_pctl >= 75:  s += 1.0
+            elif pcr_pctl <= 10:  s -= 2.0   # euforia extrema histórica → contrarian bajista fuerte
+            elif pcr_pctl <= 25:  s -= 1.0
+        elif pcr_ref is not None:
             if pcr_ref > 1.2:   s += 1.5   # Miedo extremo → contrarian alcista
             elif pcr_ref > 1.0: s += 0.5
             elif pcr_ref < 0.6: s -= 1.5   # Euforia → contrarian bajista
@@ -7542,6 +7766,11 @@ def main():
             pcr_data = calcular_pcr_cboe(opciones_data)
             if not pcr_data.get("error"):
                 log.info(f"  ✅ PCR CBOE: Total={pcr_data.get('total')} | Equity={pcr_data.get('equity')} | Señal={pcr_data.get('señal').upper()}")
+                # Enriquecer con percentil historico real (PCR_RATIOS_HISTORICO.csv)
+                pctl = calcular_pcr_percentil_csv(pcr_data.get("total"))
+                if pctl:
+                    pcr_data.update(pctl)
+                    log.info(f"  ✅ PCR percentil histórico: p{pctl['percentil_historico']} ({pctl['señal_percentil']}, {pctl['n_dias_historico']}d)")
             else:
                 log.warning(f"  [!] PCR CBOE: {pcr_data.get('error')}")
         except Exception as e:
@@ -7800,6 +8029,20 @@ def main():
         est = v["estado"].upper()
         log.info(f"  {k}: {sc:+.1f} ({est}, conf {v['conf']}%)")
 
+    log.info("\n[6.5/8] Backtest comparativo (Buy&Hold vs Estrategia vs asignaciones fijas)...")
+    try:
+        backtest_comparativo = calcular_backtest_comparativo(df)
+        if backtest_comparativo.get("error"):
+            log.warning(f"  [!] Backtest comparativo: {backtest_comparativo['error']}")
+        else:
+            m = backtest_comparativo["metricas"]
+            log.info(f"  Buy&Hold CAGR={m['buyhold']['cagr_pct']}% MaxDD={m['buyhold']['max_dd_pct']}% | "
+                      f"Estrategia CAGR={m['estrategia']['cagr_pct']}% MaxDD={m['estrategia']['max_dd_pct']}% "
+                      f"Sharpe={m['estrategia']['sharpe']}")
+    except Exception as e:
+        log.error(f"  ✗ Backtest comparativo falló: {e}")
+        backtest_comparativo = {"error": str(e)}
+
     # ── 7. Construir y exportar JSON ───────────────────────────────────────────
     log.info("\n[7/8] Exportando datos_radar.json...")
 
@@ -7845,6 +8088,7 @@ def main():
         "regimen_macro":    regimen_macro,
         "señales_derivadas": señales_derivadas,
         "scores":           scores,
+        "backtest_comparativo": backtest_comparativo,
         # Fase 3 — datos reales
         "cot":          cot_data or {
             "error": "no_ejecutado", "señal": "neutro",

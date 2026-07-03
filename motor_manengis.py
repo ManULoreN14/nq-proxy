@@ -1172,6 +1172,81 @@ def run():
         s5 = sim["retornos"]["5d"]
         print(f"  5d: media={s5['media']}% | mediana={s5['mediana']}% | pos={s5['pct_positivo']}%")
 
+    # ── Puente con Radar + señales reales adicionales para risk_score ─────────
+    # Sprint 6: formalizamos 3 fuentes que YA se generaban pero no influian
+    # en el risk_score de Manengis:
+    #   1. score_avg de Radar (ya se leia mas abajo para el historico, pero
+    #      nunca se usaba como factor de riesgo — ahora si).
+    #   2. PCR percentil historico real (PCR.txt + PCR_RATIOS_HISTORICO.csv).
+    #   3. VIX Term Structure real por futuros (VIX.txt), en vez de solo el
+    #      ratio spot VIX/VIX3M — gradua el factor de backwardation por
+    #      severidad real en vez de sumar +2.0 fijo siempre que vts_back.
+    score_avg_radar_temprano = None
+    try:
+        _radar_json_temprano = SCRIPT_DIR / "datos_radar.json"
+        if _radar_json_temprano.exists():
+            _rd_temp = json.loads(_radar_json_temprano.read_text(encoding="utf-8"))
+            _hor_temp = _rd_temp.get("scores", {}).get("horizontes", {})
+            _vals_temp = [v.get("score") for v in _hor_temp.values() if v.get("score") is not None]
+            if _vals_temp:
+                score_avg_radar_temprano = round(sum(_vals_temp) / len(_vals_temp), 2)
+    except Exception as _e3:
+        print(f"  ! score_avg_radar (bridge): {_e3}")
+
+    pcr_pctl_manengis = None
+    try:
+        _pcr_txt_path = SCRIPT_DIR / "PCR.txt"
+        _pcr_hist_path = SCRIPT_DIR / "DATOS_CSV" / "PCR_RATIOS_HISTORICO.csv"
+        if _pcr_txt_path.exists() and _pcr_hist_path.exists():
+            _pcr_total_hoy = None
+            for _ln in _pcr_txt_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                if _ln.strip().startswith("TOTAL PUT/CALL RATIO"):
+                    _tok = _ln.split("\t")[-1].strip()
+                    try:
+                        _pcr_total_hoy = float(_tok)
+                    except ValueError:
+                        pass
+                    break
+            if _pcr_total_hoy is not None:
+                import csv as _csv_mod
+                _serie_pcr = []
+                with open(_pcr_hist_path, newline="", encoding="utf-8", errors="replace") as _f:
+                    for _row in _csv_mod.DictReader(_f):
+                        try:
+                            _v = float(_row.get("TOTAL_PUT_CALL_RATIO", ""))
+                            if 0.1 <= _v <= 3.0:
+                                _serie_pcr.append(_v)
+                        except (ValueError, TypeError):
+                            pass
+                if len(_serie_pcr) >= 60:
+                    pcr_pctl_manengis = round(
+                        sum(1 for _x in _serie_pcr if _x <= _pcr_total_hoy) / len(_serie_pcr) * 100, 1)
+    except Exception as _e4:
+        print(f"  ! PCR percentil (bridge): {_e4}")
+
+    vts_spread_pct_real = None
+    try:
+        _vix_txt_path = SCRIPT_DIR / "VIX.txt"
+        if _vix_txt_path.exists() and p_vix:
+            _front_precio = None
+            for _ln in _vix_txt_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                _partes = _ln.strip().split("\t")
+                if len(_partes) < 7:
+                    continue
+                if _partes[0] == "VIX":
+                    continue
+                if _partes[0].startswith("VX") and "/" in _partes[0] and not _partes[0][2].isdigit():
+                    # contrato mensual estandar (VX/M6, no VX23/M6 semanal)
+                    try:
+                        _front_precio = float(_partes[6])
+                    except (ValueError, IndexError):
+                        pass
+                    break
+            if _front_precio:
+                vts_spread_pct_real = round((_front_precio - p_vix) / p_vix * 100, 1)
+    except Exception as _e5:
+        print(f"  ! VTS real (bridge): {_e5}")
+
     factores=[]; risk=0.0
     if rsi_v:
         if rsi_v>75:   risk+=1.5; factores.append(f"RSI={rsi_v} sobrecompra extrema")
@@ -1180,7 +1255,16 @@ def run():
         if p_vix>28:   risk+=2.0; factores.append(f"VIX={p_vix} zona panico")
         elif p_vix>22: risk+=1.5; factores.append(f"VIX={p_vix} zona alerta")
         elif p_vix<13: risk+=0.5; factores.append(f"VIX={p_vix} complacencia extrema")
-    if vts_back: risk+=2.0; factores.append("VIX Term Structure backwardation")
+    if vts_spread_pct_real is not None:
+        # Graduado con la curva real de futuros VIX (VIX.txt), no solo binario
+        if vts_spread_pct_real < -10:
+            risk += 3.0; factores.append(f"Backwardation fuerte futuros VIX ({vts_spread_pct_real:+.1f}%)")
+        elif vts_spread_pct_real < 0:
+            risk += 2.0; factores.append(f"Backwardation futuros VIX ({vts_spread_pct_real:+.1f}%)")
+        elif vts_spread_pct_real > 25:
+            risk += 0.5; factores.append(f"Contango extremo futuros VIX ({vts_spread_pct_real:+.1f}%) — complacencia")
+    elif vts_back:
+        risk+=2.0; factores.append("VIX Term Structure backwardation")
     if inv:      risk+=1.0; factores.append("Curva tipos invertida 10Y-2Y")
     if fg["score"] and fg["score"]>80: risk+=1.0; factores.append(f"F&G={fg['score']} euforia extrema")
     if cot_sesgo=="bajista": risk+=0.5; factores.append("COT specs muy largos NQ")
@@ -1195,6 +1279,26 @@ def run():
             risk += 0.5
             factores.append(f"Breadth NDX100 negativa ({ndx100_breadth_signal.get('net_breadth_pct')}%)")
     if nfci_v and nfci_v>0.1: risk+=0.5; factores.append(f"NFCI={nfci_v} condiciones tensas")
+
+    # PCR percentil histórico real (señal contraria, misma metodología que COT)
+    if pcr_pctl_manengis is not None:
+        if pcr_pctl_manengis <= 10:
+            risk += 1.0; factores.append(f"PCR percentil p{pcr_pctl_manengis} — euforia extrema histórica")
+        elif pcr_pctl_manengis <= 25:
+            risk += 0.5; factores.append(f"PCR percentil p{pcr_pctl_manengis} — complacencia")
+        elif pcr_pctl_manengis >= 90:
+            risk -= 0.5; factores.append(f"PCR percentil p{pcr_pctl_manengis} — miedo extremo histórico (contrarian alcista)")
+
+    # Puente con Radar: si el score multi-horizonte de Radar es claramente
+    # bajista, sube el riesgo de Manengis; si es claramente alcista, lo baja
+    # un poco. Antes se calculaba pero nunca se usaba (Opcion B acordada).
+    if score_avg_radar_temprano is not None:
+        if score_avg_radar_temprano <= -2:
+            risk += 1.0; factores.append(f"Radar score_avg={score_avg_radar_temprano} — bajista")
+        elif score_avg_radar_temprano <= -1:
+            risk += 0.5; factores.append(f"Radar score_avg={score_avg_radar_temprano} — bajista moderado")
+        elif score_avg_radar_temprano >= 2:
+            risk -= 0.5; factores.append(f"Radar score_avg={score_avg_radar_temprano} — alcista")
 
     # ── Sprint 1 B.1: FACTORES REDUCTORES ──────────────────────────────
     # Antes el risk_score solo tenía factores aditivos. Imposible llegar a verde
