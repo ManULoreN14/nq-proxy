@@ -383,7 +383,41 @@ def pcr_cboe():
     TOTAL PUT/CALL RATIO y EQUITY PUT/CALL RATIO.
     URL: https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv
     Devuelve dict con claves: total, equity, fecha, descripcion.
+
+    Sprint 8: PRIORIDAD 0 — leer PCR.txt (generado por preparar_datos.py a
+    partir de la descarga manual del usuario) antes de intentar pegarle
+    directo a la URL de CBOE, que en producción (IP de GitHub Actions)
+    devuelve 403 Forbidden siempre. Mismo patrón que ya usa
+    actualizar_radar.py en parsear_pcr_txt().
     """
+    pcr_txt_local = SCRIPT_DIR / "PCR.txt"
+    if pcr_txt_local.exists():
+        try:
+            valores = {}
+            for ln in pcr_txt_local.read_text(encoding="utf-8", errors="replace").splitlines():
+                partes = ln.split("\t")
+                if len(partes) < 2:
+                    continue
+                etiqueta, valor = partes[0].strip().upper(), partes[-1].strip()
+                try:
+                    v = float(valor)
+                except ValueError:
+                    continue
+                if etiqueta.startswith("TOTAL"):
+                    valores["total"] = v
+                elif etiqueta.startswith("EQUITY"):
+                    valores["equity"] = v
+                elif etiqueta.startswith("INDEX"):
+                    valores["index"] = v
+                elif etiqueta.startswith("SPX"):
+                    valores["spx"] = v
+            if "total" in valores or "equity" in valores:
+                valores["fecha"] = pcr_txt_local.read_text(encoding="utf-8", errors="replace").splitlines()[0].strip()
+                valores["fuente"] = "PCR.txt"
+                return valores
+        except Exception as e:
+            print(f"  ! PCR.txt no se pudo leer, probando CBOE directo: {e}")
+
     import io
     URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices/OPTIONS_VOLUME_REPORT.csv"
     try:
@@ -417,6 +451,7 @@ def pcr_cboe():
         df_valid = df.dropna(subset=[c for c in [col_total, col_equity] if c])
         if df_valid.empty:
             return {"error": "CSV CBOE sin filas válidas"}
+
 
         row   = df_valid.iloc[-1]
         fecha = str(row[col_date])[:10] if col_date else "desconocida"

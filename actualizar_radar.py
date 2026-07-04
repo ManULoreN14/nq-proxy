@@ -5449,6 +5449,60 @@ def calcular_pcr_percentil_csv(valor_total: float = None) -> dict:
         return None
 
 
+def calcular_flujos_ici() -> dict:
+    """
+    Señal de flujos de fondos/ETF de largo plazo (ICI_FLOWS.csv, generado
+    por preparar_datos.py desde el .xls semanal del Investment Company
+    Institute). Usa la suma de los flujos de Equity Total de las últimas
+    4 semanas disponibles como proxy de apetito de riesgo reciente
+    (entradas fuertes = risk-on, salidas fuertes = risk-off).
+
+    Umbrales en millones de USD (magnitud típica de flujos semanales de
+    equity funds+ETF en EE.UU.): son heurísticos, no percentiles, porque
+    el histórico disponible (desde 2024) aún es corto para un percentil
+    fiable — a revisar cuando haya más años acumulados.
+    """
+    ruta = DATA_CSV_DIR / "ICI_FLOWS.csv"
+    if not ruta.exists():
+        return None
+    try:
+        import csv as _csv
+        semanales = []
+        with open(ruta, newline="", encoding="utf-8", errors="replace") as f:
+            for row in _csv.DictReader(f):
+                if row.get("tipo") != "semanal":
+                    continue
+                clave = row.get("equity_total")
+                v = None
+                if clave not in (None, ""):
+                    try:
+                        v = float(clave)
+                    except (ValueError, TypeError):
+                        v = None
+                fecha = _csv_parse_fecha(row.get("fecha"))
+                if v is not None and fecha:
+                    semanales.append((fecha, v))
+        if len(semanales) < 2:
+            return None
+        semanales.sort()
+        ultimas4 = semanales[-4:]
+        suma4sem = sum(v for _, v in ultimas4)
+        if suma4sem > 100000:      señal = "alcista_fuerte"
+        elif suma4sem > 30000:     señal = "alcista"
+        elif suma4sem < -100000:   señal = "bajista_fuerte"
+        elif suma4sem < -30000:    señal = "bajista"
+        else:                      señal = "neutro"
+        return {
+            "suma_4sem_equity_millones": round(suma4sem, 0),
+            "señal": señal,
+            "semanas_usadas": len(ultimas4),
+            "ultima_fecha": ultimas4[-1][0].isoformat(),
+        }
+    except Exception as e:
+        log.warning(f"  [ICI-FLOWS] Error: {e}")
+        return None
+
+
 def calcular_pcr_cboe(opciones_data: dict = None) -> dict:
     """
     PCR Put/Call Ratio — tres fuentes con fallback en orden de prioridad:
@@ -5761,7 +5815,8 @@ def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
                     cot: dict | None = None,
                     opciones: dict | None = None,
                     pcr: dict | None = None,
-                    amplitud: dict | None = None) -> dict:
+                    amplitud: dict | None = None,
+                    flujos_ici: dict | None = None) -> dict:
     """
     Calcula el score compuesto para cada horizonte temporal.
     v5.0: integra COT real, GEX real, PCR real y Amplitud Fase 5.
@@ -5911,6 +5966,14 @@ def calcular_scores(tecnicos_ndx: dict, tecnicos_qqq: dict,
         if qqq_f == "entradas":                  s += 1.0
         elif qqq_f == "salidas":                 s -= 1.0
         if hyg_f in ("salidas", "salidas_mod"):  s -= 1.0
+        # Flujos ICI (fondos+ETF de largo plazo, ampara la señal QQQ/HYG con
+        # una vision de mercado mas amplia, no solo Nasdaq)
+        if flujos_ici and flujos_ici.get("señal"):
+            ici_s = flujos_ici["señal"]
+            if ici_s == "alcista_fuerte":   s += 1.5
+            elif ici_s == "alcista":        s += 0.5
+            elif ici_s == "bajista_fuerte": s -= 1.5
+            elif ici_s == "bajista":        s -= 0.5
         return max(-5, min(5, round(s, 1)))
 
     # ── Score Giro ────────────────────────────────────────────────────────────
@@ -8018,10 +8081,13 @@ def main():
 
     # ── 6. Scores multi-horizonte ──────────────────────────────────────────────
     log.info("\n[6/8] Calculando scores multi-horizonte...")
+    flujos_ici_data = calcular_flujos_ici()
+    if flujos_ici_data:
+        log.info(f"  ✅ Flujos ICI: 4sem={flujos_ici_data['suma_4sem_equity_millones']}M señal={flujos_ici_data['señal']}")
     scores = calcular_scores(
         tecnicos_ndx, tecnicos_qqq, vix_ts, giro, flows, precios,
         macro=macro, cot=cot_data, opciones=opciones_data, pcr=pcr_data,
-        amplitud=amplitud_data
+        amplitud=amplitud_data, flujos_ici=flujos_ici_data
     )
     hs = scores["horizontes"]
     for k, v in hs.items():
@@ -8088,6 +8154,7 @@ def main():
         "regimen_macro":    regimen_macro,
         "señales_derivadas": señales_derivadas,
         "scores":           scores,
+        "flujos_ici":       flujos_ici_data,
         "backtest_comparativo": backtest_comparativo,
         # Fase 3 — datos reales
         "cot":          cot_data or {
