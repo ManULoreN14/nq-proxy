@@ -24,7 +24,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           pip install --upgrade pip
-          pip install yfinance requests pandas numpy
+          pip install yfinance requests pandas numpy xlrd openpyxl
 
       # ── 1. RADAR PRIMERO ─────────────────────────────────────────────────
       # Genera datos_radar.json con breadth QQQ100 real y scores de horizontes.
