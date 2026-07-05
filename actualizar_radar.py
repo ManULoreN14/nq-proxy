@@ -5640,6 +5640,261 @@ def calcular_pcr_cboe(opciones_data: dict = None) -> dict:
     }
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+#  MÓDULO DE DETERIORO (EXPERIMENTAL — NO controla la exposición real)
+#  Añadido 05/07/2026. Score de deterioro en paralelo, solo observa.
+#  Validado con 3 pruebas de robustez (tercios, sensibilidad, leave-one-out).
+# ═══════════════════════════════════════════════════════════════════════════
+def _cot_percentil_diario(idx):
+    """Percentil rolling 3 años del leveraged net del COT, forward-fill a diario.
+    Reutiliza COT_CSV_DIR y _csv_parse_fecha (globales de actualizar_radar.py)."""
+    import pandas as pd
+    import csv as _csv
+    filas = {}
+    txts = sorted(COT_CSV_DIR.glob("*.txt")) if COT_CSV_DIR.exists() else []
+    for path in txts:
+        with open(path, newline="", encoding="utf-8", errors="replace") as f:
+            for row in _csv.DictReader(f):
+                if (row.get("CFTC_Contract_Market_Code") or "").strip() != "209742":
+                    continue
+                d = _csv_parse_fecha(row.get("Report_Date_as_YYYY-MM-DD"))
+                if not d:
+                    continue
+                try:
+                    l = float(row.get("Lev_Money_Positions_Long_All") or "nan")
+                    s = float(row.get("Lev_Money_Positions_Short_All") or "nan")
+                    filas[d] = l - s
+                except (ValueError, TypeError):
+                    pass
+    if not filas:
+        raise ValueError("sin COT")
+    serie = pd.Series(filas).sort_index()
+    pctl = serie.rolling(156, min_periods=52).apply(lambda s: (s < s.iloc[-1]).mean() * 100)
+    return pctl.reindex(idx, method="ffill")
+
+
+def _nfci_diario(idx):
+    """NFCI forward-fill a diario. Busca NFCI.csv en DATA_CSV_DIR o BASE_DIR."""
+    import pandas as pd
+    for base in (DATA_CSV_DIR, BASE_DIR):
+        p = base / "NFCI.csv"
+        if p.exists():
+            s = pd.read_csv(p, parse_dates=["observation_date"])
+            serie = s.set_index("observation_date").sort_index()["NFCI"].dropna()
+            return serie.reindex(idx, method="ffill")
+    raise ValueError("sin NFCI")
+
+
+def calcular_modulo_deterioro(df_maestro, log=None):
+    import pandas as pd
+    import numpy as np
+
+    def _log(msg):
+        if log:
+            log.info(msg)
+
+    try:
+        cols = ["NDX_close", "VIX_close", "VIX3M_close", "IRX_close",
+                "IWM_close", "SPY_close", "HYG_close", "TNX_close"]
+        faltan = [c for c in cols if c not in df_maestro.columns]
+        if faltan:
+            return {"error": f"faltan columnas: {faltan}", "experimental": True}
+
+        hm = df_maestro[cols].dropna(subset=["NDX_close"]).copy()
+        # arranque donde HYG tiene datos (2007) — es la señal más tardía
+        primer = hm["HYG_close"].dropna().index.min()
+        if primer is None:
+            return {"error": "sin datos HYG", "experimental": True}
+        hm = hm.loc[primer:]
+        if len(hm) < 500:
+            return {"error": "histórico insuficiente", "experimental": True}
+
+        # --- indicadores base (misma receta que el backtest comparativo) ---
+        def _rsi(s, n=14):
+            d = s.diff()
+            up = d.clip(lower=0).rolling(n).mean()
+            dn = -d.clip(upper=0).rolling(n).mean()
+            return 100 - 100 / (1 + up / dn)
+
+        hm["rsi14"] = _rsi(hm["NDX_close"])
+        hm["ema20"] = hm["NDX_close"].ewm(span=20).mean()
+        hm["ema50"] = hm["NDX_close"].ewm(span=50).mean()
+        hm["roc5d"] = hm["NDX_close"].pct_change(5) * 100
+        hm["vts_ratio"] = hm["VIX3M_close"] / hm["VIX_close"]
+
+        # COT percentil (opcional, si no está usamos cot_extreme=False)
+        try:
+            cot_pctl = _cot_percentil_diario(hm.index)
+            hm["lev_net_pctl"] = cot_pctl
+        except Exception:
+            hm["lev_net_pctl"] = np.nan
+
+        # NFCI (opcional)
+        try:
+            nfci = _nfci_diario(hm.index)
+            hm["nfci"] = nfci
+        except Exception:
+            hm["nfci"] = np.nan
+
+        # --- exposición base simplificada (idéntica al backtest comparativo) ---
+        def _risk(row):
+            r = 0.0
+            if pd.notna(row["rsi14"]):
+                if row["rsi14"] > 75: r += 1.5
+                elif row["rsi14"] > 70: r += 1.0
+            if pd.notna(row["VIX_close"]):
+                if row["VIX_close"] > 28: r += 2.0
+                elif row["VIX_close"] > 22: r += 1.5
+                elif row["VIX_close"] < 13: r += 0.5
+            if pd.notna(row["vts_ratio"]) and row["vts_ratio"] < 1.0: r += 2.0
+            if pd.notna(row["lev_net_pctl"]) and row["lev_net_pctl"] >= 85: r += 0.5
+            if pd.notna(row["nfci"]) and row["nfci"] > 0.1: r += 0.5
+            if pd.notna(row["ema20"]) and pd.notna(row["ema50"]) and row["NDX_close"] > row["ema20"] > row["ema50"]: r -= 0.5
+            if pd.notna(row["roc5d"]) and row["roc5d"] > 2: r -= 0.3
+            if pd.notna(row["VIX_close"]) and 14 <= row["VIX_close"] <= 18: r -= 0.3
+            return max(0.0, min(r, 10.0))
+
+        hm["risk_score"] = hm.apply(_risk, axis=1)
+        hm["exp_base"] = hm["risk_score"].apply(
+            lambda r: 0.80 if r < 3.5 else 0.65 if r < 5.5 else 0.45 if r < 7.5 else 0.20)
+
+        # --- 5 familias de deterioro ---
+        ndx_slope20 = hm["NDX_close"].pct_change(20)
+        iwm_spy = hm["IWM_close"] / hm["SPY_close"]
+        iwm_spy_slope20 = iwm_spy.pct_change(20)
+        hm["breadth_div"] = (ndx_slope20 > 0) & (iwm_spy_slope20 < -0.02)
+        hm["credit_stress"] = hm["HYG_close"].pct_change(20) < -0.03
+        hm["curve_flatten"] = (hm["TNX_close"] - hm["IRX_close"]).diff(20) < -0.3
+        hm["vix_back"] = hm["VIX3M_close"] < hm["VIX_close"]
+        hm["cot_extreme"] = hm["lev_net_pctl"] >= 85
+
+        familias = ["breadth_div", "credit_stress", "curve_flatten", "vix_back", "cot_extreme"]
+        hm["deterioro_count"] = hm[familias].sum(axis=1)
+
+        # --- histéresis: activa >=3, desactiva <=1 ---
+        activo, prev = False, []
+        for c in hm["deterioro_count"]:
+            if not activo and c >= 3: activo = True
+            elif activo and c <= 1: activo = False
+            prev.append(activo)
+        hm["deterioro_activo"] = prev
+
+        # --- reentrada con confirmación de precio ---
+        prevser = pd.Series(prev, index=hm.index)
+        clear = (~prevser) & (prevser.shift(1).fillna(False))
+        hm["huella"] = clear.replace(False, np.nan).ffill(limit=60)
+        sobre = hm["NDX_close"] > hm["ema20"]
+        cruce = sobre & (~sobre.shift(1).fillna(False))
+        hm["reentrada"] = cruce & hm["huella"].notna()
+        contador, lista, ab = 999, [], False
+        for conf in hm["reentrada"]:
+            if conf: contador = 0; ab = True
+            elif contador < 15: contador += 1
+            else: ab = False
+            lista.append(contador if ab else 999)
+        hm["dias_reentrada"] = lista
+
+        hm["mult"] = 1.0
+        hm.loc[hm["deterioro_activo"], "mult"] = 0.55
+        hm.loc[hm["dias_reentrada"] <= 15, "mult"] = 1.15
+        hm["exp_deterioro"] = (hm["exp_base"] * hm["mult"]).clip(0, 1.0)
+
+        # --- métricas comparativas (deterioro vs base) ---
+        hm["ndx_ret"] = hm["NDX_close"].pct_change()
+        hm["rf_ret"] = (hm["IRX_close"] / 100) / 252
+        val = hm.dropna(subset=["ndx_ret"])
+
+        def _metricas(exp):
+            ret = exp * val["ndx_ret"] + (1 - exp) * val["rf_ret"]
+            eq = (1 + ret.fillna(0)).cumprod()
+            y = (eq.index[-1] - eq.index[0]).days / 365.25
+            cagr = ((eq.iloc[-1] / eq.iloc[0]) ** (1 / y) - 1) * 100 if y > 0 else None
+            dd = ((eq / eq.cummax()) - 1).min() * 100
+            r = eq.pct_change().dropna()
+            ex = r - val["rf_ret"].reindex(r.index)
+            sh = (ex.mean() / ex.std()) * (252 ** 0.5) if ex.std() else None
+            return {"cagr_pct": round(float(cagr), 2) if cagr is not None else None,
+                    "max_dd_pct": round(float(dd), 2),
+                    "sharpe": round(float(sh), 3) if sh is not None else None}, eq
+
+        met_base, eq_base = _metricas(val["exp_base"])
+        met_det, eq_det = _metricas(val["exp_deterioro"])
+
+        # --- serie histórica (mensual, para el gráfico) ---
+        etiquetas = {"breadth_div": "Amplitud divergente (IWM/SPY)",
+                     "credit_stress": "Tensión de crédito (HYG)",
+                     "curve_flatten": "Curva aplanándose",
+                     "vix_back": "Backwardation VIX",
+                     "cot_extreme": "COT extremo (contrarian)"}
+
+        # remuestreo mensual quedándonos con la ÚLTIMA fila real de cada mes
+        # (no la etiqueta de inicio de mes, que no existe como día hábil)
+        val_reset = val.reset_index()
+        col_fecha = val_reset.columns[0]
+        val_reset["_ym"] = val_reset[col_fecha].dt.to_period("M")
+        ultima_por_mes = val_reset.groupby("_ym").tail(1)
+        serie = []
+        for _, row in ultima_por_mes.iterrows():
+            fecha = row[col_fecha]
+            activas = [etiquetas[f] for f in familias if bool(row[f])]
+            serie.append({
+                "fecha": fecha.strftime("%Y-%m-%d"),
+                "exp_deterioro": round(float(row["exp_deterioro"]) * 100, 1),
+                "exp_base": round(float(row["exp_base"]) * 100, 1),
+                "n_senales": int(row["deterioro_count"]),
+                "activo": bool(row["deterioro_activo"]),
+                "reentrada_boost": bool(row["dias_reentrada"] <= 15),
+                "senales_activas": activas,
+                "equity_deterioro": round(float(eq_det.loc[fecha]), 3) if fecha in eq_det.index else None,
+                "equity_base": round(float(eq_base.loc[fecha]), 3) if fecha in eq_base.index else None,
+            })
+        del val_reset, ultima_por_mes
+
+        # --- estado de HOY (última fila) ---
+        hoy = val.iloc[-1]
+        activas_hoy = [etiquetas[f] for f in familias if bool(hoy[f])]
+        if hoy["deterioro_activo"]:
+            texto = f"FRENO ACTIVO — {int(hoy['deterioro_count'])} de 5 señales de deterioro confirmadas. La lógica experimental reduciría exposición a {round(float(hoy['exp_deterioro'])*100)}% (vs {round(float(hoy['exp_base'])*100)}% del sistema base)."
+        elif hoy["dias_reentrada"] <= 15:
+            texto = f"REENTRADA — el precio ha confirmado suelo tras un deterioro reciente. La lógica experimental subiría exposición a {round(float(hoy['exp_deterioro'])*100)}% para aprovechar el rebote."
+        else:
+            texto = f"NORMAL — {int(hoy['deterioro_count'])} de 5 señales de deterioro. Sin freno activo, exposición igual a la base ({round(float(hoy['exp_base'])*100)}%)."
+
+        return {
+            "experimental": True,
+            "aviso": "Módulo EN VALIDACIÓN — no controla la exposición real, solo observa en paralelo.",
+            "hoy": {
+                "exp_deterioro_pct": round(float(hoy["exp_deterioro"]) * 100, 1),
+                "exp_base_pct": round(float(hoy["exp_base"]) * 100, 1),
+                "n_senales": int(hoy["deterioro_count"]),
+                "senales_activas": activas_hoy,
+                "activo": bool(hoy["deterioro_activo"]),
+                "reentrada_boost": bool(hoy["dias_reentrada"] <= 15),
+                "texto": texto,
+            },
+            "serie_historica": serie,
+            "metricas": {
+                "base": met_base,
+                "deterioro": met_det,
+                "periodo": {"desde": val.index[0].strftime("%Y-%m-%d"),
+                            "hasta": val.index[-1].strftime("%Y-%m-%d")},
+            },
+            "familias_definicion": etiquetas,
+            "limitaciones": ("Usa proxies reconstruibles 20 años atrás (IWM/SPY para "
+                             "amplitud, HYG para crédito) en vez de la amplitud NDX-100 "
+                             "y crédito reales de producción. Aproximación coherente de "
+                             "la idea, no réplica del sistema real. Validado con 3 "
+                             "pruebas de robustez (tercios, sensibilidad, leave-one-out)."),
+            "fuente": "calcular_modulo_deterioro (EXPERIMENTAL)",
+        }
+    except Exception as e:
+        import traceback
+        if log:
+            log.warning(f"  [DETERIORO] Error: {e}")
+            log.warning(traceback.format_exc())
+        return {"error": str(e), "experimental": True}
+
+
 def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
     """
     Backtest historico 2006-hoy: reconstruye un risk_score simplificado
@@ -8109,6 +8364,22 @@ def main():
         log.error(f"  ✗ Backtest comparativo falló: {e}")
         backtest_comparativo = {"error": str(e)}
 
+    log.info("\n[6.6/8] Módulo de deterioro (EXPERIMENTAL — solo observa, no controla exposición)...")
+    try:
+        modulo_deterioro = calcular_modulo_deterioro(df, log=log)
+        if modulo_deterioro.get("error"):
+            log.warning(f"  [!] Módulo deterioro: {modulo_deterioro['error']}")
+        else:
+            md_met = modulo_deterioro["metricas"]
+            log.info(f"  [DETERIORO] HOY: {modulo_deterioro['hoy']['n_senales']}/5 señales | "
+                     f"exp={modulo_deterioro['hoy']['exp_deterioro_pct']}% (base {modulo_deterioro['hoy']['exp_base_pct']}%)")
+            log.info(f"  [DETERIORO] Backtest: base Sharpe={md_met['base']['sharpe']} vs "
+                     f"deterioro Sharpe={md_met['deterioro']['sharpe']} | "
+                     f"CAGR {md_met['base']['cagr_pct']}%→{md_met['deterioro']['cagr_pct']}%")
+    except Exception as e:
+        log.error(f"  ✗ Módulo deterioro falló: {e}")
+        modulo_deterioro = {"error": str(e), "experimental": True}
+
     # ── 7. Construir y exportar JSON ───────────────────────────────────────────
     log.info("\n[7/8] Exportando datos_radar.json...")
 
@@ -8156,6 +8427,7 @@ def main():
         "scores":           scores,
         "flujos_ici":       flujos_ici_data,
         "backtest_comparativo": backtest_comparativo,
+        "modulo_deterioro":     modulo_deterioro,
         # Fase 3 — datos reales
         "cot":          cot_data or {
             "error": "no_ejecutado", "señal": "neutro",
