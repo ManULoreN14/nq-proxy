@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-07-05T21:03:29.705503",
+  "ts": "2026-07-05T22:02:01.078903",
   "precio": {
     "ndx": 29329.2109,
     "qqq": 712.6,
@@ -7866,7 +7866,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Micro-retracción técnica (2-3%) (70% similitud). Contexto: VIX=16.1, RSI=49. Confianza del sistema: 5%. ✅ Entorno compatible con corrección menor — mantener posiciones core. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-07-05T20:54:39.313575"
+    "ts_calculo": "2026-07-05T21:54:50.677442"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001487,
@@ -7890,7 +7890,7 @@
   },
   "knn_predictor": {
     "version": "1.0",
-    "generado": "2026-07-05T20:54:39.497862",
+    "generado": "2026-07-05T21:54:51.254484",
     "fecha_referencia": "2026-07-03",
     "n_vecinos": 50,
     "n_dias_historico": 3164,
@@ -9860,6 +9860,7 @@
   "csv_sentimiento_contrario": {
     "valor": 1.7,
     "interpretacion": "Neutral",
+    "accion_sugerida": "Sin sesgo claro — el índice no aporta información accionable en esta zona.",
     "componentes": {
       "dix": 23.8,
       "vvix": 48.2,
@@ -9875,7 +9876,14 @@
     ],
     "modo": "observacion",
     "validacion": "IC 0.070/0.133/0.162 (5/20/60d), Stability 100%, WF>=3/4 — historico_maestro.csv 2000-2026",
-    "fuente": "calcular_indice_sentimiento_contrario"
+    "fuente": "calcular_indice_sentimiento_contrario",
+    "historico": [
+      {
+        "fecha": "2026-07-05",
+        "valor": 1.7,
+        "precio_ndx": 29329.2109
+      }
+    ]
   },
   "csv_qqq_opciones": {
     "vencimiento": "Fri Sep 18 2026",
@@ -9982,7 +9990,7 @@
     "gex_estado": "positivo",
     "gex_desc": "GEX=110.2M — dealers comprando caidas (soporte)",
     "fuente": "Barchart QQQ CSV local",
-    "csv_dias_antiguedad": 0.9,
+    "csv_dias_antiguedad": 1.0,
     "csv_obsoleto": false
   },
   "csv_activo": true,
