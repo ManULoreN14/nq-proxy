@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-07-05T22:02:01.078903",
+  "ts": "2026-07-06T00:33:48.834193",
   "precio": {
     "ndx": 29329.2109,
     "qqq": 712.6,
@@ -169,7 +169,7 @@
       "precio": 17.9017,
       "last": null,
       "settlement": 17.9017,
-      "dte": 17,
+      "dte": 16,
       "is_weekly": false,
       "using_settlement": true
     },
@@ -180,7 +180,7 @@
       "precio": 18.9641,
       "last": null,
       "settlement": 18.9641,
-      "dte": 45,
+      "dte": 44,
       "is_weekly": false,
       "using_settlement": true
     },
@@ -193,7 +193,7 @@
         "precio": 17.9017,
         "last": null,
         "settlement": 17.9017,
-        "dte": 3,
+        "dte": 2,
         "is_weekly": true,
         "using_settlement": true
       },
@@ -204,7 +204,7 @@
         "precio": 17.9017,
         "last": null,
         "settlement": 17.9017,
-        "dte": 10,
+        "dte": 9,
         "is_weekly": true,
         "using_settlement": true
       },
@@ -215,7 +215,7 @@
         "precio": 17.9017,
         "last": null,
         "settlement": 17.9017,
-        "dte": 17,
+        "dte": 16,
         "is_weekly": false,
         "using_settlement": true
       },
@@ -226,7 +226,7 @@
         "precio": 17.9017,
         "last": null,
         "settlement": 17.9017,
-        "dte": 24,
+        "dte": 23,
         "is_weekly": true,
         "using_settlement": true
       },
@@ -237,7 +237,7 @@
         "precio": 17.9017,
         "last": null,
         "settlement": 17.9017,
-        "dte": 31,
+        "dte": 30,
         "is_weekly": true,
         "using_settlement": true
       },
@@ -248,7 +248,7 @@
         "precio": 17.9017,
         "last": null,
         "settlement": 17.9017,
-        "dte": 38,
+        "dte": 37,
         "is_weekly": true,
         "using_settlement": true
       },
@@ -259,7 +259,7 @@
         "precio": 18.9641,
         "last": null,
         "settlement": 18.9641,
-        "dte": 45,
+        "dte": 44,
         "is_weekly": false,
         "using_settlement": true
       },
@@ -270,7 +270,7 @@
         "precio": 19.7416,
         "last": null,
         "settlement": 19.7416,
-        "dte": 73,
+        "dte": 72,
         "is_weekly": false,
         "using_settlement": true
       }
@@ -1734,7 +1734,6 @@
       "tlt_dur_pct": 43.2,
       "curva_pct": 34.6,
       "spark_score": [
-        43.9,
         44.1,
         44.7,
         46.4,
@@ -1822,6 +1821,7 @@
         51.7,
         52.2,
         52.2,
+        55.3,
         55.3,
         55.3
       ],
@@ -7822,11 +7822,11 @@
       "desc": "SKEW=0.866 - sin cobertura, complacencia extrema"
     },
     "ratio_0dte": {
-      "valor": 0.0,
-      "vol_0dte": 0,
+      "valor": 0.451,
+      "vol_0dte": 909141,
       "vol_total": 2014395,
-      "senal": "normal",
-      "desc": "0DTE=0.0% - actividad normal"
+      "senal": "extremo",
+      "desc": "0DTE=45.1% - delta hedging forzado al cierre, amplificacion movimientos"
     },
     "pcrOI": 1.16,
     "pcrVol": 0.96,
@@ -7846,7 +7846,7 @@
     "desc": "PCR=0.79 — rango normal",
     "fuente": "cboe_txt_manual",
     "fecha": "02 July 2026",
-    "edad_dias": 3,
+    "edad_dias": 4,
     "fuente_verificacion": "https://www.cboe.com/data/volatility-and-put-call-ratio-data/",
     "percentil_historico": 19.3,
     "señal_percentil": "bajista",
@@ -7866,7 +7866,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Micro-retracción técnica (2-3%) (70% similitud). Contexto: VIX=16.1, RSI=49. Confianza del sistema: 5%. ✅ Entorno compatible con corrección menor — mantener posiciones core. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-07-05T21:54:50.677442"
+    "ts_calculo": "2026-07-06T00:25:09.115731"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001487,
@@ -7890,7 +7890,7 @@
   },
   "knn_predictor": {
     "version": "1.0",
-    "generado": "2026-07-05T21:54:51.254484",
+    "generado": "2026-07-06T00:25:09.199086",
     "fecha_referencia": "2026-07-03",
     "n_vecinos": 50,
     "n_dias_historico": 3164,
@@ -9882,6 +9882,11 @@
         "fecha": "2026-07-05",
         "valor": 1.7,
         "precio_ndx": 29329.2109
+      },
+      {
+        "fecha": "2026-07-06",
+        "valor": 1.7,
+        "precio_ndx": 29329.2109
       }
     ]
   },
@@ -9990,7 +9995,7 @@
     "gex_estado": "positivo",
     "gex_desc": "GEX=110.2M — dealers comprando caidas (soporte)",
     "fuente": "Barchart QQQ CSV local",
-    "csv_dias_antiguedad": 1.0,
+    "csv_dias_antiguedad": 1.1,
     "csv_obsoleto": false
   },
   "csv_activo": true,
