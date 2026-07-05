@@ -112,6 +112,7 @@ DATA_CSV_DIR = BASE_DIR / "DATOS_CSV"      # Carpeta raiz con todos los CSV
 COT_CSV_DIR  = DATA_CSV_DIR / "COT"        # Subcarpeta con los .txt del CFTC
 DIX_CSV      = DATA_CSV_DIR / "DIX.csv"           # SqueezeMetrics (date,price,dix,gex)
 VIX_CSV      = DATA_CSV_DIR / "VIX_History.csv"   # CBOE spot diario
+VIX3M_CSV    = DATA_CSV_DIR / "VIX3M_History.csv" # CBOE VIX3M diario (para VTS = VIX3M/VIX)
 VVIX_CSV     = DATA_CSV_DIR / "VVIX_History.csv"  # CBOE VVIX diario
 SKEW_CSV     = DATA_CSV_DIR / "skew-history.csv"  # CBOE SKEW diario
 QQQ_OPC_CSV  = DATA_CSV_DIR / "qqq_quotedata.csv" # Barchart QQQ opciones (descarga diaria)
@@ -3807,6 +3808,104 @@ def leer_vix_vvix_skew_csv():
         "señal_global":   _csv_senal_vix_compuesta(vix_senal, ratio_senal, skew_senal, mom_senal),
         "historico_90d":  hist_90,
         "fuente":         "CBOE CSV local",
+    }
+
+
+# -----------------------------------------------------------------------------
+# CSV-3b) Indice de Sentimiento Contrario compuesto (PARTE 1.2, validado con
+# validar_factor.py: IC=0.070/0.133/0.162 a 5/20/60 dias, Stability 100%,
+# WF 3-4/4 en los tres horizontes -- backtest sobre historico_maestro.csv
+# 2000-2026. Combina DIX (directo), VTS=VIX3M/VIX (invertido), VVIX/VIX
+# (invertido) y COT leveraged net %il (invertido), ponderados por |IC| a
+# 20 dias. Modo OBSERVACION: no pesa en calcular_scores() todavia.
+# -----------------------------------------------------------------------------
+
+PESOS_SENTIMIENTO_CONTRARIO = {"dix": 0.297, "vts": 0.258, "vvix": 0.247, "cot": 0.198}
+
+
+def _vts_percentil_hoy():
+    """Percentil de hoy del ratio VIX3M/VIX (VTS), mismo patron que DIX:
+    lee los dos CSV, calcula el ratio dia a dia y el percentil del valor
+    de hoy dentro de todo el historico disponible."""
+    if not (VIX_CSV.exists() and VIX3M_CSV.exists()):
+        _csv_log("VTS: falta VIX_History.csv o VIX3M_History.csv - se omite")
+        return None
+    try:
+        vix, vix3m = {}, {}
+        with open(VIX_CSV, newline="", encoding="utf-8") as f:
+            for row in _csv_csv.DictReader(f):
+                d = _csv_parse_fecha(row.get("DATE", ""))
+                c = _csv_safe_float(row.get("CLOSE"))
+                if d and c:
+                    vix[d] = c
+        with open(VIX3M_CSV, newline="", encoding="utf-8") as f:
+            for row in _csv_csv.DictReader(f):
+                d = _csv_parse_fecha(row.get("DATE", ""))
+                c = _csv_safe_float(row.get("CLOSE"))
+                if d and c:
+                    vix3m[d] = c
+        ratios = {d: vix3m[d] / vix[d] for d in vix if d in vix3m and vix[d] > 0}
+        if not ratios:
+            return None
+        ultima = max(ratios.keys())
+        ratio_hoy = ratios[ultima]
+        pctl = _csv_percentil(sorted(ratios.values()), ratio_hoy)
+        return {"fecha": str(ultima), "ratio": round(ratio_hoy, 3), "percentil": pctl}
+    except Exception as e:
+        _csv_log(f"VTS error: {e}")
+        return None
+
+
+def calcular_indice_sentimiento_contrario(dix_gex_data, cot_csv_data, vix_vvix_skew_data):
+    """
+    Oscilador -100 (complacencia extrema, contrarian bajista) a +100
+    (miedo extremo, contrarian alcista). Ver cabecera arriba para el
+    resultado de validacion. Si falta alguna pieza, renormaliza los
+    pesos entre las disponibles ese dia en vez de fallar.
+    """
+    componentes = {}
+
+    if dix_gex_data and dix_gex_data.get("dix_percentil") is not None:
+        componentes["dix"] = dix_gex_data["dix_percentil"]  # directo
+
+    vts = _vts_percentil_hoy()
+    if vts and vts.get("percentil") is not None:
+        componentes["vts"] = 100 - vts["percentil"]  # invertido
+
+    if vix_vvix_skew_data and vix_vvix_skew_data.get("ratio_percentil") is not None:
+        componentes["vvix"] = 100 - vix_vvix_skew_data["ratio_percentil"]  # invertido
+
+    if cot_csv_data and cot_csv_data.get("percentil_historico") is not None:
+        componentes["cot"] = 100 - cot_csv_data["percentil_historico"]  # invertido
+
+    if not componentes:
+        return {"error": "sin_datos_suficientes", "valor": None}
+
+    pesos_activos = {k: PESOS_SENTIMIENTO_CONTRARIO[k] for k in componentes}
+    suma = sum(pesos_activos.values())
+    media_ponderada = sum(componentes[k] * pesos_activos[k] / suma for k in componentes)
+    valor = round((media_ponderada - 50) * 2, 1)
+
+    if valor >= 50:
+        interpretacion = "Miedo extremo — zona contrarian alcista fuerte"
+    elif valor >= 20:
+        interpretacion = "Cautela de mercado — sesgo contrarian alcista"
+    elif valor > -20:
+        interpretacion = "Neutral"
+    elif valor > -50:
+        interpretacion = "Complacencia — sesgo contrarian bajista"
+    else:
+        interpretacion = "Complacencia extrema — zona contrarian bajista fuerte"
+
+    return {
+        "valor":           valor,
+        "interpretacion":  interpretacion,
+        "componentes":     {k: round(v, 1) for k, v in componentes.items()},
+        "pesos_usados":    {k: round(v / suma, 3) for k, v in pesos_activos.items()},
+        "piezas_faltantes": sorted(set(PESOS_SENTIMIENTO_CONTRARIO) - set(componentes)),
+        "modo":            "observacion",  # no pesa en calcular_scores() todavia
+        "validacion":      "IC 0.070/0.133/0.162 (5/20/60d), Stability 100%, WF>=3/4 — historico_maestro.csv 2000-2026",
+        "fuente":          "calcular_indice_sentimiento_contrario",
     }
 
 
@@ -8141,6 +8240,7 @@ def main():
     cot_csv_data       = None
     vix_vvix_skew_data = None
     dix_gex_data       = None
+    sentimiento_contrario_data = None
     qqq_opciones_csv   = None
 
     if not args.nocsv:
@@ -8195,6 +8295,18 @@ def main():
         except Exception as e:
             log.warning(f"  [CSV] DIX/GEX fallo: {e}")
             dix_gex_data = None
+
+        # CSV-3b: Indice de Sentimiento Contrario compuesto (modo observacion)
+        try:
+            sentimiento_contrario_data = calcular_indice_sentimiento_contrario(
+                dix_gex_data, cot_csv_data, vix_vvix_skew_data)
+            if sentimiento_contrario_data.get("valor") is not None:
+                log.info(f"  [CSV] Sentimiento Contrario: {sentimiento_contrario_data['valor']} "
+                         f"({sentimiento_contrario_data['interpretacion']}) — "
+                         f"piezas: {list(sentimiento_contrario_data['componentes'].keys())}")
+        except Exception as e:
+            log.warning(f"  [CSV] Sentimiento Contrario fallo: {e}")
+            sentimiento_contrario_data = {"error": str(e), "valor": None}
 
         # CSV-4: Opciones QQQ (Barchart)
         try:
@@ -8518,6 +8630,7 @@ def main():
         "csv_cot":           cot_csv_data,           # COT NASDAQ MINI completo con percentiles
         "csv_vix_vvix_skew": vix_vvix_skew_data,     # VIX+VVIX+SKEW + ratio + term structure proxy
         "csv_dix_gex":       dix_gex_data,           # DIX% + GEX B$ SqueezeMetrics
+        "csv_sentimiento_contrario": sentimiento_contrario_data,  # Parte 1.2 — modo observacion
         "csv_qqq_opciones":  qqq_opciones_csv,       # Max Pain + muros OI + PCR Barchart
         "csv_activo":        (not args.nocsv),
         # ──────────────────────────────────────────────────────────────────────
