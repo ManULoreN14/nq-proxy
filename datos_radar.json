@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-07-05T13:29:37.570181",
+  "ts": "2026-07-05T21:03:29.705503",
   "precio": {
     "ndx": 29329.2109,
     "qqq": 712.6,
@@ -7477,8 +7477,8 @@
       },
       {
         "fecha": "2026-07-07",
-        "maxPain": 724.0,
-        "distPct": 1.6,
+        "maxPain": 725.0,
+        "distPct": 1.74,
         "topCalls": [
           {
             "strike": 742.0,
@@ -7544,7 +7544,7 @@
           }
         ],
         "señal": "neutro",
-        "desc": "Max Pain 724 — precio cerca, zona equilibrio"
+        "desc": "Max Pain 725 — precio cerca, zona equilibrio"
       },
       {
         "fecha": "2026-07-08",
@@ -7661,8 +7661,8 @@
     },
     "v2": {
       "fecha": "2026-07-07",
-      "maxPain": 724.0,
-      "distPct": 1.6,
+      "maxPain": 725.0,
+      "distPct": 1.74,
       "topCalls": [
         {
           "strike": 742.0,
@@ -7728,7 +7728,7 @@
         }
       ],
       "señal": "neutro",
-      "desc": "Max Pain 724 — precio cerca, zona equilibrio"
+      "desc": "Max Pain 725 — precio cerca, zona equilibrio"
     },
     "v3": {
       "fecha": "2026-07-08",
@@ -7824,12 +7824,12 @@
     "ratio_0dte": {
       "valor": 0.0,
       "vol_0dte": 0,
-      "vol_total": 2107057,
+      "vol_total": 2014395,
       "senal": "normal",
       "desc": "0DTE=0.0% - actividad normal"
     },
     "pcrOI": 1.16,
-    "pcrVol": 0.927,
+    "pcrVol": 0.96,
     "fuente": "Barchart QQQ CSV local",
     "error": null,
     "resistencia_1": 790.0,
@@ -7866,7 +7866,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Micro-retracción técnica (2-3%) (70% similitud). Contexto: VIX=16.1, RSI=49. Confianza del sistema: 5%. ✅ Entorno compatible con corrección menor — mantener posiciones core. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-07-05T13:23:41.459924"
+    "ts_calculo": "2026-07-05T20:54:39.313575"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001487,
@@ -7890,7 +7890,7 @@
   },
   "knn_predictor": {
     "version": "1.0",
-    "generado": "2026-07-05T13:23:41.537820",
+    "generado": "2026-07-05T20:54:39.497862",
     "fecha_referencia": "2026-07-03",
     "n_vecinos": 50,
     "n_dias_historico": 3164,
@@ -9857,6 +9857,26 @@
     ],
     "fuente": "SqueezeMetrics CSV local"
   },
+  "csv_sentimiento_contrario": {
+    "valor": 1.7,
+    "interpretacion": "Neutral",
+    "componentes": {
+      "dix": 23.8,
+      "vvix": 48.2,
+      "cot": 94.8
+    },
+    "pesos_usados": {
+      "dix": 0.4,
+      "vvix": 0.333,
+      "cot": 0.267
+    },
+    "piezas_faltantes": [
+      "vts"
+    ],
+    "modo": "observacion",
+    "validacion": "IC 0.070/0.133/0.162 (5/20/60d), Stability 100%, WF>=3/4 — historico_maestro.csv 2000-2026",
+    "fuente": "calcular_indice_sentimiento_contrario"
+  },
   "csv_qqq_opciones": {
     "vencimiento": "Fri Sep 18 2026",
     "precio_qqq": 714.22,
@@ -9962,7 +9982,7 @@
     "gex_estado": "positivo",
     "gex_desc": "GEX=110.2M — dealers comprando caidas (soporte)",
     "fuente": "Barchart QQQ CSV local",
-    "csv_dias_antiguedad": 0.6,
+    "csv_dias_antiguedad": 0.9,
     "csv_obsoleto": false
   },
   "csv_activo": true,
