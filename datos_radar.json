@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-07-06T00:33:48.834193",
+  "ts": "2026-07-06T00:56:23.645309",
   "precio": {
     "ndx": 29329.2109,
     "qqq": 712.6,
@@ -154,12 +154,12 @@
     }
   },
   "vixTS": {
-    "spot": 16.15,
+    "spot": 15.81,
     "vix3m": 19.7416,
     "spread1": 2.09,
     "spread1Pct": 13.2,
     "backwardation": false,
-    "vixPercentil": 40.1,
+    "vixPercentil": 37.5,
     "señal": "bajista",
     "desc": "Contango elevado — spot=15.81 front=17.9017 (+13.2%) — complacencia, vigilar",
     "front_month": {
@@ -281,17 +281,17 @@
     "csv_extras": {
       "vvix": 88.8,
       "skew": 150.0,
-      "ratio_vvix_vix": 5.5,
+      "ratio_vvix_vix": 5.62,
       "vvix_percentil": 44.0,
       "skew_percentil": 93.5,
-      "ratio_percentil": 51.8,
-      "vix_ma5": 17.05,
-      "vix_ma20": 18.17,
-      "vix_mom_5d_pct": -14.5,
+      "ratio_percentil": 55.3,
+      "vix_ma5": 16.53,
+      "vix_ma20": 17.89,
+      "vix_mom_5d_pct": -14.1,
       "momentum_vix_corto_señal": "contango_pronunciado",
-      "momentum_vix_corto_texto": "VIX MA5(17.1) << MA20(18.2): calma pronunciada, complacencia posible",
+      "momentum_vix_corto_texto": "VIX MA5(16.5) << MA20(17.9): calma pronunciada, complacencia posible",
       "ts_proxy_señal": "contango_pronunciado",
-      "ts_proxy_texto": "VIX MA5(17.1) << MA20(18.2): calma pronunciada, complacencia posible",
+      "ts_proxy_texto": "VIX MA5(16.5) << MA20(17.9): calma pronunciada, complacencia posible",
       "señal_compuesta_csv": "neutro"
     },
     "backtest_regimenes": {
@@ -473,7 +473,7 @@
     }
   },
   "vixTermStructure": {
-    "spot": 16.15,
+    "spot": 15.81,
     "vx1": 17.9017,
     "vx2": 18.9641,
     "vx1_symbol": "VX/N6",
@@ -7866,7 +7866,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Micro-retracción técnica (2-3%) (70% similitud). Contexto: VIX=16.1, RSI=49. Confianza del sistema: 5%. ✅ Entorno compatible con corrección menor — mantener posiciones core. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-07-06T00:25:09.115731"
+    "ts_calculo": "2026-07-06T00:48:40.463168"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001487,
@@ -7890,7 +7890,7 @@
   },
   "knn_predictor": {
     "version": "1.0",
-    "generado": "2026-07-06T00:25:09.199086",
+    "generado": "2026-07-06T00:48:40.854380",
     "fecha_referencia": "2026-07-03",
     "n_vecinos": 50,
     "n_dias_historico": 3164,
@@ -8706,28 +8706,28 @@
     "fuente": "CFTC TXT local (CSV)"
   },
   "csv_vix_vvix_skew": {
-    "fecha_vix": "2026-07-02",
-    "vix_spot": 16.15,
+    "fecha_vix": "2026-07-03",
+    "vix_spot": 15.81,
     "vvix": 88.8,
     "skew": 150.0,
-    "ratio_vvix_vix": 5.5,
-    "vix_percentil": 40.1,
+    "ratio_vvix_vix": 5.62,
+    "vix_percentil": 37.5,
     "vvix_percentil": 44.0,
     "skew_percentil": 93.5,
-    "ratio_percentil": 51.8,
-    "vix_ma5": 17.05,
-    "vix_ma20": 18.17,
-    "vix_mom_5d_pct": -14.5,
+    "ratio_percentil": 55.3,
+    "vix_ma5": 16.53,
+    "vix_ma20": 17.89,
+    "vix_mom_5d_pct": -14.1,
     "vix_mom_señal": "cayendo",
-    "ts_spread_pct": -6.2,
+    "ts_spread_pct": -7.6,
     "momentum_vix_corto_señal": "contango_pronunciado",
-    "momentum_vix_corto_texto": "VIX MA5(17.1) << MA20(18.2): calma pronunciada, complacencia posible",
+    "momentum_vix_corto_texto": "VIX MA5(16.5) << MA20(17.9): calma pronunciada, complacencia posible",
     "ts_señal": "contango_pronunciado",
-    "ts_texto": "VIX MA5(17.1) << MA20(18.2): calma pronunciada, complacencia posible",
+    "ts_texto": "VIX MA5(16.5) << MA20(17.9): calma pronunciada, complacencia posible",
     "vix_señal": "normal",
-    "vix_texto": "VIX=16.15 (p40) - zona normal",
+    "vix_texto": "VIX=15.81 (p38) - zona normal",
     "ratio_señal": "normal",
-    "ratio_texto": "VVIX/VIX=5.5x - regimen normal",
+    "ratio_texto": "VVIX/VIX=5.6x - regimen normal",
     "skew_señal": "cola_extrema",
     "skew_texto": "SKEW=150.0 (p94) - compra masiva de puts OTM - cola bajista",
     "señal_global": "neutro",
@@ -9382,6 +9382,13 @@
         "vvix": 88.8,
         "skew": 150.02,
         "ratio": 5.5
+      },
+      {
+        "fecha": "2026-07-03",
+        "vix": 15.81,
+        "vvix": null,
+        "skew": null,
+        "ratio": null
       }
     ],
     "fuente": "CBOE CSV local"
@@ -9858,12 +9865,12 @@
     "fuente": "SqueezeMetrics CSV local"
   },
   "csv_sentimiento_contrario": {
-    "valor": 1.7,
+    "valor": -0.6,
     "interpretacion": "Neutral",
     "accion_sugerida": "Sin sesgo claro — el índice no aporta información accionable en esta zona.",
     "componentes": {
       "dix": 23.8,
-      "vvix": 48.2,
+      "vvix": 44.7,
       "cot": 94.8
     },
     "pesos_usados": {
@@ -9885,7 +9892,7 @@
       },
       {
         "fecha": "2026-07-06",
-        "valor": 1.7,
+        "valor": -0.6,
         "precio_ndx": 29329.2109
       }
     ]
@@ -9995,7 +10002,7 @@
     "gex_estado": "positivo",
     "gex_desc": "GEX=110.2M — dealers comprando caidas (soporte)",
     "fuente": "Barchart QQQ CSV local",
-    "csv_dias_antiguedad": 1.1,
+    "csv_dias_antiguedad": 0.0,
     "csv_obsoleto": false
   },
   "csv_activo": true,
