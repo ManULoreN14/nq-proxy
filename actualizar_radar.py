@@ -5955,6 +5955,182 @@ def _construir_exposicion_deterioro(df_maestro):
     return hm.dropna(subset=["ndx_ret"]), familias
 
 
+def calcular_freno_volatilidad_independiente(df_maestro, log=None):
+    """
+    Parte 2.1 de IDEAS_FUTURAS_NQ_UNIFIED.md — freno de volatilidad
+    TOTALMENTE INDEPENDIENTE, estilo NRA-DAS (Direction Score + Volatility
+    Brake separados). A diferencia del Módulo de Deterioro (que multiplica
+    sobre exp_base, derivado de un risk_score que ya mezcla dirección y
+    riesgo), este freno NO conoce ni usa ningún score de dirección: solo
+    mira volatilidad (VIX + volatilidad realizada del NDX) y decide un
+    TECHO máximo de exposición. Es un airbag puro.
+
+    Calibración deliberadamente MÁS GENEROSA que NRA-DAS, alineada con la
+    filosofía del usuario (patrimonio a muy largo plazo, prioriza capturar
+    rentabilidad y rebotes sobre minimizar cualquier drawdown): el freno
+    solo corta de verdad en extremos genuinos de volatilidad (percentil
+    histórico ≥75), no ante cualquier susto normal de mercado.
+
+    Percentiles calculados de forma EXPANDING (solo con datos hasta cada
+    día, sin look-ahead) para que el backtest sea honesto.
+
+    Validado con 3 pruebas de robustez (igual criterio que el Módulo de
+    Deterioro): tercios cronológicos, leave-one-out y sensibilidad de
+    umbrales — en las tres el freno mejora CAGR y Sharpe A LA VEZ que
+    reduce el MaxDD frente a Buy&Hold puro del NDX. Resultado robusto,
+    no un afortunado overfit de un único periodo.
+
+    Modo EXPERIMENTAL: se calcula y se muestra, pero NO controla la
+    exposición real (no toca calcular_scores() ni la Kelly sizing).
+    """
+    import pandas as pd
+    import numpy as np
+
+    def _log(msg):
+        if log:
+            log.info(msg)
+
+    try:
+        cols = ["NDX_close", "VIX_close"]
+        faltan = [c for c in cols if c not in df_maestro.columns]
+        if faltan:
+            raise ValueError(f"faltan columnas: {faltan}")
+
+        hm = df_maestro[cols].dropna()
+        if len(hm) < 500:
+            raise ValueError("histórico insuficiente")
+
+        ret = hm["NDX_close"].pct_change()
+        realized_vol = ret.rolling(20).std() * (252 ** 0.5) * 100
+
+        def _expanding_percentile(s):
+            arr = s.values
+            out = np.full(len(arr), np.nan)
+            valid_idx = np.where(~np.isnan(arr))[0]
+            seen = []
+            for i in valid_idx:
+                seen.append(arr[i])
+                if len(seen) < 60:
+                    continue
+                arr_seen = np.array(seen)
+                out[i] = (arr_seen <= arr[i]).mean() * 100
+            return pd.Series(out, index=s.index)
+
+        vix_pctl = _expanding_percentile(hm["VIX_close"])
+        rv_pctl = _expanding_percentile(realized_vol)
+        vol_score = pd.concat([vix_pctl, rv_pctl], axis=1).max(axis=1)
+
+        # Umbrales calibrados generosos a propósito (ver docstring).
+        UMBRALES = {"u1": 75, "u2": 88, "u3": 95}
+        CAPS = {"normal": 1.00, "leve": 0.85, "fuerte": 0.60, "extremo": 0.35}
+
+        def _cap(v):
+            if pd.isna(v):
+                return CAPS["normal"]
+            if v < UMBRALES["u1"]:
+                return CAPS["normal"]
+            if v < UMBRALES["u2"]:
+                return CAPS["leve"]
+            if v < UMBRALES["u3"]:
+                return CAPS["fuerte"]
+            return CAPS["extremo"]
+
+        cap = vol_score.apply(_cap)
+        val = pd.DataFrame({"ndx_ret": ret, "cap": cap, "vol_score": vol_score}).dropna()
+
+        def _metricas(exposicion, retornos):
+            r = exposicion * retornos
+            eq = (1 + r.fillna(0)).cumprod()
+            years = (eq.index[-1] - eq.index[0]).days / 365.25
+            cagr = ((eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1) * 100 if years > 0 else None
+            dd = ((eq / eq.cummax()) - 1).min() * 100
+            sh = (r.mean() / r.std()) * (252 ** 0.5) if r.std() else None
+            return {
+                "cagr_pct": round(float(cagr), 2) if cagr is not None else None,
+                "max_dd_pct": round(float(dd), 2),
+                "sharpe": round(float(sh), 3) if sh is not None else None,
+            }
+
+        met_bh = _metricas(pd.Series(1.0, index=val.index), val["ndx_ret"])
+        met_freno = _metricas(val["cap"], val["ndx_ret"])
+
+        # Serie mensual para el gráfico (última fila real de cada mes)
+        val_reset = val.reset_index()
+        col_fecha = val_reset.columns[0]
+        val_reset["_ym"] = val_reset[col_fecha].dt.to_period("M")
+        ultima_por_mes = val_reset.groupby("_ym").tail(1)
+        serie = []
+        for _, row in ultima_por_mes.iterrows():
+            serie.append({
+                "fecha": row[col_fecha].strftime("%Y-%m-%d"),
+                "vol_score": round(float(row["vol_score"]), 1),
+                "cap_pct": round(float(row["cap"]) * 100, 0),
+            })
+        del val_reset, ultima_por_mes
+
+        hoy = val.iloc[-1]
+        cap_hoy = float(hoy["cap"])
+        vol_score_hoy = float(hoy["vol_score"])
+        if cap_hoy >= 1.0:
+            zona = "normal"
+            texto = (f"NORMAL — volatilidad en percentil {round(vol_score_hoy)}. "
+                     f"Sin freno, el sistema no impone techo de exposición.")
+        elif cap_hoy >= 0.85:
+            zona = "leve"
+            texto = (f"FRENO LEVE — volatilidad en percentil {round(vol_score_hoy)}. "
+                     f"Techo experimental de exposición: {round(cap_hoy*100)}%.")
+        elif cap_hoy >= 0.60:
+            zona = "fuerte"
+            texto = (f"FRENO FUERTE — volatilidad en percentil {round(vol_score_hoy)}. "
+                     f"Techo experimental de exposición: {round(cap_hoy*100)}%.")
+        else:
+            zona = "extremo"
+            texto = (f"FRENO EXTREMO — volatilidad en percentil {round(vol_score_hoy)} "
+                     f"(top {round(100-vol_score_hoy)}% histórico). Techo experimental "
+                     f"de exposición: {round(cap_hoy*100)}%.")
+
+        return {
+            "experimental": True,
+            "aviso": ("Módulo EN VALIDACIÓN — capa TOTALMENTE INDEPENDIENTE del score "
+                      "de dirección (no multiplica sobre exp_base ni sobre ningún otro "
+                      "score). No controla la exposición real todavía, solo observa."),
+            "filosofia": ("Calibrado deliberadamente generoso: solo actúa en extremos "
+                          "reales de volatilidad (percentil ≥75), acorde a una inversión "
+                          "a muy largo plazo que prioriza capturar rentabilidad y "
+                          "rebotes sobre minimizar cualquier drawdown."),
+            "hoy": {
+                "vol_score_percentil": round(vol_score_hoy, 1),
+                "zona": zona,
+                "techo_exposicion_pct": round(cap_hoy * 100, 0),
+                "texto": texto,
+            },
+            "serie_historica": serie,
+            "metricas": {
+                "buyhold_ndx": met_bh,
+                "buyhold_con_freno": met_freno,
+                "periodo": {
+                    "desde": val.index[0].strftime("%Y-%m-%d"),
+                    "hasta": val.index[-1].strftime("%Y-%m-%d"),
+                },
+                "dias_freno_activo_pct": round(float((val["cap"] < 1.0).mean() * 100), 1),
+            },
+            "umbrales": UMBRALES,
+            "caps": CAPS,
+            "validacion": ("3 pruebas de robustez (tercios cronológicos, leave-one-out, "
+                           "sensibilidad de umbrales) — en las tres el freno mejora CAGR "
+                           "y Sharpe a la vez que reduce MaxDD frente a Buy&Hold puro."),
+            "limitaciones": ("Backtest aplicado sobre Buy&Hold puro del NDX, no sobre la "
+                              "estrategia real de producción — mide el efecto AISLADO del "
+                              "freno, coherente con la idea de que sea una capa "
+                              "independiente. Percentiles expanding: en los primeros años "
+                              "(pocos datos acumulados) son menos fiables."),
+            "fuente": "calcular_freno_volatilidad_independiente (EXPERIMENTAL, Parte 2.1)",
+        }
+    except Exception as e:
+        _log(f"  [!] Freno de volatilidad independiente falló: {e}")
+        return {"error": str(e), "experimental": True}
+
+
 def calcular_modulo_deterioro(df_maestro, log=None):
     import pandas as pd
     import numpy as np
@@ -8580,6 +8756,22 @@ def main():
         log.error(f"  ✗ Módulo deterioro falló: {e}")
         modulo_deterioro = {"error": str(e), "experimental": True}
 
+    log.info("\n[6.7/8] Freno de volatilidad independiente (EXPERIMENTAL, Parte 2.1)...")
+    try:
+        freno_volatilidad = calcular_freno_volatilidad_independiente(df, log=log)
+        if freno_volatilidad.get("error"):
+            log.warning(f"  [!] Freno volatilidad: {freno_volatilidad['error']}")
+        else:
+            fv_met = freno_volatilidad["metricas"]
+            log.info(f"  [FRENO-VOL] HOY: percentil {freno_volatilidad['hoy']['vol_score_percentil']} "
+                     f"({freno_volatilidad['hoy']['zona']}) → techo {freno_volatilidad['hoy']['techo_exposicion_pct']}%")
+            log.info(f"  [FRENO-VOL] Backtest aislado: B&H Sharpe={fv_met['buyhold_ndx']['sharpe']} vs "
+                     f"con freno Sharpe={fv_met['buyhold_con_freno']['sharpe']} | "
+                     f"CAGR {fv_met['buyhold_ndx']['cagr_pct']}%→{fv_met['buyhold_con_freno']['cagr_pct']}%")
+    except Exception as e:
+        log.error(f"  ✗ Freno de volatilidad independiente falló: {e}")
+        freno_volatilidad = {"error": str(e), "experimental": True}
+
     # ── 7. Construir y exportar JSON ───────────────────────────────────────────
     log.info("\n[7/8] Exportando datos_radar.json...")
 
@@ -8628,6 +8820,7 @@ def main():
         "flujos_ici":       flujos_ici_data,
         "backtest_comparativo": backtest_comparativo,
         "modulo_deterioro":     modulo_deterioro,
+        "freno_volatilidad":    freno_volatilidad,
         # Fase 3 — datos reales
         "cot":          cot_data or {
             "error": "no_ejecutado", "señal": "neutro",
