@@ -5685,6 +5685,117 @@ def _nfci_diario(idx):
     raise ValueError("sin NFCI")
 
 
+def _construir_exposicion_deterioro(df_maestro):
+    """
+    Función COMPARTIDA: calcula exp_base y exp_deterioro día a día.
+    La usan tanto calcular_modulo_deterioro() (panel de exposición) como
+    calcular_backtest_comparativo() (panel de rentabilidades) — así los dos
+    paneles nunca pueden desincronizarse entre sí, comparten un único
+    cálculo. Devuelve el DataFrame diario completo (val) listo para que
+    cada función haga su propio post-proceso (mensual / equity curve).
+    """
+    import pandas as pd
+    import numpy as np
+
+    cols = ["NDX_close", "VIX_close", "VIX3M_close", "IRX_close",
+            "IWM_close", "SPY_close", "HYG_close", "TNX_close"]
+    faltan = [c for c in cols if c not in df_maestro.columns]
+    if faltan:
+        raise ValueError(f"faltan columnas: {faltan}")
+
+    hm = df_maestro[cols].dropna(subset=["NDX_close"]).copy()
+    primer = hm["HYG_close"].dropna().index.min()
+    if primer is None:
+        raise ValueError("sin datos HYG")
+    hm = hm.loc[primer:]
+    if len(hm) < 500:
+        raise ValueError("histórico insuficiente")
+
+    def _rsi(s, n=14):
+        d = s.diff()
+        up = d.clip(lower=0).rolling(n).mean()
+        dn = -d.clip(upper=0).rolling(n).mean()
+        return 100 - 100 / (1 + up / dn)
+
+    hm["rsi14"] = _rsi(hm["NDX_close"])
+    hm["ema20"] = hm["NDX_close"].ewm(span=20).mean()
+    hm["ema50"] = hm["NDX_close"].ewm(span=50).mean()
+    hm["roc5d"] = hm["NDX_close"].pct_change(5) * 100
+    hm["vts_ratio"] = hm["VIX3M_close"] / hm["VIX_close"]
+
+    try:
+        hm["lev_net_pctl"] = _cot_percentil_diario(hm.index)
+    except Exception:
+        hm["lev_net_pctl"] = np.nan
+    try:
+        hm["nfci"] = _nfci_diario(hm.index)
+    except Exception:
+        hm["nfci"] = np.nan
+
+    def _risk(row):
+        r = 0.0
+        if pd.notna(row["rsi14"]):
+            if row["rsi14"] > 75: r += 1.5
+            elif row["rsi14"] > 70: r += 1.0
+        if pd.notna(row["VIX_close"]):
+            if row["VIX_close"] > 28: r += 2.0
+            elif row["VIX_close"] > 22: r += 1.5
+            elif row["VIX_close"] < 13: r += 0.5
+        if pd.notna(row["vts_ratio"]) and row["vts_ratio"] < 1.0: r += 2.0
+        if pd.notna(row["lev_net_pctl"]) and row["lev_net_pctl"] >= 85: r += 0.5
+        if pd.notna(row["nfci"]) and row["nfci"] > 0.1: r += 0.5
+        if pd.notna(row["ema20"]) and pd.notna(row["ema50"]) and row["NDX_close"] > row["ema20"] > row["ema50"]: r -= 0.5
+        if pd.notna(row["roc5d"]) and row["roc5d"] > 2: r -= 0.3
+        if pd.notna(row["VIX_close"]) and 14 <= row["VIX_close"] <= 18: r -= 0.3
+        return max(0.0, min(r, 10.0))
+
+    hm["risk_score"] = hm.apply(_risk, axis=1)
+    hm["exp_base"] = hm["risk_score"].apply(
+        lambda r: 0.80 if r < 3.5 else 0.65 if r < 5.5 else 0.45 if r < 7.5 else 0.20)
+
+    ndx_slope20 = hm["NDX_close"].pct_change(20)
+    iwm_spy = hm["IWM_close"] / hm["SPY_close"]
+    iwm_spy_slope20 = iwm_spy.pct_change(20)
+    hm["breadth_div"] = (ndx_slope20 > 0) & (iwm_spy_slope20 < -0.02)
+    hm["credit_stress"] = hm["HYG_close"].pct_change(20) < -0.03
+    hm["curve_flatten"] = (hm["TNX_close"] - hm["IRX_close"]).diff(20) < -0.3
+    hm["vix_back"] = hm["VIX3M_close"] < hm["VIX_close"]
+    hm["cot_extreme"] = hm["lev_net_pctl"] >= 85
+
+    familias = ["breadth_div", "credit_stress", "curve_flatten", "vix_back", "cot_extreme"]
+    hm["deterioro_count"] = hm[familias].sum(axis=1)
+
+    activo, prev = False, []
+    for c in hm["deterioro_count"]:
+        if not activo and c >= 3: activo = True
+        elif activo and c <= 1: activo = False
+        prev.append(activo)
+    hm["deterioro_activo"] = prev
+
+    prevser = pd.Series(prev, index=hm.index)
+    clear = (~prevser) & (prevser.shift(1).fillna(False))
+    hm["huella"] = clear.replace(False, np.nan).ffill(limit=60)
+    sobre = hm["NDX_close"] > hm["ema20"]
+    cruce = sobre & (~sobre.shift(1).fillna(False))
+    hm["reentrada"] = cruce & hm["huella"].notna()
+    contador, lista, ab = 999, [], False
+    for conf in hm["reentrada"]:
+        if conf: contador = 0; ab = True
+        elif contador < 15: contador += 1
+        else: ab = False
+        lista.append(contador if ab else 999)
+    hm["dias_reentrada"] = lista
+
+    hm["mult"] = 1.0
+    hm.loc[hm["deterioro_activo"], "mult"] = 0.55
+    hm.loc[hm["dias_reentrada"] <= 15, "mult"] = 1.15
+    hm["exp_deterioro"] = (hm["exp_base"] * hm["mult"]).clip(0, 1.0)
+
+    hm["ndx_ret"] = hm["NDX_close"].pct_change()
+    hm["rf_ret"] = (hm["IRX_close"] / 100) / 252
+    return hm.dropna(subset=["ndx_ret"]), familias
+
+
 def calcular_modulo_deterioro(df_maestro, log=None):
     import pandas as pd
     import numpy as np
@@ -5694,115 +5805,7 @@ def calcular_modulo_deterioro(df_maestro, log=None):
             log.info(msg)
 
     try:
-        cols = ["NDX_close", "VIX_close", "VIX3M_close", "IRX_close",
-                "IWM_close", "SPY_close", "HYG_close", "TNX_close"]
-        faltan = [c for c in cols if c not in df_maestro.columns]
-        if faltan:
-            return {"error": f"faltan columnas: {faltan}", "experimental": True}
-
-        hm = df_maestro[cols].dropna(subset=["NDX_close"]).copy()
-        # arranque donde HYG tiene datos (2007) — es la señal más tardía
-        primer = hm["HYG_close"].dropna().index.min()
-        if primer is None:
-            return {"error": "sin datos HYG", "experimental": True}
-        hm = hm.loc[primer:]
-        if len(hm) < 500:
-            return {"error": "histórico insuficiente", "experimental": True}
-
-        # --- indicadores base (misma receta que el backtest comparativo) ---
-        def _rsi(s, n=14):
-            d = s.diff()
-            up = d.clip(lower=0).rolling(n).mean()
-            dn = -d.clip(upper=0).rolling(n).mean()
-            return 100 - 100 / (1 + up / dn)
-
-        hm["rsi14"] = _rsi(hm["NDX_close"])
-        hm["ema20"] = hm["NDX_close"].ewm(span=20).mean()
-        hm["ema50"] = hm["NDX_close"].ewm(span=50).mean()
-        hm["roc5d"] = hm["NDX_close"].pct_change(5) * 100
-        hm["vts_ratio"] = hm["VIX3M_close"] / hm["VIX_close"]
-
-        # COT percentil (opcional, si no está usamos cot_extreme=False)
-        try:
-            cot_pctl = _cot_percentil_diario(hm.index)
-            hm["lev_net_pctl"] = cot_pctl
-        except Exception:
-            hm["lev_net_pctl"] = np.nan
-
-        # NFCI (opcional)
-        try:
-            nfci = _nfci_diario(hm.index)
-            hm["nfci"] = nfci
-        except Exception:
-            hm["nfci"] = np.nan
-
-        # --- exposición base simplificada (idéntica al backtest comparativo) ---
-        def _risk(row):
-            r = 0.0
-            if pd.notna(row["rsi14"]):
-                if row["rsi14"] > 75: r += 1.5
-                elif row["rsi14"] > 70: r += 1.0
-            if pd.notna(row["VIX_close"]):
-                if row["VIX_close"] > 28: r += 2.0
-                elif row["VIX_close"] > 22: r += 1.5
-                elif row["VIX_close"] < 13: r += 0.5
-            if pd.notna(row["vts_ratio"]) and row["vts_ratio"] < 1.0: r += 2.0
-            if pd.notna(row["lev_net_pctl"]) and row["lev_net_pctl"] >= 85: r += 0.5
-            if pd.notna(row["nfci"]) and row["nfci"] > 0.1: r += 0.5
-            if pd.notna(row["ema20"]) and pd.notna(row["ema50"]) and row["NDX_close"] > row["ema20"] > row["ema50"]: r -= 0.5
-            if pd.notna(row["roc5d"]) and row["roc5d"] > 2: r -= 0.3
-            if pd.notna(row["VIX_close"]) and 14 <= row["VIX_close"] <= 18: r -= 0.3
-            return max(0.0, min(r, 10.0))
-
-        hm["risk_score"] = hm.apply(_risk, axis=1)
-        hm["exp_base"] = hm["risk_score"].apply(
-            lambda r: 0.80 if r < 3.5 else 0.65 if r < 5.5 else 0.45 if r < 7.5 else 0.20)
-
-        # --- 5 familias de deterioro ---
-        ndx_slope20 = hm["NDX_close"].pct_change(20)
-        iwm_spy = hm["IWM_close"] / hm["SPY_close"]
-        iwm_spy_slope20 = iwm_spy.pct_change(20)
-        hm["breadth_div"] = (ndx_slope20 > 0) & (iwm_spy_slope20 < -0.02)
-        hm["credit_stress"] = hm["HYG_close"].pct_change(20) < -0.03
-        hm["curve_flatten"] = (hm["TNX_close"] - hm["IRX_close"]).diff(20) < -0.3
-        hm["vix_back"] = hm["VIX3M_close"] < hm["VIX_close"]
-        hm["cot_extreme"] = hm["lev_net_pctl"] >= 85
-
-        familias = ["breadth_div", "credit_stress", "curve_flatten", "vix_back", "cot_extreme"]
-        hm["deterioro_count"] = hm[familias].sum(axis=1)
-
-        # --- histéresis: activa >=3, desactiva <=1 ---
-        activo, prev = False, []
-        for c in hm["deterioro_count"]:
-            if not activo and c >= 3: activo = True
-            elif activo and c <= 1: activo = False
-            prev.append(activo)
-        hm["deterioro_activo"] = prev
-
-        # --- reentrada con confirmación de precio ---
-        prevser = pd.Series(prev, index=hm.index)
-        clear = (~prevser) & (prevser.shift(1).fillna(False))
-        hm["huella"] = clear.replace(False, np.nan).ffill(limit=60)
-        sobre = hm["NDX_close"] > hm["ema20"]
-        cruce = sobre & (~sobre.shift(1).fillna(False))
-        hm["reentrada"] = cruce & hm["huella"].notna()
-        contador, lista, ab = 999, [], False
-        for conf in hm["reentrada"]:
-            if conf: contador = 0; ab = True
-            elif contador < 15: contador += 1
-            else: ab = False
-            lista.append(contador if ab else 999)
-        hm["dias_reentrada"] = lista
-
-        hm["mult"] = 1.0
-        hm.loc[hm["deterioro_activo"], "mult"] = 0.55
-        hm.loc[hm["dias_reentrada"] <= 15, "mult"] = 1.15
-        hm["exp_deterioro"] = (hm["exp_base"] * hm["mult"]).clip(0, 1.0)
-
-        # --- métricas comparativas (deterioro vs base) ---
-        hm["ndx_ret"] = hm["NDX_close"].pct_change()
-        hm["rf_ret"] = (hm["IRX_close"] / 100) / 252
-        val = hm.dropna(subset=["ndx_ret"])
+        val, familias = _construir_exposicion_deterioro(df_maestro)
 
         def _metricas(exp):
             ret = exp * val["ndx_ret"] + (1 - exp) * val["rf_ret"]
@@ -6005,6 +6008,20 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
         hm["rf_ret"] = (hm["IRX_close"] / 100) / 252
         hm = hm.dropna(subset=["ndx_ret"])
 
+        # --- Módulo de deterioro (EXPERIMENTAL): misma función compartida
+        # que usa el panel de exposición, para que las dos vistas nunca se
+        # desincronicen. Su histórico empieza algo más tarde (2007-04-11,
+        # limitado por HYG) que este backtest (~2006-07); para el tramo sin
+        # dato de deterioro, se usa exp_pct (la base) como relleno — no hay
+        # freno que aplicar ahí porque aún no hay ninguna de las 5 señales.
+        exp_deterioro_alineado = None
+        try:
+            val_det, _familias_det = _construir_exposicion_deterioro(df_maestro)
+            exp_deterioro_alineado = val_det["exp_deterioro"].reindex(hm.index)
+            exp_deterioro_alineado = exp_deterioro_alineado.fillna(hm["exp_pct"])
+        except Exception as e:
+            log.warning(f"  [BACKTEST] Módulo deterioro no disponible para el backtest: {e}")
+
         def _equity(ret):
             return (1 + ret.fillna(0)).cumprod()
 
@@ -6014,6 +6031,9 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
         }
         for w, nombre in [(0.3, "b30"), (0.5, "b50"), (0.6, "b60"), (0.7, "b70")]:
             curvas[nombre] = _equity(w * hm["ndx_ret"] + (1 - w) * hm["rf_ret"])
+        if exp_deterioro_alineado is not None:
+            curvas["estrategia_deterioro"] = _equity(
+                exp_deterioro_alineado * hm["ndx_ret"] + (1 - exp_deterioro_alineado) * hm["rf_ret"])
 
         def _cagr(eq):
             years = (eq.index[-1] - eq.index[0]).days / 365.25
@@ -6043,6 +6063,8 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
             "fechas": [d.strftime("%Y-%m-%d") for d in mensual.index],
             "buyhold_ndx": [round(v, 3) for v in mensual["buyhold"]],
             "estrategia_score": [round(v, 3) for v in mensual["estrategia"]],
+            "estrategia_deterioro": ([round(v, 3) for v in mensual["estrategia_deterioro"]]
+                                     if "estrategia_deterioro" in mensual.columns else None),
             "asignacion_30_70": [round(v, 3) for v in mensual["b30"]],
             "asignacion_50_50": [round(v, 3) for v in mensual["b50"]],
             "asignacion_60_40": [round(v, 3) for v in mensual["b60"]],
@@ -6053,7 +6075,9 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
                 "Risk score simplificado: RSI+VIX+VIX Term Structure+COT percentil. "
                 "No incluye Fear&Greed, breadth Mag7/NDX100 ni curva 2Y-10Y por falta "
                 "de historico diario — el score real de produccion seria mas defensivo "
-                "en crisis que esta aproximacion."
+                "en crisis que esta aproximacion. La curva 'estrategia_deterioro' es "
+                "EXPERIMENTAL (ver modulo_deterioro) y antes de 2007-04-11 usa la misma "
+                "exposicion que 'estrategia_score' por no tener aun dato de HYG."
             ),
             "fuente": "calcular_backtest_comparativo (historico_maestro.csv + COT real)",
         }
