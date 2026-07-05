@@ -3886,20 +3886,34 @@ def calcular_indice_sentimiento_contrario(dix_gex_data, cot_csv_data, vix_vvix_s
     media_ponderada = sum(componentes[k] * pesos_activos[k] / suma for k in componentes)
     valor = round((media_ponderada - 50) * 2, 1)
 
-    if valor >= 50:
+    # Umbrales recalibrados con los cuantiles REALES del backtest 2006-2026
+    # (no numeros redondos elegidos a ojo): extremo ~p10/p90 (=/-55),
+    # neutral ~IQR real (+/-30, asi cae ahi el ~50% del tiempo en vez
+    # del ~30% que daba el +/-20 anterior).
+    if valor >= 55:
         interpretacion = "Miedo extremo — zona contrarian alcista fuerte"
-    elif valor >= 20:
+        accion_sugerida = ("Históricamente (2006-2026) esta zona ha precedido rebotes. "
+                            "No es una orden de compra automática, pero el backtest respalda "
+                            "priorizar aprovechar la debilidad en vez de ponerse defensivo.")
+    elif valor >= 30:
         interpretacion = "Cautela de mercado — sesgo contrarian alcista"
-    elif valor > -20:
+        accion_sugerida = "Sesgo moderado a favor de mantener/aumentar exposición, sin señal fuerte todavía."
+    elif valor > -30:
         interpretacion = "Neutral"
-    elif valor > -50:
+        accion_sugerida = "Sin sesgo claro — el índice no aporta información accionable en esta zona."
+    elif valor > -55:
         interpretacion = "Complacencia — sesgo contrarian bajista"
+        accion_sugerida = "Sesgo moderado a la cautela — no es señal de salida, sí de exigir más disciplina en nuevas entradas."
     else:
         interpretacion = "Complacencia extrema — zona contrarian bajista fuerte"
+        accion_sugerida = ("Históricamente esta zona ha precedido retornos futuros peores que la media. "
+                            "No implica vender el patrimonio de largo plazo, sí evitar perseguir la subida "
+                            "con capital nuevo y revisar el Módulo de Deterioro si coincide con otras señales.")
 
     return {
         "valor":           valor,
         "interpretacion":  interpretacion,
+        "accion_sugerida": accion_sugerida,
         "componentes":     {k: round(v, 1) for k, v in componentes.items()},
         "pesos_usados":    {k: round(v / suma, 3) for k, v in pesos_activos.items()},
         "piezas_faltantes": sorted(set(PESOS_SENTIMIENTO_CONTRARIO) - set(componentes)),
@@ -3907,6 +3921,52 @@ def calcular_indice_sentimiento_contrario(dix_gex_data, cot_csv_data, vix_vvix_s
         "validacion":      "IC 0.070/0.133/0.162 (5/20/60d), Stability 100%, WF>=3/4 — historico_maestro.csv 2000-2026",
         "fuente":          "calcular_indice_sentimiento_contrario",
     }
+
+
+SENTIMIENTO_CONTRARIO_CSV = DATA_CSV_DIR / "SENTIMIENTO_CONTRARIO_HISTORICO.csv"
+
+
+def _persistir_sentimiento_contrario(resultado: dict, precio_ndx_hoy=None):
+    """Guarda (o actualiza si ya existe la fecha de hoy) una fila en
+    SENTIMIENTO_CONTRARIO_HISTORICO.csv, y devuelve las últimas 180 filas
+    para incluir en el JSON y que el frontend pueda pintar el histórico
+    sin depender de nada más. Es un indicador nuevo: el histórico se
+    construye día a día a partir de ahora, no hay backfill retroactivo
+    en produccion (el backtest 2000-2026 vive aparte, en validar_factor.py)."""
+    if resultado.get("valor") is None:
+        return []
+
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    filas = []
+    if SENTIMIENTO_CONTRARIO_CSV.exists():
+        try:
+            with open(SENTIMIENTO_CONTRARIO_CSV, newline="", encoding="utf-8") as f:
+                filas = list(_csv_csv.DictReader(f))
+        except Exception as e:
+            _csv_log(f"Sentimiento Contrario: error leyendo histórico previo: {e}")
+            filas = []
+
+    filas = [r for r in filas if r.get("fecha") != hoy]  # evita duplicar si se relanza el mismo día
+    filas.append({
+        "fecha": hoy,
+        "valor": str(resultado["valor"]),
+        "precio_ndx": str(precio_ndx_hoy) if precio_ndx_hoy is not None else "",
+    })
+    filas.sort(key=lambda r: r["fecha"])
+
+    try:
+        with open(SENTIMIENTO_CONTRARIO_CSV, "w", newline="", encoding="utf-8") as f:
+            w = _csv_csv.DictWriter(f, fieldnames=["fecha", "valor", "precio_ndx"])
+            w.writeheader()
+            w.writerows(filas)
+    except Exception as e:
+        _csv_log(f"Sentimiento Contrario: error guardando histórico: {e}")
+
+    return [
+        {"fecha": r["fecha"], "valor": _csv_safe_float(r["valor"]),
+         "precio_ndx": _csv_safe_float(r["precio_ndx"]) if r.get("precio_ndx") else None}
+        for r in filas[-180:]
+    ]
 
 
 # -----------------------------------------------------------------------------
@@ -8300,10 +8360,14 @@ def main():
         try:
             sentimiento_contrario_data = calcular_indice_sentimiento_contrario(
                 dix_gex_data, cot_csv_data, vix_vvix_skew_data)
+            precio_ndx_hoy = tecnicos_ndx.get("d", {}).get("precio") if tecnicos_ndx else None
+            sentimiento_contrario_data["historico"] = _persistir_sentimiento_contrario(
+                sentimiento_contrario_data, precio_ndx_hoy)
             if sentimiento_contrario_data.get("valor") is not None:
                 log.info(f"  [CSV] Sentimiento Contrario: {sentimiento_contrario_data['valor']} "
                          f"({sentimiento_contrario_data['interpretacion']}) — "
-                         f"piezas: {list(sentimiento_contrario_data['componentes'].keys())}")
+                         f"piezas: {list(sentimiento_contrario_data['componentes'].keys())} — "
+                         f"histórico acumulado: {len(sentimiento_contrario_data['historico'])} días")
         except Exception as e:
             log.warning(f"  [CSV] Sentimiento Contrario fallo: {e}")
             sentimiento_contrario_data = {"error": str(e), "valor": None}
