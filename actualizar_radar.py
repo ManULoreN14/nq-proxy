@@ -629,6 +629,65 @@ def _persistir_amplitud_sma_historico(pct_sma50, pct_sma20, pct_sma200, precio_n
     ]
 
 
+def _obtener_tickers_ndx100_dinamico(log=None):
+    """
+    Intenta obtener la composición VIGENTE del Nasdaq-100 desde Wikipedia
+    (mismo método ya probado y en uso en amplitud_ndx100_simple.py, que
+    construyó los 5 años de histórico que ya tenéis). Solo pide la página
+    ACTUAL (sin oldid) — distinto del intento fallido de reconstruir
+    composición HISTÓRICA (esa sí fallaba por transclusión de plantillas).
+
+    Si falla por cualquier motivo (red, cambio de estructura de la
+    tabla), devuelve None y calcular_amplitud_ndx100() cae de vuelta a
+    la lista fija NDX100_TICKERS_FALLBACK — nunca deja el módulo sin
+    tickers por un fallo de este paso opcional.
+    """
+    import re, io, requests
+    import pandas as pd
+    try:
+        resp = requests.get(
+            "https://en.wikipedia.org/w/api.php",
+            params={"action": "parse", "page": "Nasdaq-100", "prop": "text",
+                    "format": "json", "formatversion": 2},
+            headers={"User-Agent": "nq-unified-research/1.0 (uso personal)"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        html = resp.json()["parse"]["text"]
+        tablas = pd.read_html(io.StringIO(html))
+
+        RE_TICKER = re.compile(r"^[A-Z]{1,6}(-[A-Z])?$")
+
+        def _tickers_validos(serie):
+            vals = serie.dropna().astype(str).str.strip().str.replace(".", "-", regex=False)
+            return [v for v in vals if RE_TICKER.match(v)]
+
+        candidatas = []
+        for t in tablas:
+            cols = [str(c).lower() for c in t.columns]
+            col_ticker = next((c for c, cl in zip(t.columns, cols) if "ticker" in cl or "symbol" in cl), None)
+            if col_ticker is None:
+                continue
+            validos = _tickers_validos(t[col_ticker])
+            if len(validos) >= 30:
+                candidatas.append((len(validos), sorted(set(validos))))
+
+        if not candidatas:
+            raise ValueError("ninguna tabla con pinta de composición vigente (¿cambió la estructura de la página?)")
+
+        # La composición real tiene ~100-105 tickers (100 empresas, algunas
+        # con 2 clases). Cogemos la más cercana a ese rango, no la más
+        # grande (la más grande suele ser la tabla de histórico de altas/bajas).
+        _, tickers = min(candidatas, key=lambda x: abs(x[0] - 102))
+        if log:
+            log.info(f"  [Amplitud NDX100] Composición vigente vía Wikipedia: {len(tickers)} tickers")
+        return tickers
+    except Exception as e:
+        if log:
+            log.warning(f"  [Amplitud NDX100] No se pudo obtener composición vigente de Wikipedia ({e}) — usando lista fija de respaldo")
+        return None
+
+
 def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
     """
     Calcula Net New Highs - New Lows de 52 semanas sobre los 100
@@ -639,11 +698,16 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
     timeout en GitHub Actions → JSON con "error: sin_datos" permanentemente.
     AHORA: una sola llamada yf.download(lista_completa) con group_by='ticker'
     en paralelo. Pasa de ~3-5 minutos a ~15-30 segundos.
+
+    La lista de tickers se intenta obtener DINÁMICA de Wikipedia en cada
+    ejecución (composición vigente real, sigue altas/bajas del índice
+    sola) — si falla, cae a la lista fija de respaldo de abajo.
     """
-    # Lista actualizada del NDX100 (revisada periódicamente)
+    # Lista de RESPALDO si falla la obtención dinámica (revisada
+    # periódicamente a mano como último recurso, no como fuente principal).
     # Sprint 1: LCID, ZM, JD, BMRN salieron del índice. Sustituidos por
     # los reemplazos confirmados 2025-2026.
-    NDX100_TICKERS = [
+    NDX100_TICKERS_FALLBACK = [
         "AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","COST",
         "ASML","NFLX","AMD","PEP","LIN","QCOM","ADBE","INTU","CSCO","TXN",
         "AMGN","BKNG","ISRG","CMCSA","HON","VRTX","REGN","GILD","MU","LRCX",
@@ -655,6 +719,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
         "ILMN","GFS","NXPI","CHTR","SIRI","SBUX","DASH","MTCH","APP","PLTR",
         "RIVN","OKTA","ALGN","ENPH","LULU","MDB","EBAY","AXON","SWKS","ARGX"
     ]
+    NDX100_TICKERS = _obtener_tickers_ndx100_dinamico(log=log) or NDX100_TICKERS_FALLBACK
     import time
     t0 = time.time()
     try:
