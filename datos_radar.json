@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-07-06T07:53:20.124047",
+  "ts": "2026-07-06T10:01:15.418616",
   "precio": {
     "ndx": 29329.2109,
     "qqq": 712.6,
@@ -7387,6 +7387,7 @@
       "vix_back": "Backwardation VIX",
       "cot_extreme": "COT extremo (contrarian)"
     },
+    "formula": "exp_base (0-80%) sale de un risk_score PARALELO — NO es tu score de producción real: RSI14>75(+1.5)/>70(+1.0) · VIX>28(+2.0)/>22(+1.5)/<13(+0.5) · VTS(VIX3M/VIX)<1.0(+2.0) · COT leveraged percentil≥85(+0.5) · NFCI>0.1(+0.5) · EMA20>EMA50 con precio arriba(-0.5) · ROC5d>2%(-0.3) · VIX 14-18(-0.3). exp_deterioro multiplica exp_base ×0.55 si ≥3/5 señales de deterioro activas, ×1.15 si hay reentrada reciente.",
     "limitaciones": "Usa proxies reconstruibles 20 años atrás (IWM/SPY para amplitud, HYG para crédito) en vez de la amplitud NDX-100 y crédito reales de producción. Aproximación coherente de la idea, no réplica del sistema real. Validado con 3 pruebas de robustez (tercios, sensibilidad, leave-one-out).",
     "fuente": "calcular_modulo_deterioro (EXPERIMENTAL)"
   },
@@ -9015,6 +9016,7 @@
       "fuerte": 0.6,
       "extremo": 0.35
     },
+    "formula": "vol_score = percentil expanding (todo el histórico hasta hoy, sin look-ahead) del MAYOR entre: percentil de VIX_close y percentil de volatilidad realizada 20d anualizada del NDX. Techo de exposición: 100% si vol_score<75 · 85% si <88 · 60% si <95 · 35% si ≥95. NO usa ningún score de dirección — solo volatilidad.",
     "validacion": "3 pruebas de robustez (tercios cronológicos, leave-one-out, sensibilidad de umbrales) — en las tres el freno mejora CAGR y Sharpe a la vez que reduce MaxDD frente a Buy&Hold puro.",
     "limitaciones": "Backtest aplicado sobre Buy&Hold puro del NDX, no sobre la estrategia real de producción — mide el efecto AISLADO del freno, coherente con la idea de que sea una capa independiente. Percentiles expanding: en los primeros años (pocos datos acumulados) son menos fiables.",
     "fuente": "calcular_freno_volatilidad_independiente (EXPERIMENTAL, Parte 2.1)"
@@ -10174,1162 +10176,1626 @@
       {
         "fecha": "2007-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.031,
+        "eq_refugio_dinamico": 1.031
       },
       {
         "fecha": "2007-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.059,
+        "eq_refugio_dinamico": 1.059
       },
       {
         "fecha": "2007-06-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.063,
+        "eq_refugio_dinamico": 1.063
       },
       {
         "fecha": "2007-07-31",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.069,
+        "eq_refugio_dinamico": 1.069
       },
       {
         "fecha": "2007-08-31",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.1,
+        "eq_refugio_dinamico": 1.106
       },
       {
         "fecha": "2007-09-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.147,
+        "eq_refugio_dinamico": 1.154
       },
       {
         "fecha": "2007-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.213,
+        "eq_refugio_dinamico": 1.22
       },
       {
         "fecha": "2007-11-30",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.178,
+        "eq_refugio_dinamico": 1.204
       },
       {
         "fecha": "2007-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.177,
+        "eq_refugio_dinamico": 1.202
       },
       {
         "fecha": "2008-01-31",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.08,
+        "eq_refugio_dinamico": 1.103
       },
       {
         "fecha": "2008-02-29",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.052,
+        "eq_refugio_dinamico": 1.08
       },
       {
         "fecha": "2008-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.082,
+        "eq_refugio_dinamico": 1.128
       },
       {
         "fecha": "2008-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.148,
+        "eq_refugio_dinamico": 1.197
       },
       {
         "fecha": "2008-05-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.204,
+        "eq_refugio_dinamico": 1.255
       },
       {
         "fecha": "2008-06-30",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.113,
+        "eq_refugio_dinamico": 1.164
       },
       {
         "fecha": "2008-07-31",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.128,
+        "eq_refugio_dinamico": 1.175
       },
       {
         "fecha": "2008-08-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.142,
+        "eq_refugio_dinamico": 1.19
       },
       {
         "fecha": "2008-09-30",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.024,
+        "eq_refugio_dinamico": 1.072
       },
       {
         "fecha": "2008-10-31",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 0.918,
+        "eq_refugio_dinamico": 0.969
       },
       {
         "fecha": "2008-11-28",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 0.854,
+        "eq_refugio_dinamico": 0.953
       },
       {
         "fecha": "2008-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 0.872,
+        "eq_refugio_dinamico": 0.997
       },
       {
         "fecha": "2009-01-30",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 0.865,
+        "eq_refugio_dinamico": 0.989
       },
       {
         "fecha": "2009-02-27",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 0.84,
+        "eq_refugio_dinamico": 0.96
       },
       {
         "fecha": "2009-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 0.898,
+        "eq_refugio_dinamico": 1.039
       },
       {
         "fecha": "2009-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 0.989,
+        "eq_refugio_dinamico": 1.144
       },
       {
         "fecha": "2009-05-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.012,
+        "eq_refugio_dinamico": 1.171
       },
       {
         "fecha": "2009-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.037,
+        "eq_refugio_dinamico": 1.199
       },
       {
         "fecha": "2009-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.107,
+        "eq_refugio_dinamico": 1.287
       },
       {
         "fecha": "2009-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.119,
+        "eq_refugio_dinamico": 1.301
       },
       {
         "fecha": "2009-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.171,
+        "eq_refugio_dinamico": 1.361
       },
       {
         "fecha": "2009-10-30",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.152,
+        "eq_refugio_dinamico": 1.338
       },
       {
         "fecha": "2009-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.206,
+        "eq_refugio_dinamico": 1.402
       },
       {
         "fecha": "2009-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.257,
+        "eq_refugio_dinamico": 1.461
       },
       {
         "fecha": "2010-01-29",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.197,
+        "eq_refugio_dinamico": 1.394
       },
       {
         "fecha": "2010-02-26",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.245,
+        "eq_refugio_dinamico": 1.447
       },
       {
         "fecha": "2010-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.321,
+        "eq_refugio_dinamico": 1.535
       },
       {
         "fecha": "2010-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.344,
+        "eq_refugio_dinamico": 1.562
       },
       {
         "fecha": "2010-05-28",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.293,
+        "eq_refugio_dinamico": 1.536
       },
       {
         "fecha": "2010-06-30",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.241,
+        "eq_refugio_dinamico": 1.488
       },
       {
         "fecha": "2010-07-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.313,
+        "eq_refugio_dinamico": 1.579
       },
       {
         "fecha": "2010-08-31",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.258,
+        "eq_refugio_dinamico": 1.521
       },
       {
         "fecha": "2010-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.388,
+        "eq_refugio_dinamico": 1.675
       },
       {
         "fecha": "2010-10-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.458,
+        "eq_refugio_dinamico": 1.759
       },
       {
         "fecha": "2010-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.455,
+        "eq_refugio_dinamico": 1.756
       },
       {
         "fecha": "2010-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.511,
+        "eq_refugio_dinamico": 1.822
       },
       {
         "fecha": "2011-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.546,
+        "eq_refugio_dinamico": 1.865
       },
       {
         "fecha": "2011-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.583,
+        "eq_refugio_dinamico": 1.91
       },
       {
         "fecha": "2011-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.585,
+        "eq_refugio_dinamico": 1.93
       },
       {
         "fecha": "2011-04-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.62,
+        "eq_refugio_dinamico": 1.973
       },
       {
         "fecha": "2011-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.603,
+        "eq_refugio_dinamico": 1.956
       },
       {
         "fecha": "2011-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.579,
+        "eq_refugio_dinamico": 1.937
       },
       {
         "fecha": "2011-07-29",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.607,
+        "eq_refugio_dinamico": 1.971
       },
       {
         "fecha": "2011-08-31",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.556,
+        "eq_refugio_dinamico": 1.964
       },
       {
         "fecha": "2011-09-30",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 1.516,
+        "eq_refugio_dinamico": 1.931
       },
       {
         "fecha": "2011-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.648,
+        "eq_refugio_dinamico": 2.12
       },
       {
         "fecha": "2011-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.628,
+        "eq_refugio_dinamico": 2.096
       },
       {
         "fecha": "2011-12-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.619,
+        "eq_refugio_dinamico": 2.095
       },
       {
         "fecha": "2012-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.726,
+        "eq_refugio_dinamico": 2.234
       },
       {
         "fecha": "2012-02-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.813,
+        "eq_refugio_dinamico": 2.346
       },
       {
         "fecha": "2012-03-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.886,
+        "eq_refugio_dinamico": 2.44
       },
       {
         "fecha": "2012-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.869,
+        "eq_refugio_dinamico": 2.415
       },
       {
         "fecha": "2012-05-31",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.759,
+        "eq_refugio_dinamico": 2.304
       },
       {
         "fecha": "2012-06-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.81,
+        "eq_refugio_dinamico": 2.366
       },
       {
         "fecha": "2012-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.826,
+        "eq_refugio_dinamico": 2.386
       },
       {
         "fecha": "2012-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.897,
+        "eq_refugio_dinamico": 2.479
       },
       {
         "fecha": "2012-09-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.912,
+        "eq_refugio_dinamico": 2.499
       },
       {
         "fecha": "2012-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.829,
+        "eq_refugio_dinamico": 2.401
       },
       {
         "fecha": "2012-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.846,
+        "eq_refugio_dinamico": 2.432
       },
       {
         "fecha": "2012-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.84,
+        "eq_refugio_dinamico": 2.423
       },
       {
         "fecha": "2013-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.879,
+        "eq_refugio_dinamico": 2.475
       },
       {
         "fecha": "2013-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.883,
+        "eq_refugio_dinamico": 2.48
       },
       {
         "fecha": "2013-03-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.927,
+        "eq_refugio_dinamico": 2.538
       },
       {
         "fecha": "2013-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.965,
+        "eq_refugio_dinamico": 2.588
       },
       {
         "fecha": "2013-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.017,
+        "eq_refugio_dinamico": 2.656
       },
       {
         "fecha": "2013-06-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 1.978,
+        "eq_refugio_dinamico": 2.605
       },
       {
         "fecha": "2013-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.076,
+        "eq_refugio_dinamico": 2.734
       },
       {
         "fecha": "2013-08-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.067,
+        "eq_refugio_dinamico": 2.722
       },
       {
         "fecha": "2013-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.144,
+        "eq_refugio_dinamico": 2.824
       },
       {
         "fecha": "2013-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.229,
+        "eq_refugio_dinamico": 2.936
       },
       {
         "fecha": "2013-11-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.288,
+        "eq_refugio_dinamico": 3.013
       },
       {
         "fecha": "2013-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.342,
+        "eq_refugio_dinamico": 3.085
       },
       {
         "fecha": "2014-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.306,
+        "eq_refugio_dinamico": 3.037
       },
       {
         "fecha": "2014-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.397,
+        "eq_refugio_dinamico": 3.157
       },
       {
         "fecha": "2014-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.345,
+        "eq_refugio_dinamico": 3.088
       },
       {
         "fecha": "2014-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.339,
+        "eq_refugio_dinamico": 3.096
       },
       {
         "fecha": "2014-05-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.419,
+        "eq_refugio_dinamico": 3.203
       },
       {
         "fecha": "2014-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.478,
+        "eq_refugio_dinamico": 3.28
       },
       {
         "fecha": "2014-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.5,
+        "eq_refugio_dinamico": 3.31
       },
       {
         "fecha": "2014-08-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.597,
+        "eq_refugio_dinamico": 3.439
       },
       {
         "fecha": "2014-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.581,
+        "eq_refugio_dinamico": 3.417
       },
       {
         "fecha": "2014-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.648,
+        "eq_refugio_dinamico": 3.527
       },
       {
         "fecha": "2014-11-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.739,
+        "eq_refugio_dinamico": 3.648
       },
       {
         "fecha": "2014-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.695,
+        "eq_refugio_dinamico": 3.589
       },
       {
         "fecha": "2015-01-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.656,
+        "eq_refugio_dinamico": 3.575
       },
       {
         "fecha": "2015-02-27",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.805,
+        "eq_refugio_dinamico": 3.775
       },
       {
         "fecha": "2015-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.751,
+        "eq_refugio_dinamico": 3.691
       },
       {
         "fecha": "2015-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.792,
+        "eq_refugio_dinamico": 3.748
       },
       {
         "fecha": "2015-05-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.84,
+        "eq_refugio_dinamico": 3.812
       },
       {
         "fecha": "2015-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.784,
+        "eq_refugio_dinamico": 3.737
       },
       {
         "fecha": "2015-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.881,
+        "eq_refugio_dinamico": 3.868
       },
       {
         "fecha": "2015-08-31",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 2.736,
+        "eq_refugio_dinamico": 3.642
       },
       {
         "fecha": "2015-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.717,
+        "eq_refugio_dinamico": 3.642
       },
       {
         "fecha": "2015-10-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.958,
+        "eq_refugio_dinamico": 3.965
       },
       {
         "fecha": "2015-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.966,
+        "eq_refugio_dinamico": 3.976
       },
       {
         "fecha": "2015-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.941,
+        "eq_refugio_dinamico": 3.947
       },
       {
         "fecha": "2016-01-29",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.817,
+        "eq_refugio_dinamico": 3.83
       },
       {
         "fecha": "2016-02-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.784,
+        "eq_refugio_dinamico": 3.828
       },
       {
         "fecha": "2016-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.933,
+        "eq_refugio_dinamico": 4.034
       },
       {
         "fecha": "2016-04-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.859,
+        "eq_refugio_dinamico": 3.932
       },
       {
         "fecha": "2016-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.955,
+        "eq_refugio_dinamico": 4.059
       },
       {
         "fecha": "2016-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 2.927,
+        "eq_refugio_dinamico": 4.091
       },
       {
         "fecha": "2016-07-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.092,
+        "eq_refugio_dinamico": 4.322
       },
       {
         "fecha": "2016-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.114,
+        "eq_refugio_dinamico": 4.352
       },
       {
         "fecha": "2016-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.169,
+        "eq_refugio_dinamico": 4.429
       },
       {
         "fecha": "2016-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.131,
+        "eq_refugio_dinamico": 4.375
       },
       {
         "fecha": "2016-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.143,
+        "eq_refugio_dinamico": 4.393
       },
       {
         "fecha": "2016-12-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.171,
+        "eq_refugio_dinamico": 4.432
       },
       {
         "fecha": "2017-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.303,
+        "eq_refugio_dinamico": 4.616
       },
       {
         "fecha": "2017-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.413,
+        "eq_refugio_dinamico": 4.77
       },
       {
         "fecha": "2017-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.468,
+        "eq_refugio_dinamico": 4.847
       },
       {
         "fecha": "2017-04-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.543,
+        "eq_refugio_dinamico": 4.952
       },
       {
         "fecha": "2017-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.648,
+        "eq_refugio_dinamico": 5.098
       },
       {
         "fecha": "2017-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.578,
+        "eq_refugio_dinamico": 5.0
       },
       {
         "fecha": "2017-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.696,
+        "eq_refugio_dinamico": 5.166
       },
       {
         "fecha": "2017-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.752,
+        "eq_refugio_dinamico": 5.243
       },
       {
         "fecha": "2017-09-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.748,
+        "eq_refugio_dinamico": 5.238
       },
       {
         "fecha": "2017-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.883,
+        "eq_refugio_dinamico": 5.427
       },
       {
         "fecha": "2017-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.943,
+        "eq_refugio_dinamico": 5.51
       },
       {
         "fecha": "2017-12-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 3.959,
+        "eq_refugio_dinamico": 5.533
       },
       {
         "fecha": "2018-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.232,
+        "eq_refugio_dinamico": 5.915
       },
       {
         "fecha": "2018-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.209,
+        "eq_refugio_dinamico": 5.883
       },
       {
         "fecha": "2018-03-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.147,
+        "eq_refugio_dinamico": 5.817
       },
       {
         "fecha": "2018-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.18,
+        "eq_refugio_dinamico": 5.858
       },
       {
         "fecha": "2018-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.364,
+        "eq_refugio_dinamico": 6.117
       },
       {
         "fecha": "2018-06-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.403,
+        "eq_refugio_dinamico": 6.17
       },
       {
         "fecha": "2018-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.5,
+        "eq_refugio_dinamico": 6.307
       },
       {
         "fecha": "2018-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.712,
+        "eq_refugio_dinamico": 6.603
       },
       {
         "fecha": "2018-09-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.7,
+        "eq_refugio_dinamico": 6.587
       },
       {
         "fecha": "2018-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.445,
+        "eq_refugio_dinamico": 6.23
       },
       {
         "fecha": "2018-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.452,
+        "eq_refugio_dinamico": 6.256
       },
       {
         "fecha": "2018-12-31",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.183,
+        "eq_refugio_dinamico": 5.943
       },
       {
         "fecha": "2019-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.512,
+        "eq_refugio_dinamico": 6.42
       },
       {
         "fecha": "2019-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.613,
+        "eq_refugio_dinamico": 6.564
       },
       {
         "fecha": "2019-03-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.762,
+        "eq_refugio_dinamico": 6.775
       },
       {
         "fecha": "2019-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.971,
+        "eq_refugio_dinamico": 7.073
       },
       {
         "fecha": "2019-05-31",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.637,
+        "eq_refugio_dinamico": 6.668
       },
       {
         "fecha": "2019-06-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.92,
+        "eq_refugio_dinamico": 7.065
       },
       {
         "fecha": "2019-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 5.013,
+        "eq_refugio_dinamico": 7.199
       },
       {
         "fecha": "2019-08-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 4.988,
+        "eq_refugio_dinamico": 7.368
       },
       {
         "fecha": "2019-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 5.02,
+        "eq_refugio_dinamico": 7.416
       },
       {
         "fecha": "2019-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 5.195,
+        "eq_refugio_dinamico": 7.674
       },
       {
         "fecha": "2019-11-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 5.361,
+        "eq_refugio_dinamico": 7.919
       },
       {
         "fecha": "2019-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 5.53,
+        "eq_refugio_dinamico": 8.169
       },
       {
         "fecha": "2020-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 5.662,
+        "eq_refugio_dinamico": 8.365
       },
       {
         "fecha": "2020-02-28",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 5.489,
+        "eq_refugio_dinamico": 8.204
       },
       {
         "fecha": "2020-03-31",
         "flight": true,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 5.255,
+        "eq_refugio_dinamico": 8.285
       },
       {
         "fecha": "2020-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 5.756,
+        "eq_refugio_dinamico": 9.114
       },
       {
         "fecha": "2020-05-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 6.04,
+        "eq_refugio_dinamico": 9.564
       },
       {
         "fecha": "2020-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 6.395,
+        "eq_refugio_dinamico": 10.126
       },
       {
         "fecha": "2020-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 6.772,
+        "eq_refugio_dinamico": 10.724
       },
       {
         "fecha": "2020-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.366,
+        "eq_refugio_dinamico": 11.664
       },
       {
         "fecha": "2020-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.033,
+        "eq_refugio_dinamico": 11.145
       },
       {
         "fecha": "2020-10-30",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 6.915,
+        "eq_refugio_dinamico": 10.958
       },
       {
         "fecha": "2020-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.497,
+        "eq_refugio_dinamico": 11.88
       },
       {
         "fecha": "2020-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.8,
+        "eq_refugio_dinamico": 12.36
       },
       {
         "fecha": "2021-01-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.854,
+        "eq_refugio_dinamico": 12.445
       },
       {
         "fecha": "2021-02-26",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.848,
+        "eq_refugio_dinamico": 12.436
       },
       {
         "fecha": "2021-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.942,
+        "eq_refugio_dinamico": 12.584
       },
       {
         "fecha": "2021-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.314,
+        "eq_refugio_dinamico": 13.175
       },
       {
         "fecha": "2021-05-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.233,
+        "eq_refugio_dinamico": 13.019
       },
       {
         "fecha": "2021-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.649,
+        "eq_refugio_dinamico": 13.677
       },
       {
         "fecha": "2021-07-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.842,
+        "eq_refugio_dinamico": 13.982
       },
       {
         "fecha": "2021-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.136,
+        "eq_refugio_dinamico": 14.447
       },
       {
         "fecha": "2021-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.716,
+        "eq_refugio_dinamico": 13.783
       },
       {
         "fecha": "2021-10-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.264,
+        "eq_refugio_dinamico": 14.65
       },
       {
         "fecha": "2021-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.399,
+        "eq_refugio_dinamico": 14.863
       },
       {
         "fecha": "2021-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.512,
+        "eq_refugio_dinamico": 15.048
       },
       {
         "fecha": "2022-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.861,
+        "eq_refugio_dinamico": 14.018
       },
       {
         "fecha": "2022-02-28",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 8.523,
+        "eq_refugio_dinamico": 13.484
       },
       {
         "fecha": "2022-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.895,
+        "eq_refugio_dinamico": 14.034
       },
       {
         "fecha": "2022-04-29",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 8.041,
+        "eq_refugio_dinamico": 12.686
       },
       {
         "fecha": "2022-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.945,
+        "eq_refugio_dinamico": 12.534
       },
       {
         "fecha": "2022-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.376,
+        "eq_refugio_dinamico": 11.637
       },
       {
         "fecha": "2022-07-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.114,
+        "eq_refugio_dinamico": 12.823
       },
       {
         "fecha": "2022-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.781,
+        "eq_refugio_dinamico": 12.296
       },
       {
         "fecha": "2022-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.157,
+        "eq_refugio_dinamico": 11.311
       },
       {
         "fecha": "2022-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.383,
+        "eq_refugio_dinamico": 11.667
       },
       {
         "fecha": "2022-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.717,
+        "eq_refugio_dinamico": 12.195
       },
       {
         "fecha": "2022-12-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.16,
+        "eq_refugio_dinamico": 11.223
       },
       {
         "fecha": "2023-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.77,
+        "eq_refugio_dinamico": 12.227
       },
       {
         "fecha": "2023-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 7.748,
+        "eq_refugio_dinamico": 12.192
       },
       {
         "fecha": "2023-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.339,
+        "eq_refugio_dinamico": 13.218
       },
       {
         "fecha": "2023-04-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.379,
+        "eq_refugio_dinamico": 13.281
       },
       {
         "fecha": "2023-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 8.895,
+        "eq_refugio_dinamico": 14.1
       },
       {
         "fecha": "2023-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.364,
+        "eq_refugio_dinamico": 14.843
       },
       {
         "fecha": "2023-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.657,
+        "eq_refugio_dinamico": 15.308
       },
       {
         "fecha": "2023-08-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.543,
+        "eq_refugio_dinamico": 15.127
       },
       {
         "fecha": "2023-09-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.163,
+        "eq_refugio_dinamico": 14.524
       },
       {
         "fecha": "2023-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.021,
+        "eq_refugio_dinamico": 14.299
       },
       {
         "fecha": "2023-11-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 9.794,
+        "eq_refugio_dinamico": 15.524
       },
       {
         "fecha": "2023-12-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 10.232,
+        "eq_refugio_dinamico": 16.219
       },
       {
         "fecha": "2024-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 10.394,
+        "eq_refugio_dinamico": 16.476
       },
       {
         "fecha": "2024-02-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 10.843,
+        "eq_refugio_dinamico": 17.187
       },
       {
         "fecha": "2024-03-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 10.954,
+        "eq_refugio_dinamico": 17.364
       },
       {
         "fecha": "2024-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 10.574,
+        "eq_refugio_dinamico": 16.761
       },
       {
         "fecha": "2024-05-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 11.114,
+        "eq_refugio_dinamico": 17.617
       },
       {
         "fecha": "2024-06-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 11.671,
+        "eq_refugio_dinamico": 18.5
       },
       {
         "fecha": "2024-07-31",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 11.533,
+        "eq_refugio_dinamico": 18.35
       },
       {
         "fecha": "2024-08-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 11.75,
+        "eq_refugio_dinamico": 18.843
       },
       {
         "fecha": "2024-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 11.995,
+        "eq_refugio_dinamico": 19.236
       },
       {
         "fecha": "2024-10-31",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 11.97,
+        "eq_refugio_dinamico": 19.197
       },
       {
         "fecha": "2024-11-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 12.479,
+        "eq_refugio_dinamico": 20.013
       },
       {
         "fecha": "2024-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 12.6,
+        "eq_refugio_dinamico": 20.207
       },
       {
         "fecha": "2025-01-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 12.835,
+        "eq_refugio_dinamico": 20.633
       },
       {
         "fecha": "2025-02-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 12.561,
+        "eq_refugio_dinamico": 20.163
       },
       {
         "fecha": "2025-03-31",
         "flight": false,
-        "exp_base_pct": 65.0
+        "exp_base_pct": 65.0,
+        "eq_solo_cash": 11.972,
+        "eq_refugio_dinamico": 19.085
       },
       {
         "fecha": "2025-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 12.201,
+        "eq_refugio_dinamico": 19.587
       },
       {
         "fecha": "2025-05-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 13.089,
+        "eq_refugio_dinamico": 21.012
       },
       {
         "fecha": "2025-06-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 13.752,
+        "eq_refugio_dinamico": 22.077
       },
       {
         "fecha": "2025-07-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 14.024,
+        "eq_refugio_dinamico": 22.513
       },
       {
         "fecha": "2025-08-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 14.131,
+        "eq_refugio_dinamico": 22.685
       },
       {
         "fecha": "2025-09-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 14.748,
+        "eq_refugio_dinamico": 23.677
       },
       {
         "fecha": "2025-10-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 15.332,
+        "eq_refugio_dinamico": 24.614
       },
       {
         "fecha": "2025-11-28",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 15.227,
+        "eq_refugio_dinamico": 24.445
       },
       {
         "fecha": "2025-12-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 15.15,
+        "eq_refugio_dinamico": 24.321
       },
       {
         "fecha": "2026-01-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 15.305,
+        "eq_refugio_dinamico": 24.571
       },
       {
         "fecha": "2026-02-27",
         "flight": true,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 15.032,
+        "eq_refugio_dinamico": 24.347
       },
       {
         "fecha": "2026-03-31",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 14.628,
+        "eq_refugio_dinamico": 23.676
       },
       {
         "fecha": "2026-04-30",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 16.445,
+        "eq_refugio_dinamico": 26.615
       },
       {
         "fecha": "2026-05-29",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 17.825,
+        "eq_refugio_dinamico": 28.849
       },
       {
         "fecha": "2026-06-26",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 17.266,
+        "eq_refugio_dinamico": 27.945
       },
       {
         "fecha": "2026-07-02",
         "flight": false,
-        "exp_base_pct": 80.0
+        "exp_base_pct": 80.0,
+        "eq_solo_cash": 17.366,
+        "eq_refugio_dinamico": 28.107
       }
     ],
     "metricas": {
@@ -11347,9 +11813,15 @@
         "desde": "2007-04-12",
         "hasta": "2026-07-02"
       },
-      "dias_flight_pct": 10.9
+      "dias_flight_pct": 10.9,
+      "referencia_activos": {
+        "tlt_cagr_pct": 3.02,
+        "irx_cagr_pct": 1.47,
+        "nota": "Rentabilidad anualizada de cada activo refugio SOLO (100% en ese activo, sin NDX), en el mismo periodo — para dar contexto de qué tan buena/mala fue la elección cada año."
+      }
     },
     "validacion": "3 pruebas de robustez (tercios, leave-one-out, sensibilidad de umbral) a exposición fija 0.3/0.5/0.7 — mejora CAGR y Sharpe en todos los casos frente a refugio 100% cash.",
+    "formula": "Huida a calidad SI: NDX cae >3% en 20 sesiones Y TLT sube en esas mismas 20 sesiones → refugio=TLT (rentabilidad diaria real de TLT). Si no se cumple → refugio=IRX (letras del tesoro, tasa/252 diaria). Se aplica sobre exp_base del Módulo de Deterioro (mismo risk_score paralelo, no el score de producción real).",
     "limitaciones": "TLT NO protege siempre: cuando los tipos suben con fuerza y generalizadamente (ej. 2022), bonos largos y bolsa caen a la vez y el refugio dinámico puede ir peor que el cash puro en ese tramo concreto. Backtest aplicado sobre exp_base del Módulo de Deterioro, no sobre la estrategia real completa.",
     "fuente": "calcular_refugio_dinamico_independiente (EXPERIMENTAL, Parte 2.3)"
   },
@@ -12017,7 +12489,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Micro-retracción técnica (2-3%) (70% similitud). Contexto: VIX=16.1, RSI=49. Confianza del sistema: 5%. ✅ Entorno compatible con corrección menor — mantener posiciones core. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-07-06T07:48:14.916570"
+    "ts_calculo": "2026-07-06T09:49:02.558813"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001487,
@@ -12041,7 +12513,7 @@
   },
   "knn_predictor": {
     "version": "1.0",
-    "generado": "2026-07-06T07:48:14.985031",
+    "generado": "2026-07-06T09:49:02.920099",
     "fecha_referencia": "2026-07-03",
     "n_vecinos": 50,
     "n_dias_historico": 3164,
@@ -14153,7 +14625,7 @@
     "gex_estado": "positivo",
     "gex_desc": "GEX=110.2M — dealers comprando caidas (soporte)",
     "fuente": "Barchart QQQ CSV local",
-    "csv_dias_antiguedad": 0.3,
+    "csv_dias_antiguedad": 0.4,
     "csv_obsoleto": false
   },
   "csv_activo": true,
