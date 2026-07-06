@@ -4034,7 +4034,7 @@ def calcular_indice_sentimiento_contrario(dix_gex_data, cot_csv_data, vix_vvix_s
 
 
 SENTIMIENTO_CONTRARIO_CSV = DATA_CSV_DIR / "SENTIMIENTO_CONTRARIO_HISTORICO.csv"
-AMPLITUD_SMA_CSV = BASE_DIR / "amplitud_ndx100_simple.csv"  # histórico YA EXISTENTE (2021-09-14+, 1205 filas) — NO crear uno nuevo, integrarse con este
+AMPLITUD_SMA_CSV = DATA_CSV_DIR / "amplitud_ndx100_simple.csv"  # histórico YA EXISTENTE (2021-09-14+, 1205 filas) — movido a DATOS_CSV el 06/07, NO crear uno nuevo
 
 
 def _persistir_sentimiento_contrario(resultado: dict, precio_ndx_hoy=None):
@@ -5731,6 +5731,11 @@ def calcular_flujos_ici() -> dict:
     equity funds+ETF en EE.UU.): son heurísticos, no percentiles, porque
     el histórico disponible (desde 2024) aún es corto para un percentil
     fiable — a revisar cuando haya más años acumulados.
+
+    El .xls trae también un bloque "mensual" (~29 meses, desde 01/2024)
+    que antes se leía y guardaba en ICI_FLOWS.csv pero nunca se exponía
+    para gráfico — se añade aquí como historico_mensual, sin coste extra
+    (mismo archivo, mismo parseo).
     """
     ruta = DATA_CSV_DIR / "ICI_FLOWS.csv"
     if not ruta.exists():
@@ -5738,10 +5743,9 @@ def calcular_flujos_ici() -> dict:
     try:
         import csv as _csv
         semanales = []
+        mensuales = []
         with open(ruta, newline="", encoding="utf-8", errors="replace") as f:
             for row in _csv.DictReader(f):
-                if row.get("tipo") != "semanal":
-                    continue
                 clave = row.get("equity_total")
                 v = None
                 if clave not in (None, ""):
@@ -5750,11 +5754,16 @@ def calcular_flujos_ici() -> dict:
                     except (ValueError, TypeError):
                         v = None
                 fecha = _csv_parse_fecha(row.get("fecha"))
-                if v is not None and fecha:
+                if v is None or not fecha:
+                    continue
+                if row.get("tipo") == "semanal":
                     semanales.append((fecha, v))
+                elif row.get("tipo") == "mensual":
+                    mensuales.append((fecha, v))
         if len(semanales) < 2:
             return None
         semanales.sort()
+        mensuales.sort()
         ultimas4 = semanales[-4:]
         suma4sem = sum(v for _, v in ultimas4)
         if suma4sem > 100000:      señal = "alcista_fuerte"
@@ -5767,6 +5776,10 @@ def calcular_flujos_ici() -> dict:
             "señal": señal,
             "semanas_usadas": len(ultimas4),
             "ultima_fecha": ultimas4[-1][0].isoformat(),
+            "historico_mensual": [
+                {"fecha": f.isoformat(), "equity_total_millones": round(v, 0)}
+                for f, v in mensuales
+            ],
         }
     except Exception as e:
         log.warning(f"  [ICI-FLOWS] Error: {e}")
