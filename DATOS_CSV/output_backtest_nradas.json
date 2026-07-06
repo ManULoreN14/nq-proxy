@@ -1,0 +1,119 @@
+{
+  "nra_das": {
+    "sistema": "NRA-DAS",
+    "periodo": "2003-01-02 / 2026-06-09",
+    "n_dias": 5895,
+    "cagr_pct": 11.39,
+    "vol_anual_pct": 10.38,
+    "sharpe": 1.092,
+    "sortino": 1.487,
+    "calmar": 0.457,
+    "max_dd_pct": -24.91,
+    "hit_rate_mensual_pct": 64.8,
+    "mejor_año_pct": 31.82,
+    "peor_año_pct": -19.22,
+    "equity_final": 12.4685
+  },
+  "qqq_bh": {
+    "sistema": "QQQ_BH",
+    "periodo": "2003-01-02 / 2026-06-09",
+    "n_dias": 5895,
+    "cagr_pct": 16.13,
+    "vol_anual_pct": 21.55,
+    "sharpe": 0.802,
+    "sortino": 1.057,
+    "calmar": 0.302,
+    "max_dd_pct": -53.4,
+    "hit_rate_mensual_pct": 62.3,
+    "mejor_año_pct": 54.86,
+    "peor_año_pct": -41.73,
+    "equity_final": 33.0353
+  },
+  "turnover": {
+    "turnover_anual_pct": 522.1,
+    "dias_con_cambio_peso_1pct": 3645
+  },
+  "crisis": {
+    "2008 (ene-dic) [NRA-DAS]": -18.41,
+    "2008 (ene-dic) [QQQ_BH]": -40.79,
+    "2020 Covid (feb-mar) [NRA-DAS]": -4.06,
+    "2020 Covid (feb-mar) [QQQ_BH]": -14.2,
+    "2022 bajista (ene-dic) [NRA-DAS]": -16.32,
+    "2022 bajista (ene-dic) [QQQ_BH]": -33.22,
+    "2025 aranceles (abr) [NRA-DAS]": -1.45,
+    "2025 aranceles (abr) [QQQ_BH]": 0.59
+  },
+  "factores_en_produccion": {
+    "Direction_Score": {
+      "componentes": "LiquidityScore 50% + PositioningScore 30% + COTScore 20%",
+      "suavizado": "EMA sobre raw score",
+      "histeresis": "entrada >+45, salida <+30 / entrada <-45, salida >-30"
+    },
+    "Volatility_Brake": {
+      "descripcion": "Capa independiente que limita max QQQ si VolScore < -40 o < -60"
+    },
+    "LiquidityScore": {
+      "formula": "WALCL - TGA - RRP (Net Fed Liquidity)",
+      "IC_20d": "en evaluación",
+      "peso_DS": "50%"
+    },
+    "PositioningScore": {
+      "fuente": "SqueezeMetrics DIX/GEX",
+      "IC_20d": "pendiente audit formal (P1 próxima sesión)",
+      "peso_DS": "30%"
+    },
+    "COTScore": {
+      "fuente": "CFTC contrato 20974+ Consolidated Nasdaq-100",
+      "logica": "CONTRARIAN — COT muy corto = señal alcista",
+      "IC_20d": "en evaluación",
+      "peso_DS": "20%"
+    }
+  },
+  "factores_rechazados": {
+    "CBOE_PCR_TOTAL": {
+      "IC_20d": 0.07,
+      "Stability": "75%",
+      "WF": "1/4",
+      "decision": "NO"
+    },
+    "CBOE_PCR_EQUITY": {
+      "IC_20d": 0.089,
+      "Stability": "50%",
+      "WF": "no eval",
+      "decision": "NO"
+    },
+    "MOVE_VIX_ratio": {
+      "IC_20d": -0.12,
+      "Stability": "80%",
+      "WF": "0/3",
+      "decision": "NO tactico"
+    },
+    "HG_GC_cobre_oro": {
+      "IC_20d": -0.106,
+      "Stability": "FAIL",
+      "WF": "no eval",
+      "decision": "NO"
+    },
+    "Spread_10Y_3M": {
+      "IC_20d": -0.038,
+      "Stability": "83%",
+      "WF": "1/3",
+      "decision": "Fase 4"
+    },
+    "NFCI_nivel": {
+      "IC_20d": 0.065,
+      "Stability": "60%",
+      "WF": "1/3",
+      "decision": "Fase 4"
+    },
+    "HY_spread": {
+      "IC_20d": 0.247,
+      "nota": "artefacto 1 régimen",
+      "decision": "NO"
+    }
+  },
+  "criterio_incorporacion": "|IC| > 0.03 AND p < 0.05 AND Stability >= 70% AND WF >= 3/4",
+  "arquitectura": "Dual: Direction Score (tendencia) + Volatility Brake (riesgo)",
+  "db_tabla": "backtest_extendido_2003_2026",
+  "generado": "2026-07-06T01:16:00.251228"
+}
