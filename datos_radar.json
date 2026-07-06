@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-07-06T10:01:15.418616",
+  "ts": "2026-07-06T10:19:42.766108",
   "precio": {
     "ndx": 29329.2109,
     "qqq": 712.6,
@@ -2067,7 +2067,125 @@
     "suma_4sem_equity_millones": 65221.0,
     "señal": "alcista",
     "semanas_usadas": 4,
-    "ultima_fecha": "2026-06-24"
+    "ultima_fecha": "2026-06-24",
+    "historico_mensual": [
+      {
+        "fecha": "2024-01-31",
+        "equity_total_millones": 4017.0
+      },
+      {
+        "fecha": "2024-02-29",
+        "equity_total_millones": 5858.0
+      },
+      {
+        "fecha": "2024-03-31",
+        "equity_total_millones": 47831.0
+      },
+      {
+        "fecha": "2024-04-30",
+        "equity_total_millones": -49434.0
+      },
+      {
+        "fecha": "2024-05-31",
+        "equity_total_millones": 26496.0
+      },
+      {
+        "fecha": "2024-06-30",
+        "equity_total_millones": 9639.0
+      },
+      {
+        "fecha": "2024-07-31",
+        "equity_total_millones": 41551.0
+      },
+      {
+        "fecha": "2024-08-31",
+        "equity_total_millones": -18459.0
+      },
+      {
+        "fecha": "2024-09-30",
+        "equity_total_millones": 13809.0
+      },
+      {
+        "fecha": "2024-10-31",
+        "equity_total_millones": -23.0
+      },
+      {
+        "fecha": "2024-11-30",
+        "equity_total_millones": 72057.0
+      },
+      {
+        "fecha": "2024-12-31",
+        "equity_total_millones": 38002.0
+      },
+      {
+        "fecha": "2025-01-31",
+        "equity_total_millones": -3987.0
+      },
+      {
+        "fecha": "2025-02-28",
+        "equity_total_millones": 6684.0
+      },
+      {
+        "fecha": "2025-03-31",
+        "equity_total_millones": -6555.0
+      },
+      {
+        "fecha": "2025-04-30",
+        "equity_total_millones": 741.0
+      },
+      {
+        "fecha": "2025-05-31",
+        "equity_total_millones": -14553.0
+      },
+      {
+        "fecha": "2025-06-30",
+        "equity_total_millones": -8262.0
+      },
+      {
+        "fecha": "2025-07-31",
+        "equity_total_millones": -285668.0
+      },
+      {
+        "fecha": "2025-08-31",
+        "equity_total_millones": -18847.0
+      },
+      {
+        "fecha": "2025-09-30",
+        "equity_total_millones": -4806.0
+      },
+      {
+        "fecha": "2025-10-31",
+        "equity_total_millones": 3861.0
+      },
+      {
+        "fecha": "2025-11-30",
+        "equity_total_millones": 20632.0
+      },
+      {
+        "fecha": "2025-12-31",
+        "equity_total_millones": 31772.0
+      },
+      {
+        "fecha": "2026-01-31",
+        "equity_total_millones": 7616.0
+      },
+      {
+        "fecha": "2026-02-28",
+        "equity_total_millones": 41030.0
+      },
+      {
+        "fecha": "2026-03-31",
+        "equity_total_millones": 22069.0
+      },
+      {
+        "fecha": "2026-04-30",
+        "equity_total_millones": 60959.0
+      },
+      {
+        "fecha": "2026-05-31",
+        "equity_total_millones": 3437.0
+      }
+    ]
   },
   "backtest_comparativo": {
     "fechas": [
@@ -12489,7 +12607,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Micro-retracción técnica (2-3%) (70% similitud). Contexto: VIX=16.1, RSI=49. Confianza del sistema: 5%. ✅ Entorno compatible con corrección menor — mantener posiciones core. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-07-06T09:49:02.558813"
+    "ts_calculo": "2026-07-06T10:10:08.787026"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001487,
@@ -12513,7 +12631,7 @@
   },
   "knn_predictor": {
     "version": "1.0",
-    "generado": "2026-07-06T09:49:02.920099",
+    "generado": "2026-07-06T10:10:08.854285",
     "fecha_referencia": "2026-07-03",
     "n_vecinos": 50,
     "n_dias_historico": 3164,
@@ -14488,22 +14606,22 @@
     "fuente": "SqueezeMetrics CSV local"
   },
   "csv_sentimiento_contrario": {
-    "valor": -0.6,
+    "valor": -12.1,
     "interpretacion": "Neutral",
     "accion_sugerida": "Sin sesgo claro — el índice no aporta información accionable en esta zona.",
     "componentes": {
       "dix": 23.8,
+      "vts": 27.4,
       "vvix": 44.7,
       "cot": 94.8
     },
     "pesos_usados": {
-      "dix": 0.4,
-      "vvix": 0.333,
-      "cot": 0.267
+      "dix": 0.297,
+      "vts": 0.258,
+      "vvix": 0.247,
+      "cot": 0.198
     },
-    "piezas_faltantes": [
-      "vts"
-    ],
+    "piezas_faltantes": [],
     "modo": "observacion",
     "validacion": "IC 0.070/0.133/0.162 (5/20/60d), Stability 100%, WF>=3/4 — historico_maestro.csv 2000-2026",
     "fuente": "calcular_indice_sentimiento_contrario",
@@ -14515,7 +14633,7 @@
       },
       {
         "fecha": "2026-07-06",
-        "valor": -0.6,
+        "valor": -12.1,
         "precio_ndx": 29329.2109
       }
     ]
@@ -14625,7 +14743,7 @@
     "gex_estado": "positivo",
     "gex_desc": "GEX=110.2M — dealers comprando caidas (soporte)",
     "fuente": "Barchart QQQ CSV local",
-    "csv_dias_antiguedad": 0.4,
+    "csv_dias_antiguedad": 0.0,
     "csv_obsoleto": false
   },
   "csv_activo": true,
