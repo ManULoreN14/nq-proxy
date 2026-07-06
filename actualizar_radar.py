@@ -571,6 +571,64 @@ def calcular_proxy_china(df: "pd.DataFrame") -> dict:
 #  FASE 7 — A4  Amplitud NASDAQ-100 real: Net New Highs/Lows 52W
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _persistir_amplitud_sma_historico(pct_sma50, pct_sma20, pct_sma200, precio_ndx_hoy=None):
+    """
+    Equivalente casero a $NDXA50R / $NDXA20R de StockCharts (% de
+    componentes del Nasdaq-100 por encima de su SMA de 20/50/200 sesiones),
+    calculado con datos propios (yfinance, ya descargados para NH/NL) en
+    vez de scrapear StockCharts — su robots.txt prohíbe acceso
+    automatizado.
+
+    IMPORTANTE: este archivo YA EXISTÍA con ~5 años de histórico real
+    (2021-09-14 en adelante, columnas fecha/pct_sobre_ma50/pct_sobre_ma200,
+    generado por un script previo del usuario). Esta función se INTEGRA
+    con ese histórico — nunca lo sustituye ni empieza uno nuevo — y añade
+    pct_sobre_ma20 como columna nueva (las filas antiguas quedan con ese
+    campo vacío, sin backfill retroactivo, igual que el resto de
+    históricos de este proyecto).
+
+    Mismo patrón upsert que _persistir_sentimiento_contrario(): reemplaza
+    la fila de hoy si se relanza el mismo día, nunca duplica.
+    """
+    if pct_sma50 is None and pct_sma20 is None and pct_sma200 is None:
+        return []
+
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    filas = []
+    if AMPLITUD_SMA_CSV.exists():
+        try:
+            with open(AMPLITUD_SMA_CSV, newline="", encoding="utf-8") as f:
+                filas = list(_csv_csv.DictReader(f))
+        except Exception as e:
+            _csv_log(f"Amplitud SMA: error leyendo histórico previo ({AMPLITUD_SMA_CSV}): {e}")
+            filas = []
+
+    filas = [r for r in filas if r.get("fecha") != hoy]
+    filas.append({
+        "fecha": hoy,
+        "pct_sobre_ma20": str(pct_sma20) if pct_sma20 is not None else "",
+        "pct_sobre_ma50": str(pct_sma50) if pct_sma50 is not None else "",
+        "pct_sobre_ma200": str(pct_sma200) if pct_sma200 is not None else "",
+    })
+    filas.sort(key=lambda r: r["fecha"])
+
+    try:
+        with open(AMPLITUD_SMA_CSV, "w", newline="", encoding="utf-8") as f:
+            w = _csv_csv.DictWriter(f, fieldnames=["fecha", "pct_sobre_ma20", "pct_sobre_ma50", "pct_sobre_ma200"])
+            w.writeheader()
+            w.writerows(filas)
+    except Exception as e:
+        _csv_log(f"Amplitud SMA: error guardando histórico ({AMPLITUD_SMA_CSV}): {e}")
+
+    return [
+        {"fecha": r["fecha"],
+         "pct_sobre_ma20": _csv_safe_float(r.get("pct_sobre_ma20")) if r.get("pct_sobre_ma20") else None,
+         "pct_sobre_ma50": _csv_safe_float(r.get("pct_sobre_ma50")) if r.get("pct_sobre_ma50") else None,
+         "pct_sobre_ma200": _csv_safe_float(r.get("pct_sobre_ma200")) if r.get("pct_sobre_ma200") else None}
+        for r in filas[-730:]  # ~2 años a diario para el JSON; el CSV completo conserva TODO el histórico
+    ]
+
+
 def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
     """
     Calcula Net New Highs - New Lows de 52 semanas sobre los 100
@@ -665,6 +723,17 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
         new_lows  = 0
         total_ok  = 0
 
+        # ── 3b. % de componentes por encima de su SMA20/SMA50/SMA200 —
+        # equivalente casero a $NDXA20R / $NDXA50R de StockCharts (más
+        # SMA200, que ya veníamos guardando en amplitud_ndx100_simple.csv
+        # desde antes), reutilizando las MISMAS series ya descargadas
+        # arriba (sin coste extra, sin tocar StockCharts).
+        sobre_sma20  = 0
+        sobre_sma50  = 0
+        sobre_sma200 = 0
+        total_sma    = 0
+        total_sma200 = 0
+
         for ticker, serie in series_por_ticker.items():
             try:
                 precio_actual = float(serie.iloc[-1])
@@ -678,6 +747,32 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
                 total_ok += 1
             except Exception:
                 errores += 1
+
+            try:
+                if len(serie) >= 50:
+                    sma20_val = float(serie.iloc[-20:].mean())
+                    sma50_val = float(serie.iloc[-50:].mean())
+                    if precio_actual > sma20_val:
+                        sobre_sma20 += 1
+                    if precio_actual > sma50_val:
+                        sobre_sma50 += 1
+                    total_sma += 1
+                if len(serie) >= 200:
+                    sma200_val = float(serie.iloc[-200:].mean())
+                    if precio_actual > sma200_val:
+                        sobre_sma200 += 1
+                    total_sma200 += 1
+            except Exception:
+                pass
+
+        pct_sma20 = round(sobre_sma20 / total_sma * 100, 1) if total_sma else None
+        pct_sma50 = round(sobre_sma50 / total_sma * 100, 1) if total_sma else None
+        pct_sma200 = round(sobre_sma200 / total_sma200 * 100, 1) if total_sma200 else None
+        historico_sma = _persistir_amplitud_sma_historico(pct_sma50, pct_sma20, pct_sma200)
+        if pct_sma50 is not None:
+            log.info(f"  [Amplitud NDX100] % sobre SMA20={pct_sma20}% | % sobre SMA50={pct_sma50}% | "
+                     f"% sobre SMA200={pct_sma200}% ({total_sma} componentes) — "
+                     f"histórico (amplitud_ndx100_simple.csv): {len(historico_sma)} días acumulados")
 
         elapsed = round(time.time() - t0, 1)
 
@@ -722,6 +817,14 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
             "score":             score,
             "errores_descarga":  errores,
             "fuente":            "ndx100_yfinance_bulk",
+            "pct_sma50":         pct_sma50,
+            "pct_sma20":         pct_sma20,
+            "pct_sma200":        pct_sma200,
+            "historico_sma":     historico_sma,
+            "aviso_sma": ("Equivalente propio a $NDXA20R/$NDXA50R de StockCharts, calculado "
+                          "con datos de yfinance (StockCharts prohíbe scraping en su robots.txt). "
+                          "Se integra con el histórico ya existente en amplitud_ndx100_simple.csv "
+                          "(2021-09-14 en adelante) — no lo sustituye."),
             "error":             None
         }
 
@@ -3827,8 +3930,13 @@ def _vts_percentil_hoy():
     """Percentil de hoy del ratio VIX3M/VIX (VTS), mismo patron que DIX:
     lee los dos CSV, calcula el ratio dia a dia y el percentil del valor
     de hoy dentro de todo el historico disponible."""
-    if not (VIX_CSV.exists() and VIX3M_CSV.exists()):
-        _csv_log("VTS: falta VIX_History.csv o VIX3M_History.csv - se omite")
+    faltan = []
+    if not VIX_CSV.exists():
+        faltan.append(str(VIX_CSV))
+    if not VIX3M_CSV.exists():
+        faltan.append(str(VIX3M_CSV))
+    if faltan:
+        _csv_log(f"VTS: no encontrado(s) - {', '.join(faltan)} - se omite")
         return None
     try:
         vix, vix3m = {}, {}
@@ -3846,6 +3954,8 @@ def _vts_percentil_hoy():
                     vix3m[d] = c
         ratios = {d: vix3m[d] / vix[d] for d in vix if d in vix3m and vix[d] > 0}
         if not ratios:
+            _csv_log(f"VTS: VIX_History.csv y VIX3M_History.csv existen pero no hay fechas "
+                      f"solapadas (VIX={len(vix)} filas, VIX3M={len(vix3m)} filas) - se omite")
             return None
         ultima = max(ratios.keys())
         ratio_hoy = ratios[ultima]
@@ -3924,6 +4034,7 @@ def calcular_indice_sentimiento_contrario(dix_gex_data, cot_csv_data, vix_vvix_s
 
 
 SENTIMIENTO_CONTRARIO_CSV = DATA_CSV_DIR / "SENTIMIENTO_CONTRARIO_HISTORICO.csv"
+AMPLITUD_SMA_CSV = BASE_DIR / "amplitud_ndx100_simple.csv"  # histórico YA EXISTENTE (2021-09-14+, 1205 filas) — NO crear uno nuevo, integrarse con este
 
 
 def _persistir_sentimiento_contrario(resultado: dict, precio_ndx_hoy=None):
@@ -6044,14 +6155,27 @@ def calcular_refugio_dinamico_independiente(df_maestro, log=None):
         met_cash = _metricas(val["rf_ret"])
         met_dinamico = _metricas(val["refugio_ret"])
 
+        # Curvas de equity para el gráfico (Parte 9 de feedback: visualizar
+        # el trasvase NDX<->renta fija, no solo las métricas finales) y
+        # rentabilidad de referencia anualizada de cada activo refugio.
+        eq_cash = (1 + (val["exp_base"] * val["ndx_ret"] + (1 - val["exp_base"]) * val["rf_ret"]).fillna(0)).cumprod()
+        eq_dinamico = (1 + (val["exp_base"] * val["ndx_ret"] + (1 - val["exp_base"]) * val["refugio_ret"]).fillna(0)).cumprod()
+        years_total = (val.index[-1] - val.index[0]).days / 365.25
+        tlt_cagr_ref = ((1 + val["tlt_ret"]).cumprod().iloc[-1] ** (1 / years_total) - 1) * 100 if years_total > 0 else None
+        irx_cagr_ref = ((1 + val["rf_ret"]).cumprod().iloc[-1] ** (1 / years_total) - 1) * 100 if years_total > 0 else None
+
         val_reset = val.reset_index()
         col_fecha = val_reset.columns[0]
         val_reset["_ym"] = val_reset[col_fecha].dt.to_period("M")
+        val_reset["_eq_cash"] = eq_cash.values
+        val_reset["_eq_dinamico"] = eq_dinamico.values
         ultima_por_mes = val_reset.groupby("_ym").tail(1)
         serie = [{
             "fecha": row[col_fecha].strftime("%Y-%m-%d"),
             "flight": bool(row["flight"]),
             "exp_base_pct": round(float(row["exp_base"]) * 100, 1),
+            "eq_solo_cash": round(float(row["_eq_cash"]), 3),
+            "eq_refugio_dinamico": round(float(row["_eq_dinamico"]), 3),
         } for _, row in ultima_por_mes.iterrows()]
         del val_reset, ultima_por_mes
 
@@ -6082,10 +6206,20 @@ def calcular_refugio_dinamico_independiente(df_maestro, log=None):
                     "hasta": val.index[-1].strftime("%Y-%m-%d"),
                 },
                 "dias_flight_pct": round(float(val["flight"].mean() * 100), 1),
+                "referencia_activos": {
+                    "tlt_cagr_pct": round(float(tlt_cagr_ref), 2) if tlt_cagr_ref is not None else None,
+                    "irx_cagr_pct": round(float(irx_cagr_ref), 2) if irx_cagr_ref is not None else None,
+                    "nota": "Rentabilidad anualizada de cada activo refugio SOLO (100% en ese activo, sin NDX), en el mismo periodo — para dar contexto de qué tan buena/mala fue la elección cada año.",
+                },
             },
             "validacion": ("3 pruebas de robustez (tercios, leave-one-out, sensibilidad de "
                            "umbral) a exposición fija 0.3/0.5/0.7 — mejora CAGR y Sharpe en "
                            "todos los casos frente a refugio 100% cash."),
+            "formula": ("Huida a calidad SI: NDX cae >3% en 20 sesiones Y TLT sube en esas "
+                        "mismas 20 sesiones → refugio=TLT (rentabilidad diaria real de TLT). "
+                        "Si no se cumple → refugio=IRX (letras del tesoro, tasa/252 diaria). "
+                        "Se aplica sobre exp_base del Módulo de Deterioro (mismo risk_score "
+                        "paralelo, no el score de producción real)."),
             "limitaciones": ("TLT NO protege siempre: cuando los tipos suben con fuerza y "
                               "generalizadamente (ej. 2022), bonos largos y bolsa caen a la "
                               "vez y el refugio dinámico puede ir peor que el cash puro en "
@@ -6279,6 +6413,11 @@ def calcular_freno_volatilidad_independiente(df_maestro, log=None):
             },
             "umbrales": UMBRALES,
             "caps": CAPS,
+            "formula": ("vol_score = percentil expanding (todo el histórico hasta hoy, sin "
+                        "look-ahead) del MAYOR entre: percentil de VIX_close y percentil de "
+                        "volatilidad realizada 20d anualizada del NDX. Techo de exposición: "
+                        "100% si vol_score<75 · 85% si <88 · 60% si <95 · 35% si ≥95. NO usa "
+                        "ningún score de dirección — solo volatilidad."),
             "validacion": ("3 pruebas de robustez (tercios cronológicos, leave-one-out, "
                            "sensibilidad de umbrales) — en las tres el freno mejora CAGR "
                            "y Sharpe a la vez que reduce MaxDD frente a Buy&Hold puro."),
@@ -6381,6 +6520,12 @@ def calcular_modulo_deterioro(df_maestro, log=None):
                             "hasta": val.index[-1].strftime("%Y-%m-%d")},
             },
             "familias_definicion": etiquetas,
+            "formula": ("exp_base (0-80%) sale de un risk_score PARALELO — NO es tu score de "
+                        "producción real: RSI14>75(+1.5)/>70(+1.0) · VIX>28(+2.0)/>22(+1.5)/<13(+0.5) "
+                        "· VTS(VIX3M/VIX)<1.0(+2.0) · COT leveraged percentil≥85(+0.5) · "
+                        "NFCI>0.1(+0.5) · EMA20>EMA50 con precio arriba(-0.5) · ROC5d>2%(-0.3) "
+                        "· VIX 14-18(-0.3). exp_deterioro multiplica exp_base ×0.55 si ≥3/5 "
+                        "señales de deterioro activas, ×1.15 si hay reentrada reciente."),
             "limitaciones": ("Usa proxies reconstruibles 20 años atrás (IWM/SPY para "
                              "amplitud, HYG para crédito) en vez de la amplitud NDX-100 "
                              "y crédito reales de producción. Aproximación coherente de "

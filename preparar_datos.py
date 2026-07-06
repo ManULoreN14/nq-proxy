@@ -1064,6 +1064,8 @@ def main():
     # 6+ bloques canónicos
     resultados.append(h_copia_fija(src, dst, args.dry_run, "VIX",
                                    "VIX_History.csv", "VIX_History.csv", ["DATE"]))
+    resultados.append(h_copia_fija(src, dst, args.dry_run, "VIX3M",
+                                   "VIX3M_History.csv", "VIX3M_History.csv", ["DATE"]))
     resultados.append(h_copia_fija(src, dst, args.dry_run, "VVIX",
                                    "VVIX_History.csv", "VVIX_History.csv", ["DATE"]))
     resultados.append(h_dix(src, dst, args.dry_run))
