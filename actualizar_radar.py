@@ -669,7 +669,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
             col_close = ticker + "_close"
             if col_close in df.columns:
                 serie = df[col_close].dropna()
-                if len(serie) >= 252:
+                if len(serie) >= 240:
                     series_por_ticker[ticker] = serie
                     tickers_locales.append(ticker)
                     continue
@@ -683,8 +683,8 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
         # oportunidad. 3 intentos con pausa creciente (2s/5s) antes de
         # rendirse de verdad.
         errores = 0
+        bulk = None
         if tickers_descargar:
-            bulk = None
             for intento in range(1, 4):
                 try:
                     log.info(f"  [Amplitud NDX100] Descargando {len(tickers_descargar)} tickers en bloque (intento {intento}/3)...")
@@ -715,7 +715,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
                                 sub = bulk[ticker]
                                 if "Close" in sub.columns:
                                     serie = sub["Close"].dropna()
-                                    if len(serie) >= 252:
+                                    if len(serie) >= 240:
                                         series_por_ticker[ticker] = serie
                                         continue
                             errores += 1
@@ -727,7 +727,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
                         t = tickers_descargar[0]
                         if "Close" in bulk.columns:
                             serie = bulk["Close"].dropna()
-                            if len(serie) >= 252:
+                            if len(serie) >= 240:
                                 series_por_ticker[t] = serie
 
         # ── 3. Calcular NH/NL sobre las series disponibles ──
@@ -789,6 +789,9 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
         elapsed = round(time.time() - t0, 1)
 
         if total_ok == 0:
+            log.warning(f"  [Amplitud NDX100] 0/{len(series_por_ticker) or len(tickers_descargar)} tickers "
+                        f"pasaron el filtro de longitud mínima (descarga: {'OK' if bulk is not None and not bulk.empty else 'FALLÓ'}, "
+                        f"errores={errores}) — sin_datos este día, no es necesariamente un fallo de red.")
             return {"error": "sin_datos", "senal": "neutro", "score": 0.0}
 
         net_breadth = round((new_highs - new_lows) / total_ok * 100, 1)
