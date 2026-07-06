@@ -6646,6 +6646,263 @@ def _safe_float_nradas(v):
         return None
 
 
+def _load_csv_generico(fname, date_col, val_col):
+    """Mismo patrón que el ya usado en régimen macro: busca en DATA_CSV_DIR
+    primero, BASE_DIR después. Devuelve serie vacía si no encuentra nada,
+    nunca lanza excepción."""
+    for base in (DATA_CSV_DIR, BASE_DIR):
+        p = base / fname
+        if p.exists():
+            try:
+                s = pd.read_csv(p, parse_dates=[date_col])
+                return s.set_index(date_col).sort_index()[val_col].dropna()
+            except Exception:
+                continue
+    return pd.Series(dtype=float)
+
+
+def _expanding_percentile_generico(s):
+    """Percentil expanding (todo el histórico hasta cada día, sin
+    look-ahead) — misma función usada ya en freno de volatilidad."""
+    arr = s.values
+    out = np.full(len(arr), np.nan)
+    valid_idx = np.where(~np.isnan(arr))[0]
+    seen = []
+    for i in valid_idx:
+        seen.append(arr[i])
+        if len(seen) < 60:
+            continue
+        arr_seen = np.array(seen)
+        out[i] = (arr_seen <= arr[i]).mean() * 100
+    return pd.Series(out, index=s.index)
+
+
+def _combinar_renormalizado(df_comp, pesos):
+    """Combina columnas ponderadas, renormalizando entre las disponibles
+    cada día (mismo patrón que Sentimiento Contrario e Índice compuesto:
+    si falta una pieza, las demás absorben su peso proporcionalmente,
+    nunca se deja de tener un valor solo por 1 dato ausente)."""
+    disponibles = df_comp.notna()
+    peso_efectivo = disponibles.mul(pd.Series(pesos))
+    suma_pesos = peso_efectivo.sum(axis=1)
+    contrib = (df_comp.fillna(0) * peso_efectivo).sum(axis=1)
+    return contrib / suma_pesos.replace(0, np.nan)
+
+
+def _construir_sistema_real_v2(df_maestro, log=None):
+    """
+    "Backtest Sistema Real v1/v2" — acordado explícitamente con el
+    usuario tras la sesión del 06/07/2026. Combina TODO lo que tiene
+    histórico multi-año real (a diferencia del risk_score simplificado
+    de 6 variables usado en 'Estrategia (score)'):
+
+      - Sentimiento Contrario recalculado histórico (DIX+VTS+VVIX/VIX+COT,
+        MISMOS pesos ya validados en Parte 1.2: DIX 0.297, VTS 0.258,
+        VVIX 0.247, COT 0.198) — su limitación de "solo 2 días en
+        producción" es solo del CSV persistido, no de los datos fuente,
+        que sí tienen histórico largo (DIX desde 2011, COT desde ~2006).
+      - Macro: NFCI (invertido) + tendencia de WALCL (liquidez Fed).
+      - Amplitud SMA50 del NDX-100 (desde 2021).
+      - Señal de TENDENCIA (idea del usuario, la que más impacto tuvo):
+        distancia del NDX a su SMA200 (percentil expanding) penalizada
+        si la SMA200 está declinando. Sin esto, el sistema apenas
+        mejoraba sobre Buy&Hold en mercados bajistas largos (dot-com
+        2000-2002) — el sentimiento contrarian solo no basta ahí.
+
+    EXCLUYE explícitamente (no hay histórico multi-año, o es demasiado
+    pesado recalcular miles de días): SEC Form4 insiders, kNN Predictor,
+    Fase 4 Market Regime Matching, Flujos ICI (solo 29 meses).
+
+    Devuelve DOS variantes con distinto peso en la señal de tendencia
+    (0.50 y 0.80) para que el usuario las compare día a día en paralelo
+    y decida por experiencia acumulada cuál prefiere — no se elige una
+    de las dos por él. peso=0.50 es la elección "sin cherry-pick" del
+    barrido; peso=0.80 es la que más se acerca/supera a la Estrategia
+    simplificada en el backtest, a costa de depender más de una sola señal.
+
+    Validado con 3 pruebas de robustez (tercios, leave-one-out,
+    sensibilidad de peso) — mejora sobre Buy&Hold en todos los tercios
+    y leave-one-out, con comportamiento suave y monótono al variar el
+    peso (no hay saltos raros de sobreajuste).
+    """
+    try:
+        idx = df_maestro["NDX_close"].dropna().index
+
+        def _alinear(serie, ffill_dias=10):
+            s = serie.reindex(serie.index.union(idx)).sort_index().ffill(limit=ffill_dias)
+            return s.reindex(idx)
+
+        # ── Sentimiento Contrario histórico ──────────────────────────
+        dix_serie = None
+        if DIX_CSV.exists():
+            try:
+                dix_df = pd.read_csv(DIX_CSV, parse_dates=["date"]).set_index("date")
+                dix_serie = dix_df["dix"].dropna()
+            except Exception as e:
+                if log: log.warning(f"  [SISTEMA-V2] DIX no disponible: {e}")
+
+        vix_serie = pd.Series(dtype=float)
+        vix3m_serie = pd.Series(dtype=float)
+        vvix_serie = pd.Series(dtype=float)
+        try:
+            if VIX_CSV.exists():
+                v = pd.read_csv(VIX_CSV, parse_dates=["DATE"]).set_index("DATE")
+                vix_serie = v["CLOSE"].dropna()
+            if VIX3M_CSV.exists():
+                v = pd.read_csv(VIX3M_CSV, parse_dates=["DATE"]).set_index("DATE")
+                vix3m_serie = v["CLOSE"].dropna()
+            if VVIX_CSV.exists():
+                v = pd.read_csv(VVIX_CSV, parse_dates=["DATE"]).set_index("DATE")
+                vvix_serie = v["VVIX"].dropna()
+        except Exception as e:
+            if log: log.warning(f"  [SISTEMA-V2] VIX/VIX3M/VVIX: {e}")
+
+        cot_serie = pd.Series(dtype=float)
+        try:
+            if COT_CSV_DIR.exists():
+                filas_cot = {}
+                for path in sorted(COT_CSV_DIR.glob("*.txt")):
+                    with open(path, newline="", encoding="utf-8", errors="replace") as f:
+                        for row in _csv_csv.DictReader(f):
+                            if (row.get("CFTC_Contract_Market_Code") or "").strip() != "209742":
+                                continue
+                            d = _csv_parse_fecha(row.get("Report_Date_as_YYYY-MM-DD"))
+                            if not d:
+                                continue
+                            l = _csv_safe_float(row.get("Lev_Money_Positions_Long_All"))
+                            s = _csv_safe_float(row.get("Lev_Money_Positions_Short_All"))
+                            if l is not None and s is not None and (l + s) > 0:
+                                filas_cot[pd.Timestamp(d)] = l / (l + s) * 100
+                if filas_cot:
+                    cot_serie = pd.Series(filas_cot).sort_index()
+        except Exception as e:
+            if log: log.warning(f"  [SISTEMA-V2] COT: {e}")
+
+        dix_al = _alinear(dix_serie) if dix_serie is not None else pd.Series(np.nan, index=idx)
+        vix_al = _alinear(vix_serie)
+        vix3m_al = _alinear(vix3m_serie)
+        vvix_al = _alinear(vvix_serie)
+        cot_al = _alinear(cot_serie, ffill_dias=10)
+
+        vts_al = vix3m_al / vix_al.replace(0, np.nan)
+        vvixvix_al = vvix_al / vix_al.replace(0, np.nan)
+
+        componentes_sc = pd.DataFrame({
+            "dix": _expanding_percentile_generico(dix_al),
+            "vts": _expanding_percentile_generico(vts_al),
+            "vvix": _expanding_percentile_generico(vvixvix_al),
+            "cot": 100 - _expanding_percentile_generico(cot_al),
+        })
+        sentimiento_v2 = _combinar_renormalizado(
+            componentes_sc, {"dix": 0.297, "vts": 0.258, "vvix": 0.247, "cot": 0.198})
+
+        # ── Macro: NFCI + tendencia WALCL ─────────────────────────────
+        nfci_s = _load_csv_generico("NFCI.csv", "observation_date", "NFCI")
+        walcl_s = _load_csv_generico("WALCL.csv", "observation_date", "WALCL")
+        nfci_al = _alinear(nfci_s, ffill_dias=10)
+        walcl_al = _alinear(walcl_s, ffill_dias=10)
+        walcl_roc = walcl_al.pct_change(63)
+
+        componentes_macro = pd.DataFrame({
+            "nfci": 100 - _expanding_percentile_generico(nfci_al),
+            "liquidez": _expanding_percentile_generico(walcl_roc),
+        })
+        macro_v2 = _combinar_renormalizado(componentes_macro, {"nfci": 0.5, "liquidez": 0.5})
+
+        # ── Amplitud SMA50 (desde 2021) ────────────────────────────────
+        amplitud_al = pd.Series(np.nan, index=idx)
+        if AMPLITUD_SMA_CSV.exists():
+            try:
+                amp_df = pd.read_csv(AMPLITUD_SMA_CSV, parse_dates=["fecha"]).set_index("fecha")
+                if "pct_sobre_ma50" in amp_df.columns:
+                    amplitud_al = _alinear(amp_df["pct_sobre_ma50"].dropna(), ffill_dias=5)
+            except Exception as e:
+                if log: log.warning(f"  [SISTEMA-V2] Amplitud SMA: {e}")
+
+        # ── Señal de TENDENCIA (idea del usuario) ─────────────────────
+        ndx_close = df_maestro["NDX_close"].dropna()
+        sma200 = ndx_close.rolling(200, min_periods=200).mean()
+        sma200_pendiente = sma200.diff(20)
+        dist_sma200 = (ndx_close - sma200) / sma200 * 100
+        dist_pctl = _expanding_percentile_generico(dist_sma200.reindex(idx))
+        penalizacion = (sma200_pendiente.reindex(idx) < 0).astype(float) * -15
+        tendencia_score = (dist_pctl + penalizacion).clip(0, 100)
+
+        componentes_finales = pd.DataFrame({
+            "sentimiento": sentimiento_v2,
+            "macro": macro_v2,
+            "amplitud": amplitud_al,
+            "tendencia": tendencia_score,
+        })
+
+        def _score_y_exposicion(peso_tendencia):
+            resto = 1 - peso_tendencia
+            pesos = {"sentimiento": resto * 0.4, "macro": resto * 0.35,
+                     "amplitud": resto * 0.25, "tendencia": peso_tendencia}
+            score = _combinar_renormalizado(componentes_finales, pesos)
+
+            def _exp(s):
+                if pd.isna(s):
+                    return 0.6
+                if s >= 70: return 0.80
+                if s >= 55: return 0.65
+                if s >= 40: return 0.50
+                if s >= 25: return 0.35
+                return 0.20
+            return score, score.apply(_exp)
+
+        score_50, exp_50 = _score_y_exposicion(0.50)
+        score_80, exp_80 = _score_y_exposicion(0.80)
+
+        ndx_ret = ndx_close.pct_change().reindex(idx)
+        rf_ret = ((df_maestro["IRX_close"] / 100) / 252).reindex(idx) if "IRX_close" in df_maestro.columns else pd.Series(0.0, index=idx)
+
+        def _metricas(exposicion):
+            val = pd.DataFrame({"exp": exposicion, "ndx_ret": ndx_ret, "rf_ret": rf_ret}).dropna()
+            r = val["exp"] * val["ndx_ret"] + (1 - val["exp"]) * val["rf_ret"]
+            eq = (1 + r.fillna(0)).cumprod()
+            years = (eq.index[-1] - eq.index[0]).days / 365.25
+            cagr = ((eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1) * 100 if years > 0 else None
+            dd = ((eq / eq.cummax()) - 1).min() * 100
+            sh = (r.mean() / r.std()) * (252 ** 0.5) if r.std() else None
+            return {
+                "cagr_pct": round(float(cagr), 2) if cagr is not None else None,
+                "max_dd_pct": round(float(dd), 2),
+                "sharpe": round(float(sh), 3) if sh is not None else None,
+            }, eq
+
+        met_50, eq_50 = _metricas(exp_50)
+        met_80, eq_80 = _metricas(exp_80)
+
+        if log:
+            log.info(f"  [SISTEMA-V2] peso_tendencia=0.50: {met_50}")
+            log.info(f"  [SISTEMA-V2] peso_tendencia=0.80: {met_80}")
+
+        return {
+            "experimental": True,
+            "aviso": ("Backtest Sistema Real v1/v2 — EN VALIDACIÓN, no controla exposición "
+                      "real. Dos variantes (peso tendencia 0.50 y 0.80) para comparar en "
+                      "paralelo día a día y decidir por experiencia acumulada."),
+            "formula": ("0.50/0.80 en señal de TENDENCIA (distancia a SMA200 penalizada si "
+                        "declina) + resto repartido: 40% Sentimiento Contrario histórico "
+                        "(DIX+VTS+VVIX/VIX+COT) · 35% Macro (NFCI+liquidez WALCL) · 25% "
+                        "Amplitud SMA50 NDX-100. Exposición acotada 20%-80%."),
+            "limitaciones": ("Excluye SEC insiders, kNN, Fase 4 MRM (no recalculables a bajo "
+                              "coste para miles de días) y Flujos ICI (solo 29 meses de "
+                              "histórico). No es el sistema de producción completo, es un "
+                              "salto de calidad sobre el risk_score simplificado de 6 "
+                              "variables usado en 'Estrategia (score)'."),
+            "exp_50": exp_50.reindex(idx),
+            "exp_80": exp_80.reindex(idx),
+            "metricas_50": met_50,
+            "metricas_80": met_80,
+        }
+    except Exception as e:
+        if log:
+            log.error(f"  [SISTEMA-V2] Fallo: {e}")
+        return {"error": str(e), "experimental": True}
+
+
 def calcular_comparativa_nradas(log=None) -> dict:
     """
     Parte 4.1 de IDEAS_FUTURAS_NQ_UNIFIED.md — panel comparativo NQ Unified
@@ -6909,6 +7166,23 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
             curvas["estrategia_refugio"] = _equity(
                 hm["exp_pct"] * hm["ndx_ret"] + (1 - hm["exp_pct"]) * refugio_alineado)
 
+        # --- Sistema Real v1/v2 (acordado 06/07/2026 tras la sesion sobre
+        # "nos hemos complicado de mas") — dos variantes en paralelo (peso
+        # tendencia 0.50 y 0.80) para que el usuario las compare dia a dia
+        # y decida por experiencia acumulada, no una eleccion nuestra.
+        try:
+            sv2 = _construir_sistema_real_v2(df_maestro, log=log)
+            if not sv2.get("error"):
+                exp_v2_50 = sv2["exp_50"].reindex(hm.index)
+                exp_v2_80 = sv2["exp_80"].reindex(hm.index)
+                rf_para_v2 = hm["rf_ret"]
+                curvas["sistema_v2_p50"] = _equity(
+                    exp_v2_50 * hm["ndx_ret"] + (1 - exp_v2_50) * rf_para_v2)
+                curvas["sistema_v2_p80"] = _equity(
+                    exp_v2_80 * hm["ndx_ret"] + (1 - exp_v2_80) * rf_para_v2)
+        except Exception as e:
+            log.warning(f"  [BACKTEST] Sistema Real v2 no disponible: {e}")
+
         def _cagr(eq):
             years = (eq.index[-1] - eq.index[0]).days / 365.25
             return round(((eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1) * 100, 2) if years > 0 else None
@@ -6943,6 +7217,10 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
                                   if "estrategia_freno" in mensual.columns else None),
             "estrategia_refugio": ([round(v, 3) for v in mensual["estrategia_refugio"]]
                                     if "estrategia_refugio" in mensual.columns else None),
+            "sistema_v2_p50": ([round(v, 3) for v in mensual["sistema_v2_p50"]]
+                                if "sistema_v2_p50" in mensual.columns else None),
+            "sistema_v2_p80": ([round(v, 3) for v in mensual["sistema_v2_p80"]]
+                                if "sistema_v2_p80" in mensual.columns else None),
             "asignacion_30_70": [round(v, 3) for v in mensual["b30"]],
             "asignacion_50_50": [round(v, 3) for v in mensual["b50"]],
             "asignacion_60_40": [round(v, 3) for v in mensual["b60"]],
