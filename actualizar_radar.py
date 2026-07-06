@@ -5955,6 +5955,212 @@ def _construir_exposicion_deterioro(df_maestro):
     return hm.dropna(subset=["ndx_ret"]), familias
 
 
+def _construir_refugio_dinamico(df_maestro):
+    """
+    Función COMPARTIDA — Parte 2.3 de IDEAS_FUTURAS_NQ_UNIFIED.md: refugio
+    dinámico cash/TLT. Hoy, cuando el sistema reduce exposición, la parte
+    no invertida va a IRX (letras del tesoro, "cash"). Esta capa decide si
+    en su lugar conviene ir a TLT (bonos largos), que históricamente sube
+    en huidas a calidad (flight-to-quality) mientras la bolsa cae.
+
+    Regla (sin look-ahead, solo con datos hasta cada día):
+      flight_to_quality = NDX cae >3% en 20 sesiones AND TLT sube en esas
+      mismas 20 sesiones. Si se cumple, el refugio es TLT; si no, IRX.
+
+    Es una capa TOTALMENTE INDEPENDIENTE: no decide CUÁNTO invertir (eso
+    sigue siendo cosa del score/Kelly/freno de volatilidad), solo decide
+    DÓNDE va la parte que no está en NDX.
+
+    Devuelve DataFrame con ndx_ret, tlt_ret, rf_ret, refugio_ret, flight.
+    """
+    import pandas as pd
+    import numpy as np
+
+    cols = ["NDX_close", "TLT_close", "IRX_close"]
+    faltan = [c for c in cols if c not in df_maestro.columns]
+    if faltan:
+        raise ValueError(f"faltan columnas: {faltan}")
+
+    hm = df_maestro[cols].dropna()
+    if len(hm) < 500:
+        raise ValueError("histórico insuficiente")
+
+    hm = hm.copy()
+    hm["ndx_ret"] = hm["NDX_close"].pct_change()
+    hm["tlt_ret"] = hm["TLT_close"].pct_change()
+    hm["rf_ret"] = (hm["IRX_close"] / 100) / 252
+    hm["ndx_roc20"] = hm["NDX_close"].pct_change(20)
+    hm["tlt_roc20"] = hm["TLT_close"].pct_change(20)
+
+    hm["flight"] = (hm["ndx_roc20"] < -0.03) & (hm["tlt_roc20"] > 0)
+    hm["refugio_ret"] = np.where(hm["flight"], hm["tlt_ret"], hm["rf_ret"])
+
+    return hm.dropna(subset=["ndx_ret", "tlt_ret"])
+
+
+def calcular_refugio_dinamico_independiente(df_maestro, log=None):
+    """
+    Parte 2.3 — panel propio del refugio dinámico cash/TLT. Backtest
+    aislado: misma exposición de referencia (exp_base del Módulo de
+    Deterioro, un risk_score real ya existente) combinada primero con
+    refugio 100% cash (comportamiento actual) y luego con refugio
+    dinámico cash/TLT, para medir el efecto AISLADO de la capa.
+
+    Validado con 3 pruebas de robustez (tercios, leave-one-out,
+    sensibilidad de umbral) — mejora CAGR y Sharpe en todos los casos, a
+    exposición fija 0.3/0.5/0.7. MaxDD mejora en la mayoría de tramos,
+    pero NO SIEMPRE (ver limitaciones: TLT no protege cuando suben los
+    tipos con fuerza y bolsa y bonos caen juntos, ej. 2022).
+
+    Modo EXPERIMENTAL: no controla la asignación real todavía.
+    """
+    import pandas as pd
+
+    def _log(msg):
+        if log:
+            log.info(msg)
+
+    try:
+        val_ref = _construir_refugio_dinamico(df_maestro)
+        val_det, _familias = _construir_exposicion_deterioro(df_maestro)
+
+        val = val_ref.join(val_det[["exp_base"]], how="inner")
+        if len(val) < 500:
+            raise ValueError("histórico insuficiente tras alinear con Módulo de Deterioro")
+
+        def _metricas(refugio_ret):
+            r = val["exp_base"] * val["ndx_ret"] + (1 - val["exp_base"]) * refugio_ret
+            eq = (1 + r.fillna(0)).cumprod()
+            years = (eq.index[-1] - eq.index[0]).days / 365.25
+            cagr = ((eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1) * 100 if years > 0 else None
+            dd = ((eq / eq.cummax()) - 1).min() * 100
+            sh = (r.mean() / r.std()) * (252 ** 0.5) if r.std() else None
+            return {
+                "cagr_pct": round(float(cagr), 2) if cagr is not None else None,
+                "max_dd_pct": round(float(dd), 2),
+                "sharpe": round(float(sh), 3) if sh is not None else None,
+            }
+
+        met_cash = _metricas(val["rf_ret"])
+        met_dinamico = _metricas(val["refugio_ret"])
+
+        val_reset = val.reset_index()
+        col_fecha = val_reset.columns[0]
+        val_reset["_ym"] = val_reset[col_fecha].dt.to_period("M")
+        ultima_por_mes = val_reset.groupby("_ym").tail(1)
+        serie = [{
+            "fecha": row[col_fecha].strftime("%Y-%m-%d"),
+            "flight": bool(row["flight"]),
+            "exp_base_pct": round(float(row["exp_base"]) * 100, 1),
+        } for _, row in ultima_por_mes.iterrows()]
+        del val_reset, ultima_por_mes
+
+        hoy = val.iloc[-1]
+        refugio_hoy = "TLT (bonos largos)" if bool(hoy["flight"]) else "Cash (IRX)"
+        if bool(hoy["flight"]):
+            texto = (f"HUIDA A CALIDAD — NDX cayendo con TLT subiendo en las últimas "
+                     f"20 sesiones. Refugio experimental: {refugio_hoy}.")
+        else:
+            texto = (f"NORMAL — sin señal de huida a calidad. Refugio experimental: {refugio_hoy}.")
+
+        return {
+            "experimental": True,
+            "aviso": ("Módulo EN VALIDACIÓN — decide SOLO dónde va la parte no invertida "
+                      "(cash vs TLT), no cuánto invertir. No controla la asignación real "
+                      "todavía."),
+            "hoy": {
+                "flight_to_quality": bool(hoy["flight"]),
+                "refugio_recomendado": refugio_hoy,
+                "texto": texto,
+            },
+            "serie_historica": serie,
+            "metricas": {
+                "solo_cash": met_cash,
+                "refugio_dinamico": met_dinamico,
+                "periodo": {
+                    "desde": val.index[0].strftime("%Y-%m-%d"),
+                    "hasta": val.index[-1].strftime("%Y-%m-%d"),
+                },
+                "dias_flight_pct": round(float(val["flight"].mean() * 100), 1),
+            },
+            "validacion": ("3 pruebas de robustez (tercios, leave-one-out, sensibilidad de "
+                           "umbral) a exposición fija 0.3/0.5/0.7 — mejora CAGR y Sharpe en "
+                           "todos los casos frente a refugio 100% cash."),
+            "limitaciones": ("TLT NO protege siempre: cuando los tipos suben con fuerza y "
+                              "generalizadamente (ej. 2022), bonos largos y bolsa caen a la "
+                              "vez y el refugio dinámico puede ir peor que el cash puro en "
+                              "ese tramo concreto. Backtest aplicado sobre exp_base del "
+                              "Módulo de Deterioro, no sobre la estrategia real completa."),
+            "fuente": "calcular_refugio_dinamico_independiente (EXPERIMENTAL, Parte 2.3)",
+        }
+    except Exception as e:
+        _log(f"  [!] Refugio dinámico independiente falló: {e}")
+        return {"error": str(e), "experimental": True}
+
+
+UMBRALES_FRENO_VOL = {"u1": 75, "u2": 88, "u3": 95}
+CAPS_FRENO_VOL = {"normal": 1.00, "leve": 0.85, "fuerte": 0.60, "extremo": 0.35}
+
+
+def _construir_cap_freno_volatilidad(df_maestro):
+    """
+    Función COMPARTIDA (mismo patrón que _construir_exposicion_deterioro):
+    calcula el percentil de volatilidad (VIX + vol realizada NDX, expanding,
+    sin look-ahead) y el techo de exposición resultante, día a día. La usan
+    tanto calcular_freno_volatilidad_independiente() (panel propio) como
+    calcular_backtest_comparativo() (línea "estrategia_freno") — así ambas
+    vistas nunca pueden desincronizarse entre sí.
+
+    Devuelve un DataFrame con columnas ndx_ret, vol_score, cap.
+    """
+    import pandas as pd
+    import numpy as np
+
+    cols = ["NDX_close", "VIX_close"]
+    faltan = [c for c in cols if c not in df_maestro.columns]
+    if faltan:
+        raise ValueError(f"faltan columnas: {faltan}")
+
+    hm = df_maestro[cols].dropna()
+    if len(hm) < 500:
+        raise ValueError("histórico insuficiente")
+
+    ret = hm["NDX_close"].pct_change()
+    realized_vol = ret.rolling(20).std() * (252 ** 0.5) * 100
+
+    def _expanding_percentile(s):
+        arr = s.values
+        out = np.full(len(arr), np.nan)
+        valid_idx = np.where(~np.isnan(arr))[0]
+        seen = []
+        for i in valid_idx:
+            seen.append(arr[i])
+            if len(seen) < 60:
+                continue
+            arr_seen = np.array(seen)
+            out[i] = (arr_seen <= arr[i]).mean() * 100
+        return pd.Series(out, index=s.index)
+
+    vix_pctl = _expanding_percentile(hm["VIX_close"])
+    rv_pctl = _expanding_percentile(realized_vol)
+    vol_score = pd.concat([vix_pctl, rv_pctl], axis=1).max(axis=1)
+
+    def _cap(v):
+        if pd.isna(v):
+            return CAPS_FRENO_VOL["normal"]
+        if v < UMBRALES_FRENO_VOL["u1"]:
+            return CAPS_FRENO_VOL["normal"]
+        if v < UMBRALES_FRENO_VOL["u2"]:
+            return CAPS_FRENO_VOL["leve"]
+        if v < UMBRALES_FRENO_VOL["u3"]:
+            return CAPS_FRENO_VOL["fuerte"]
+        return CAPS_FRENO_VOL["extremo"]
+
+    cap = vol_score.apply(_cap)
+    val = pd.DataFrame({"ndx_ret": ret, "vol_score": vol_score, "cap": cap}).dropna()
+    return val
+
+
 def calcular_freno_volatilidad_independiente(df_maestro, log=None):
     """
     Parte 2.1 de IDEAS_FUTURAS_NQ_UNIFIED.md — freno de volatilidad
@@ -5991,52 +6197,9 @@ def calcular_freno_volatilidad_independiente(df_maestro, log=None):
             log.info(msg)
 
     try:
-        cols = ["NDX_close", "VIX_close"]
-        faltan = [c for c in cols if c not in df_maestro.columns]
-        if faltan:
-            raise ValueError(f"faltan columnas: {faltan}")
-
-        hm = df_maestro[cols].dropna()
-        if len(hm) < 500:
-            raise ValueError("histórico insuficiente")
-
-        ret = hm["NDX_close"].pct_change()
-        realized_vol = ret.rolling(20).std() * (252 ** 0.5) * 100
-
-        def _expanding_percentile(s):
-            arr = s.values
-            out = np.full(len(arr), np.nan)
-            valid_idx = np.where(~np.isnan(arr))[0]
-            seen = []
-            for i in valid_idx:
-                seen.append(arr[i])
-                if len(seen) < 60:
-                    continue
-                arr_seen = np.array(seen)
-                out[i] = (arr_seen <= arr[i]).mean() * 100
-            return pd.Series(out, index=s.index)
-
-        vix_pctl = _expanding_percentile(hm["VIX_close"])
-        rv_pctl = _expanding_percentile(realized_vol)
-        vol_score = pd.concat([vix_pctl, rv_pctl], axis=1).max(axis=1)
-
-        # Umbrales calibrados generosos a propósito (ver docstring).
-        UMBRALES = {"u1": 75, "u2": 88, "u3": 95}
-        CAPS = {"normal": 1.00, "leve": 0.85, "fuerte": 0.60, "extremo": 0.35}
-
-        def _cap(v):
-            if pd.isna(v):
-                return CAPS["normal"]
-            if v < UMBRALES["u1"]:
-                return CAPS["normal"]
-            if v < UMBRALES["u2"]:
-                return CAPS["leve"]
-            if v < UMBRALES["u3"]:
-                return CAPS["fuerte"]
-            return CAPS["extremo"]
-
-        cap = vol_score.apply(_cap)
-        val = pd.DataFrame({"ndx_ret": ret, "cap": cap, "vol_score": vol_score}).dropna()
+        val = _construir_cap_freno_volatilidad(df_maestro)
+        UMBRALES = UMBRALES_FRENO_VOL
+        CAPS = CAPS_FRENO_VOL
 
         def _metricas(exposicion, retornos):
             r = exposicion * retornos
@@ -6233,6 +6396,110 @@ def calcular_modulo_deterioro(df_maestro, log=None):
         return {"error": str(e), "experimental": True}
 
 
+def _safe_float_nradas(v):
+    if v is None or v == "":
+        return None
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return None
+
+
+def calcular_comparativa_nradas(log=None) -> dict:
+    """
+    Parte 4.1 de IDEAS_FUTURAS_NQ_UNIFIED.md — panel comparativo NQ Unified
+    vs NRA-DAS (proyecto paralelo del usuario, arquitectura dual Direction
+    Score + Volatility Brake).
+
+    Lee 3 archivos que el usuario genera con su propio backtest de NRA-DAS
+    (su `.bat`) y coloca en DATOS_CSV — de solo lectura, cero impacto en el
+    pipeline de NQ Unified si faltan (devuelve "disponible": False):
+      - output_backtest_nradas.json         (métricas + crisis + factores)
+      - output_backtest_nradas.csv          (equity curve diaria)
+      - output_backtest_nradas_por_año.csv  (retornos/drawdown por año)
+    """
+    import csv as _csv3
+
+    def _log(msg):
+        if log:
+            log.info(msg)
+
+    ruta_json = DATA_CSV_DIR / "output_backtest_nradas.json"
+    ruta_csv = DATA_CSV_DIR / "output_backtest_nradas.csv"
+    ruta_anual = DATA_CSV_DIR / "output_backtest_nradas_por_año.csv"
+
+    if not ruta_json.exists():
+        return {"disponible": False, "aviso": "output_backtest_nradas.json no encontrado en DATOS_CSV"}
+
+    try:
+        with open(ruta_json, encoding="utf-8") as f:
+            nradas = json.load(f)
+    except Exception as e:
+        _log(f"  [!] Comparativa NRA-DAS: no se pudo leer el JSON: {e}")
+        return {"disponible": False, "error": str(e)}
+
+    serie_mensual = None
+    periodo_csv = None
+    if ruta_csv.exists():
+        try:
+            import pandas as pd
+            df = pd.read_csv(ruta_csv, parse_dates=["fecha"]).set_index("fecha")
+            df = df[["equity_sys", "equity_qqq"]].dropna(how="all")
+            mensual = df.resample("MS").first().dropna()
+            ultimo = df.iloc[[-1]]
+            mensual = pd.concat([mensual, ultimo]).sort_index()
+            mensual = mensual[~mensual.index.duplicated(keep="last")]
+            serie_mensual = {
+                "fechas": [d.strftime("%Y-%m-%d") for d in mensual.index],
+                "equity_nradas": [round(float(v), 3) for v in mensual["equity_sys"]],
+                "equity_qqq_bh": [round(float(v), 3) for v in mensual["equity_qqq"]],
+            }
+            periodo_csv = {"desde": df.index[0].strftime("%Y-%m-%d"), "hasta": df.index[-1].strftime("%Y-%m-%d")}
+        except Exception as e:
+            _log(f"  [!] Comparativa NRA-DAS: no se pudo leer el CSV de equity: {e}")
+
+    tabla_anual = []
+    if ruta_anual.exists():
+        try:
+            with open(ruta_anual, newline="", encoding="utf-8", errors="replace") as f:
+                for row in _csv3.DictReader(f):
+                    tabla_anual.append({
+                        "año": row.get("año"),
+                        "retorno_nradas_pct": _safe_float_nradas(row.get("retorno_pct_NRADAS")),
+                        "max_dd_nradas_pct": _safe_float_nradas(row.get("max_dd_pct_NRADAS")),
+                        "retorno_qqq_pct": _safe_float_nradas(row.get("retorno_pct_QQQ")),
+                        "max_dd_qqq_pct": _safe_float_nradas(row.get("max_dd_pct_QQQ")),
+                    })
+        except Exception as e:
+            _log(f"  [!] Comparativa NRA-DAS: no se pudo leer la tabla anual: {e}")
+
+    _log(f"  [NRA-DAS] Cargado: CAGR={nradas.get('nra_das',{}).get('cagr_pct')}% "
+         f"Sharpe={nradas.get('nra_das',{}).get('sharpe')} MaxDD={nradas.get('nra_das',{}).get('max_dd_pct')}% "
+         f"| {len(tabla_anual)} años | serie mensual: {'sí' if serie_mensual else 'no'}")
+
+    return {
+        "disponible": True,
+        "metricas": {
+            "nra_das": nradas.get("nra_das"),
+            "qqq_bh_nradas": nradas.get("qqq_bh"),
+        },
+        "crisis": nradas.get("crisis"),
+        "factores_en_produccion": nradas.get("factores_en_produccion"),
+        "factores_rechazados": nradas.get("factores_rechazados"),
+        "criterio_incorporacion": nradas.get("criterio_incorporacion"),
+        "arquitectura": nradas.get("arquitectura"),
+        "tabla_anual": tabla_anual,
+        "serie_mensual": serie_mensual,
+        "periodo_nradas": {"desde": periodo_csv["desde"] if periodo_csv else None,
+                            "hasta": periodo_csv["hasta"] if periodo_csv else nradas.get("periodo")},
+        "generado_nradas": nradas.get("generado"),
+        "lectura": ("NRA-DAS es mejor gestor de RIESGO (Sharpe y MaxDD superiores); NQ "
+                    "Unified captura más RETORNO. No hay uno 'mejor' — dependen del "
+                    "objetivo. Son complementarios, no excluyentes."),
+        "fuente": "calcular_comparativa_nradas (lee archivos generados externamente por el usuario)",
+    }
+
+
 def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
     """
     Backtest historico 2006-hoy: reconstruye un risk_score simplificado
@@ -6357,6 +6624,30 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
         except Exception as e:
             log.warning(f"  [BACKTEST] Módulo deterioro no disponible para el backtest: {e}")
 
+        # --- Freno de volatilidad independiente (EXPERIMENTAL, Parte 2.1):
+        # misma función compartida que el panel propio, para que ambas
+        # vistas nunca se desincronicen. Se aplica como TECHO sobre exp_pct
+        # (la exposición base del backtest), nunca la sube — es un airbag.
+        cap_freno_alineado = None
+        try:
+            val_freno = _construir_cap_freno_volatilidad(df_maestro)
+            cap_freno_alineado = val_freno["cap"].reindex(hm.index).fillna(1.0)
+        except Exception as e:
+            log.warning(f"  [BACKTEST] Freno de volatilidad no disponible para el backtest: {e}")
+
+        # --- Refugio dinámico cash/TLT (EXPERIMENTAL, Parte 2.3): misma
+        # función compartida que el panel propio. Cambia DÓNDE va la parte
+        # no invertida (cash vs TLT), no CUÁNTO invertir — se aplica sobre
+        # la misma exp_pct de "estrategia", solo sustituyendo rf_ret por
+        # refugio_ret en los días de huida a calidad.
+        refugio_alineado = None
+        try:
+            val_refugio = _construir_refugio_dinamico(df_maestro)
+            refugio_alineado = val_refugio["refugio_ret"].reindex(hm.index)
+            refugio_alineado = refugio_alineado.fillna(hm["rf_ret"])
+        except Exception as e:
+            log.warning(f"  [BACKTEST] Refugio dinámico no disponible para el backtest: {e}")
+
         def _equity(ret):
             return (1 + ret.fillna(0)).cumprod()
 
@@ -6369,6 +6660,13 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
         if exp_deterioro_alineado is not None:
             curvas["estrategia_deterioro"] = _equity(
                 exp_deterioro_alineado * hm["ndx_ret"] + (1 - exp_deterioro_alineado) * hm["rf_ret"])
+        if cap_freno_alineado is not None:
+            exp_con_freno = pd.concat([hm["exp_pct"], cap_freno_alineado.rename("cap")], axis=1).min(axis=1)
+            curvas["estrategia_freno"] = _equity(
+                exp_con_freno * hm["ndx_ret"] + (1 - exp_con_freno) * hm["rf_ret"])
+        if refugio_alineado is not None:
+            curvas["estrategia_refugio"] = _equity(
+                hm["exp_pct"] * hm["ndx_ret"] + (1 - hm["exp_pct"]) * refugio_alineado)
 
         def _cagr(eq):
             years = (eq.index[-1] - eq.index[0]).days / 365.25
@@ -6400,6 +6698,10 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
             "estrategia_score": [round(v, 3) for v in mensual["estrategia"]],
             "estrategia_deterioro": ([round(v, 3) for v in mensual["estrategia_deterioro"]]
                                      if "estrategia_deterioro" in mensual.columns else None),
+            "estrategia_freno": ([round(v, 3) for v in mensual["estrategia_freno"]]
+                                  if "estrategia_freno" in mensual.columns else None),
+            "estrategia_refugio": ([round(v, 3) for v in mensual["estrategia_refugio"]]
+                                    if "estrategia_refugio" in mensual.columns else None),
             "asignacion_30_70": [round(v, 3) for v in mensual["b30"]],
             "asignacion_50_50": [round(v, 3) for v in mensual["b50"]],
             "asignacion_60_40": [round(v, 3) for v in mensual["b60"]],
@@ -6412,7 +6714,10 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
                 "de historico diario — el score real de produccion seria mas defensivo "
                 "en crisis que esta aproximacion. La curva 'estrategia_deterioro' es "
                 "EXPERIMENTAL (ver modulo_deterioro) y antes de 2007-04-11 usa la misma "
-                "exposicion que 'estrategia_score' por no tener aun dato de HYG."
+                "exposicion que 'estrategia_score' por no tener aun dato de HYG. La curva "
+                "'estrategia_freno' aplica el freno de volatilidad independiente (Parte "
+                "2.1, EXPERIMENTAL) como techo sobre exp_pct — nunca sube la exposicion, "
+                "solo la recorta en percentiles de volatilidad extremos."
             ),
             "fuente": "calcular_backtest_comparativo (historico_maestro.csv + COT real)",
         }
@@ -8772,6 +9077,31 @@ def main():
         log.error(f"  ✗ Freno de volatilidad independiente falló: {e}")
         freno_volatilidad = {"error": str(e), "experimental": True}
 
+    log.info("\n[6.8/8] Comparativa NRA-DAS (Parte 4.1, lee archivos externos si existen)...")
+    try:
+        comparativa_nradas = calcular_comparativa_nradas(log=log)
+        if not comparativa_nradas.get("disponible"):
+            log.info(f"  [NRA-DAS] No disponible: {comparativa_nradas.get('aviso', comparativa_nradas.get('error'))}")
+    except Exception as e:
+        log.error(f"  ✗ Comparativa NRA-DAS falló: {e}")
+        comparativa_nradas = {"disponible": False, "error": str(e)}
+
+    log.info("\n[6.9/8] Refugio dinámico cash/TLT (EXPERIMENTAL, Parte 2.3)...")
+    try:
+        refugio_dinamico = calcular_refugio_dinamico_independiente(df, log=log)
+        if refugio_dinamico.get("error"):
+            log.warning(f"  [!] Refugio dinámico: {refugio_dinamico['error']}")
+        else:
+            rd_met = refugio_dinamico["metricas"]
+            log.info(f"  [REFUGIO] HOY: {refugio_dinamico['hoy']['refugio_recomendado']} "
+                     f"(flight={refugio_dinamico['hoy']['flight_to_quality']})")
+            log.info(f"  [REFUGIO] Backtest aislado: cash Sharpe={rd_met['solo_cash']['sharpe']} vs "
+                     f"dinámico Sharpe={rd_met['refugio_dinamico']['sharpe']} | "
+                     f"CAGR {rd_met['solo_cash']['cagr_pct']}%→{rd_met['refugio_dinamico']['cagr_pct']}%")
+    except Exception as e:
+        log.error(f"  ✗ Refugio dinámico falló: {e}")
+        refugio_dinamico = {"error": str(e), "experimental": True}
+
     # ── 7. Construir y exportar JSON ───────────────────────────────────────────
     log.info("\n[7/8] Exportando datos_radar.json...")
 
@@ -8821,6 +9151,8 @@ def main():
         "backtest_comparativo": backtest_comparativo,
         "modulo_deterioro":     modulo_deterioro,
         "freno_volatilidad":    freno_volatilidad,
+        "comparativa_nradas":   comparativa_nradas,
+        "refugio_dinamico":     refugio_dinamico,
         # Fase 3 — datos reales
         "cot":          cot_data or {
             "error": "no_ejecutado", "señal": "neutro",
