@@ -884,6 +884,15 @@ def h_vix_txt(src, dst_root, dry):
     return r
 
 
+def _avisar_obsoleto(r: Resultado):
+    d = dias_desde(r.fecha_interna)
+    if d is not None and d > DIAS_AVISO_OBSOLETO:
+        extra = f"dato de hace {d} días — ¿descarga nueva?"
+        r.aviso = (r.aviso + " | " + extra) if r.aviso else extra
+        if r.estado == "OK":
+            r.estado = "OK*"
+
+
 def h_ici_flows(src, dst, dry):
     """
     ici_combined_flows_historical_*.xls (Investment Company Institute,
