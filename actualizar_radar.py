@@ -719,7 +719,9 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
         "ILMN","GFS","NXPI","CHTR","SIRI","SBUX","DASH","MTCH","APP","PLTR",
         "RIVN","OKTA","ALGN","ENPH","LULU","MDB","EBAY","AXON","SWKS","ARGX"
     ]
-    NDX100_TICKERS = _obtener_tickers_ndx100_dinamico(log=log) or NDX100_TICKERS_FALLBACK
+    _tickers_dinamicos = _obtener_tickers_ndx100_dinamico(log=log)
+    NDX100_TICKERS = _tickers_dinamicos or NDX100_TICKERS_FALLBACK
+    _fuente_tickers = "wikipedia" if _tickers_dinamicos else "fallback"
     import time
     t0 = time.time()
     try:
@@ -857,7 +859,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
             log.warning(f"  [Amplitud NDX100] 0/{len(series_por_ticker) or len(tickers_descargar)} tickers "
                         f"pasaron el filtro de longitud mínima (descarga: {'OK' if bulk is not None and not bulk.empty else 'FALLÓ'}, "
                         f"errores={errores}) — sin_datos este día, no es necesariamente un fallo de red.")
-            return {"error": "sin_datos", "senal": "neutro", "score": 0.0}
+            return {"error": "sin_datos", "senal": "neutro", "score": 0.0, "fuente_tickers": _fuente_tickers}
 
         net_breadth = round((new_highs - new_lows) / total_ok * 100, 1)
 
@@ -897,6 +899,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
             "score":             score,
             "errores_descarga":  errores,
             "fuente":            "ndx100_yfinance_bulk",
+            "fuente_tickers":    _fuente_tickers,
             "pct_sma50":         pct_sma50,
             "pct_sma20":         pct_sma20,
             "pct_sma200":        pct_sma200,
@@ -910,7 +913,7 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
 
     except Exception as e:
         log.error("  [Amplitud NDX100] Fallo total: " + str(e))
-        return {"error": str(e), "senal": "neutro", "score": 0.0, "net_breadth_pct": None}
+        return {"error": str(e), "senal": "neutro", "score": 0.0, "net_breadth_pct": None, "fuente_tickers": _fuente_tickers}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
