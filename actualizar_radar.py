@@ -676,47 +676,59 @@ def calcular_amplitud_ndx100(df: "pd.DataFrame") -> dict:
             tickers_descargar.append(ticker)
 
         # ── 2. Descarga MASIVA en una sola llamada de los que faltan ──
+        # Con reintentos: la descarga en bloque de 100 tickers puede fallar
+        # entera de forma transitoria (rate-limit o hiccup de red de
+        # Yahoo Finance) — antes un fallo aquí dejaba TODO el módulo sin
+        # datos ese día (NH/NL Y amplitud SMA a la vez), sin segunda
+        # oportunidad. 3 intentos con pausa creciente (2s/5s) antes de
+        # rendirse de verdad.
         errores = 0
         if tickers_descargar:
-            try:
-                log.info(f"  [Amplitud NDX100] Descargando {len(tickers_descargar)} tickers en bloque...")
-                bulk = yf.download(
-                    tickers_descargar,
-                    period="1y",
-                    progress=False,
-                    auto_adjust=True,
-                    group_by="ticker",
-                    threads=True,    # paralelo
-                )
-                # Estructura del bulk: MultiIndex (ticker, OHLCV) o single ticker
-                if bulk.empty:
-                    log.warning("  [Amplitud NDX100] bulk yfinance devolvió vacío")
-                    errores += len(tickers_descargar)
-                else:
-                    if isinstance(bulk.columns, pd.MultiIndex):
-                        for ticker in tickers_descargar:
-                            try:
-                                if ticker in bulk.columns.get_level_values(0):
-                                    sub = bulk[ticker]
-                                    if "Close" in sub.columns:
-                                        serie = sub["Close"].dropna()
-                                        if len(serie) >= 252:
-                                            series_por_ticker[ticker] = serie
-                                            continue
-                                errores += 1
-                            except Exception:
-                                errores += 1
-                    else:
-                        # Single ticker — solo si descargas exactamente 1
-                        if len(tickers_descargar) == 1:
-                            t = tickers_descargar[0]
-                            if "Close" in bulk.columns:
-                                serie = bulk["Close"].dropna()
-                                if len(serie) >= 252:
-                                    series_por_ticker[t] = serie
-            except Exception as e_bulk:
-                log.error(f"  [Amplitud NDX100] Error en bulk download: {e_bulk}")
+            bulk = None
+            for intento in range(1, 4):
+                try:
+                    log.info(f"  [Amplitud NDX100] Descargando {len(tickers_descargar)} tickers en bloque (intento {intento}/3)...")
+                    bulk = yf.download(
+                        tickers_descargar,
+                        period="1y",
+                        progress=False,
+                        auto_adjust=True,
+                        group_by="ticker",
+                        threads=True,    # paralelo
+                    )
+                    if bulk is not None and not bulk.empty:
+                        break
+                    log.warning(f"  [Amplitud NDX100] intento {intento}/3: bulk yfinance devolvió vacío")
+                except Exception as e_bulk:
+                    log.warning(f"  [Amplitud NDX100] intento {intento}/3 falló: {e_bulk}")
+                if intento < 3:
+                    time.sleep(2 * intento)
+
+            if bulk is None or bulk.empty:
+                log.error(f"  [Amplitud NDX100] Descarga bulk falló tras 3 intentos — sin datos hoy (transitorio, no requiere acción)")
                 errores += len(tickers_descargar)
+            else:
+                if isinstance(bulk.columns, pd.MultiIndex):
+                    for ticker in tickers_descargar:
+                        try:
+                            if ticker in bulk.columns.get_level_values(0):
+                                sub = bulk[ticker]
+                                if "Close" in sub.columns:
+                                    serie = sub["Close"].dropna()
+                                    if len(serie) >= 252:
+                                        series_por_ticker[ticker] = serie
+                                        continue
+                            errores += 1
+                        except Exception:
+                            errores += 1
+                else:
+                    # Single ticker — solo si descargas exactamente 1
+                    if len(tickers_descargar) == 1:
+                        t = tickers_descargar[0]
+                        if "Close" in bulk.columns:
+                            serie = bulk["Close"].dropna()
+                            if len(serie) >= 252:
+                                series_por_ticker[t] = serie
 
         # ── 3. Calcular NH/NL sobre las series disponibles ──
         new_highs = 0
