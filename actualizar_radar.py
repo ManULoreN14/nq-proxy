@@ -6694,6 +6694,186 @@ def _combinar_renormalizado(df_comp, pesos):
     return contrib / suma_pesos.replace(0, np.nan)
 
 
+def _cargar_series_sentimiento(idx, log=None, tag="SENTIMIENTO"):
+    """
+    Helper COMPARTIDO: carga DIX/VIX/VIX3M/VVIX/COT alineadas al índice
+    dado. Usado tanto por _construir_sistema_real_v2 como por
+    _construir_score_anticipacion — así ninguna de las dos puede
+    desincronizarse de cómo se leen realmente estos datos en producción.
+    Devuelve (dix_al, vix_al, vix3m_al, vvix_al, cot_al).
+    """
+    def _alinear(serie, ffill_dias=10):
+        s = serie.reindex(serie.index.union(idx)).sort_index().ffill(limit=ffill_dias)
+        return s.reindex(idx)
+
+    dix_serie = None
+    if DIX_CSV.exists():
+        try:
+            dix_df = pd.read_csv(DIX_CSV, parse_dates=["date"]).set_index("date")
+            dix_serie = dix_df["dix"].dropna()
+        except Exception as e:
+            if log: log.warning(f"  [{tag}] DIX no disponible: {e}")
+
+    vix_serie = pd.Series(dtype=float)
+    vix3m_serie = pd.Series(dtype=float)
+    vvix_serie = pd.Series(dtype=float)
+    try:
+        if VIX_CSV.exists():
+            v = pd.read_csv(VIX_CSV, parse_dates=["DATE"]).set_index("DATE")
+            vix_serie = v["CLOSE"].dropna()
+        if VIX3M_CSV.exists():
+            v = pd.read_csv(VIX3M_CSV, parse_dates=["DATE"]).set_index("DATE")
+            vix3m_serie = v["CLOSE"].dropna()
+        if VVIX_CSV.exists():
+            v = pd.read_csv(VVIX_CSV, parse_dates=["DATE"]).set_index("DATE")
+            vvix_serie = v["VVIX"].dropna()
+    except Exception as e:
+        if log: log.warning(f"  [{tag}] VIX/VIX3M/VVIX: {e}")
+
+    cot_serie = pd.Series(dtype=float)
+    try:
+        if COT_CSV_DIR.exists():
+            filas_cot = {}
+            for path in sorted(COT_CSV_DIR.glob("*.txt")):
+                with open(path, newline="", encoding="utf-8", errors="replace") as f:
+                    for row in _csv_csv.DictReader(f):
+                        if (row.get("CFTC_Contract_Market_Code") or "").strip() != "209742":
+                            continue
+                        d = _csv_parse_fecha(row.get("Report_Date_as_YYYY-MM-DD"))
+                        if not d:
+                            continue
+                        l = _csv_safe_float(row.get("Lev_Money_Positions_Long_All"))
+                        s = _csv_safe_float(row.get("Lev_Money_Positions_Short_All"))
+                        if l is not None and s is not None and (l + s) > 0:
+                            filas_cot[pd.Timestamp(d)] = l / (l + s) * 100
+            if filas_cot:
+                cot_serie = pd.Series(filas_cot).sort_index()
+    except Exception as e:
+        if log: log.warning(f"  [{tag}] COT: {e}")
+
+    dix_al = _alinear(dix_serie) if dix_serie is not None else pd.Series(np.nan, index=idx)
+    vix_al = _alinear(vix_serie)
+    vix3m_al = _alinear(vix3m_serie)
+    vvix_al = _alinear(vvix_serie)
+    cot_al = _alinear(cot_serie, ffill_dias=10)
+    return dix_al, vix_al, vix3m_al, vvix_al, cot_al
+
+
+PESOS_ANTICIPACION = {"dix": 0.30, "vts": 0.42, "vvix": 0.28}
+
+
+def _construir_score_anticipacion(df_maestro, log=None):
+    """
+    Score de Anticipación 2-3 días — PARTE NUEVA (09/07/2026), distinta en
+    naturaleza al Sistema Real v2: aquella reacciona a HOY, esta está
+    validada específicamente por predecir el retorno FUTURO del NDX a 2-3
+    días vista.
+
+    Usa SOLO 3 piezas (DIX + VTS + VVIX/VIX, con signo corregido) — COT y
+    la señal de Tendencia se EXCLUYEN a propósito: no mostraron IC real a
+    este horizonte tan corto en la validación (aunque sí lo tengan a
+    horizontes más largos, ver Sistema Real v2 y Módulo de Deterioro).
+
+    Validación real (Spearman IC, expanding percentile, sin look-ahead,
+    sesión 09/07/2026):
+      2d: IC=0.078, p<0.0001, Stability=100%, WF=4/4 → PASA
+      3d: IC=0.081, p<0.0001, Stability=100%, WF=4/4 → PASA
+    Pesos fijos (proporcionales a |IC| a 2d, casi idénticos a 3d):
+      DIX 0.30 · VTS 0.42 · VVIX/VIX 0.28
+
+    Backtest: la exposición de HOY se aplica al retorno FUTURO del NDX
+    (2 o 3 días vista, según variante) — no al retorno de hoy. Mide
+    honestamente si el score ayuda a decidir la exposición de
+    pasado-mañana / dentro de 3 días, dando tiempo real para actuar.
+
+    Modo EXPERIMENTAL: no controla exposición real.
+    """
+    try:
+        idx = df_maestro["NDX_close"].dropna().index
+        dix_al, vix_al, vix3m_al, vvix_al, _cot_al = _cargar_series_sentimiento(idx, log=log, tag="ANTICIPACION")
+
+        vts_al = vix3m_al / vix_al.replace(0, np.nan)
+        vvixvix_al = vvix_al / vix_al.replace(0, np.nan)
+
+        dix_pctl = _expanding_percentile_generico(dix_al)
+        vts_pctl_inv = 100 - _expanding_percentile_generico(vts_al)
+        vvix_pctl_inv = 100 - _expanding_percentile_generico(vvixvix_al)
+
+        score = (dix_pctl * PESOS_ANTICIPACION["dix"] +
+                 vts_pctl_inv * PESOS_ANTICIPACION["vts"] +
+                 vvix_pctl_inv * PESOS_ANTICIPACION["vvix"])
+
+        def _exp_desde_score(s):
+            if pd.isna(s):
+                return 0.5
+            if s >= 70:
+                return 0.80
+            if s <= 30:
+                return 0.20
+            return 0.20 + (s - 30) / 40 * 0.60
+
+        exp_score = score.apply(_exp_desde_score)
+
+        ndx_close = df_maestro["NDX_close"].dropna()
+        rf_ret = ((df_maestro["IRX_close"] / 100) / 252).reindex(idx) if "IRX_close" in df_maestro.columns else pd.Series(0.0, index=idx)
+
+        def _metricas_forward(exposicion, horizonte):
+            ret_fwd = (ndx_close.pct_change(horizonte).shift(-horizonte) / horizonte).reindex(idx)
+            val = pd.DataFrame({"exp": exposicion, "ret": ret_fwd, "rf": rf_ret}).dropna()
+            r = val["exp"] * val["ret"] + (1 - val["exp"]) * val["rf"]
+            eq = (1 + r.fillna(0)).cumprod()
+            years = (eq.index[-1] - eq.index[0]).days / 365.25
+            cagr = ((eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1) * 100 if years > 0 else None
+            dd = ((eq / eq.cummax()) - 1).min() * 100
+            sh = (r.mean() / r.std()) * (252 ** 0.5) if r.std() else None
+            return {
+                "cagr_pct": round(float(cagr), 2) if cagr is not None else None,
+                "max_dd_pct": round(float(dd), 2),
+                "sharpe": round(float(sh), 3) if sh is not None else None,
+            }, eq
+
+        met_2d, eq_2d = _metricas_forward(exp_score, 2)
+        met_3d, eq_3d = _metricas_forward(exp_score, 3)
+
+        if log:
+            log.info(f"  [ANTICIPACION] 2d: {met_2d} | 3d: {met_3d}")
+            hoy_val = score.dropna().iloc[-1] if score.notna().any() else None
+            if hoy_val is not None:
+                log.info(f"  [ANTICIPACION] HOY: score={round(float(hoy_val),1)} → exposición sugerida {round(float(exp_score.dropna().iloc[-1])*100)}%")
+
+        return {
+            "experimental": True,
+            "aviso": ("Módulo EN VALIDACIÓN — a diferencia de las demás capas, esta SÍ está "
+                      "validada por predecir el retorno FUTURO (2-3 días), no por reaccionar "
+                      "a hoy. No controla exposición real todavía."),
+            "formula": ("Score = 30% DIX (directo) + 42% VTS invertido (VIX3M/VIX, backwardation "
+                        "= bullish) + 28% VVIX/VIX invertido (miedo en opciones = bullish "
+                        "contrarian) — pesos proporcionales al IC medido a 2 días. COT y "
+                        "Tendencia EXCLUIDOS: sin poder predictivo real a este horizonte corto."),
+            "validacion": ("IC (Spearman, expanding, sin look-ahead): 2d IC=0.078 (p<0.0001, "
+                           "Stability=100%, WF=4/4) · 3d IC=0.081 (p<0.0001, Stability=100%, "
+                           "WF=4/4) — supera el criterio del proyecto (|IC|>0.03, p<0.05, "
+                           "Stability≥70%)."),
+            "limitaciones": ("Backtest aproximado: aplica la exposición de hoy al retorno "
+                              "futuro del NDX repartido linealmente entre los días de la "
+                              "ventana (no geométrico), con ventanas solapadas. Suficiente "
+                              "para validar la idea, no para operar tamaños de posición "
+                              "exactos. No incluye costes de transacción."),
+            "score_hoy": round(float(score.dropna().iloc[-1]), 1) if score.notna().any() else None,
+            "exp_2d": exp_score.reindex(idx),
+            "exp_3d": exp_score.reindex(idx),  # misma exposición, el horizonte solo cambia cómo se mide el backtest
+            "metricas_2d": met_2d,
+            "metricas_3d": met_3d,
+            "eq_2d": eq_2d,
+            "eq_3d": eq_3d,
+            "fuente": "_construir_score_anticipacion (EXPERIMENTAL, validado por IC a 2-3d)",
+        }
+    except Exception as e:
+        if log:
+            log.error(f"  [ANTICIPACION] Fallo: {e}")
+        return {"error": str(e), "experimental": True}
+
+
 def _construir_sistema_real_v2(df_maestro, log=None):
     """
     "Backtest Sistema Real v1/v2" — acordado explícitamente con el
@@ -6794,8 +6974,8 @@ def _construir_sistema_real_v2(df_maestro, log=None):
 
         componentes_sc = pd.DataFrame({
             "dix": _expanding_percentile_generico(dix_al),
-            "vts": _expanding_percentile_generico(vts_al),
-            "vvix": _expanding_percentile_generico(vvixvix_al),
+            "vts": 100 - _expanding_percentile_generico(vts_al),
+            "vvix": 100 - _expanding_percentile_generico(vvixvix_al),
             "cot": 100 - _expanding_percentile_generico(cot_al),
         })
         sentimiento_v2 = _combinar_renormalizado(
@@ -7003,13 +7183,14 @@ def calcular_comparativa_nradas(log=None) -> dict:
     }
 
 
-def _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80):
+def _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80, exp_anticipacion=None):
     """
     Petición explícita del usuario (07/07/2026): quiere ver, día a día, el
     % de exposición que recomienda cada estrategia — no solo el equity
     acumulado — porque va a guiarse por este número para decisiones
     reales. Mismo patrón que el histórico de Módulo de Deterioro (serie
-    mensual + valor de HOY bien visible).
+    mensual + valor de HOY bien visible). Ampliado 09/07/2026 con la
+    exposición del Score de Anticipación.
     """
     try:
         cols = {"simplificada": hm["exp_pct"]}
@@ -7017,6 +7198,8 @@ def _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80):
             cols["v2_p50"] = exp_v2_50
         if exp_v2_80 is not None:
             cols["v2_p80"] = exp_v2_80
+        if exp_anticipacion is not None:
+            cols["anticipacion"] = exp_anticipacion
         df_exp = pd.DataFrame(cols)
 
         mensual = df_exp.resample("MS").first().dropna(how="all")
@@ -7032,12 +7215,16 @@ def _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80):
                            if "v2_p50" in mensual.columns else None),
             "v2_p80_pct": ([round(float(v) * 100, 1) if pd.notna(v) else None for v in mensual["v2_p80"]]
                            if "v2_p80" in mensual.columns else None),
+            "anticipacion_pct": ([round(float(v) * 100, 1) if pd.notna(v) else None for v in mensual["anticipacion"]]
+                                  if "anticipacion" in mensual.columns else None),
             "hoy": {
                 "simplificada_pct": round(float(hoy["simplificada"]) * 100, 1) if pd.notna(hoy["simplificada"]) else None,
                 "v2_p50_pct": (round(float(hoy["v2_p50"]) * 100, 1)
                                if "v2_p50" in hoy.index and pd.notna(hoy["v2_p50"]) else None),
                 "v2_p80_pct": (round(float(hoy["v2_p80"]) * 100, 1)
                                if "v2_p80" in hoy.index and pd.notna(hoy["v2_p80"]) else None),
+                "anticipacion_pct": (round(float(hoy["anticipacion"]) * 100, 1)
+                                      if "anticipacion" in hoy.index and pd.notna(hoy["anticipacion"]) else None),
                 "fecha": df_exp.index[-1].strftime("%Y-%m-%d"),
             },
         }
@@ -7232,6 +7419,26 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
         except Exception as e:
             log.warning(f"  [BACKTEST] Sistema Real v2 no disponible: {e}")
 
+        # --- Score de Anticipación 2-3 días (acordado 09/07/2026) — a
+        # diferencia de todo lo anterior, validado por predecir el retorno
+        # FUTURO, no por reaccionar a hoy. Se recalcula la curva de equity
+        # con el MISMO índice y base que el resto del gráfico (hm.index),
+        # en vez de reutilizar la del panel propio (que usa el histórico
+        # completo desde 2000) — evita desalinear la base de comparación.
+        exp_anticipacion = None
+        antic = None
+        try:
+            antic = _construir_score_anticipacion(df_maestro, log=log)
+            if not antic.get("error"):
+                exp_anticipacion = antic["exp_2d"].reindex(hm.index)
+                for horiz, nombre in [(2, "anticipacion_2d"), (3, "anticipacion_3d")]:
+                    ret_fwd = (hm["NDX_close"].pct_change(horiz).shift(-horiz) / horiz)
+                    val = pd.DataFrame({"exp": exp_anticipacion, "ret": ret_fwd, "rf": hm["rf_ret"]}).dropna()
+                    r = val["exp"] * val["ret"] + (1 - val["exp"]) * val["rf"]
+                    curvas[nombre] = _equity(r).reindex(hm.index).ffill().bfill()
+        except Exception as e:
+            log.warning(f"  [BACKTEST] Score de Anticipación no disponible: {e}")
+
         def _cagr(eq):
             years = (eq.index[-1] - eq.index[0]).days / 365.25
             return round(((eq.iloc[-1] / eq.iloc[0]) ** (1 / years) - 1) * 100, 2) if years > 0 else None
@@ -7270,12 +7477,21 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
                                 if "sistema_v2_p50" in mensual.columns else None),
             "sistema_v2_p80": ([round(v, 3) for v in mensual["sistema_v2_p80"]]
                                 if "sistema_v2_p80" in mensual.columns else None),
+            "anticipacion_2d": ([round(v, 3) for v in mensual["anticipacion_2d"]]
+                                 if "anticipacion_2d" in mensual.columns else None),
+            "anticipacion_3d": ([round(v, 3) for v in mensual["anticipacion_3d"]]
+                                 if "anticipacion_3d" in mensual.columns else None),
             "asignacion_30_70": [round(v, 3) for v in mensual["b30"]],
             "asignacion_50_50": [round(v, 3) for v in mensual["b50"]],
             "asignacion_60_40": [round(v, 3) for v in mensual["b60"]],
             "asignacion_70_30": [round(v, 3) for v in mensual["b70"]],
             "metricas": metricas,
-            "exposicion": _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80),
+            "exposicion": _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80, exp_anticipacion),
+            "score_anticipacion_hoy": antic.get("score_hoy") if antic and not antic.get("error") else None,
+            "anticipacion_formula": antic.get("formula") if antic and not antic.get("error") else None,
+            "anticipacion_validacion": antic.get("validacion") if antic and not antic.get("error") else None,
+            "anticipacion_limitaciones": antic.get("limitaciones") if antic and not antic.get("error") else None,
+            "anticipacion_aviso": antic.get("aviso") if antic and not antic.get("error") else None,
             "periodo": {"desde": hm.index[0].strftime("%Y-%m-%d"), "hasta": hm.index[-1].strftime("%Y-%m-%d")},
             "limitaciones": (
                 "Risk score simplificado: RSI+VIX+VIX Term Structure+COT percentil. "
