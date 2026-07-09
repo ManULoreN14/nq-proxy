@@ -1,0 +1,62 @@
+name: Actualizar datos NQ
+on:
+  schedule:
+    - cron: '30 20 * * 1-5'   # 22:30 Madrid (20:30 UTC en verano)
+  workflow_dispatch:
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: |
+          pip install --upgrade pip
+          pip install yfinance requests pandas numpy
+
+      # ── 1. RADAR PRIMERO ─────────────────────────────────────────────────
+      # Genera datos_radar.json con breadth QQQ100 real y scores de horizontes.
+      # Motor_manengis lo leerá en el paso siguiente para tomar breadth y score_avg.
+      - name: Ejecutar actualizar_radar.py
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          set -e
+          python actualizar_radar.py --nogit
+          echo "=== datos_radar.json primeras líneas ==="
+          head -5 datos_radar.json
+
+      # ── 2. MANENGIS SEGUNDO ──────────────────────────────────────────────
+      # Lee datos_radar.json para enriquecer breadth (QQQ100) y score_avg en
+      # historico_30d, en lugar de usar solo Mag7 o dejar score_avg=null.
+      - name: Ejecutar motor_manengis.py
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          set -e
+          python motor_manengis.py
+          echo "=== manengis_tactico.json primeras líneas ==="
+          head -5 manengis_tactico.json
+
+      # ── 3. COMMIT ÚNICO AL FINAL ─────────────────────────────────────────
+      - name: Commit y push de los JSON
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f manengis_tactico.json datos_radar.json historico_maestro.csv
+          git status
+          git diff --cached --stat
+          git commit -m "data: actualización automática $(date -u +'%Y-%m-%d %H:%M UTC')" || echo "Sin cambios que commitear"
+          git push || echo "Nada que pushear"

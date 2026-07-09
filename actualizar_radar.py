@@ -7818,6 +7818,27 @@ def git_push() -> bool:
                 archivos.append(str(hm.name))
                 log.info(f"  historico_maestro.csv incluido en commit (nuevo/modificado)")
 
+    # Añadir los CSV que el propio actualizar_radar.py auto-actualiza en esta
+    # ejecución (amplitud SMA, Sentimiento Contrario histórico). Sin esto,
+    # en GitHub Actions (contenedor efímero, se destruye al terminar el job)
+    # esos cambios se calculaban y escribían en disco pero NUNCA se subían
+    # al repo — se perdían enteros cada noche. Solo se conservaban cuando el
+    # usuario los ejecutaba a mano y los comiteaba por su cuenta aparte.
+    for ruta_auto in (AMPLITUD_SMA_CSV, SENTIMIENTO_CONTRARIO_CSV):
+        if not ruta_auto.exists():
+            continue
+        try:
+            ruta_relativa = str(ruta_auto.relative_to(BASE_DIR))
+        except ValueError:
+            continue  # fuera del repo (ruta absoluta rara), no se puede comitear
+        status = subprocess.run(
+            ["git", "-C", str(BASE_DIR), "status", "--porcelain", ruta_relativa],
+            capture_output=True, text=True
+        )
+        if status.stdout.strip():
+            archivos.append(ruta_relativa)
+            log.info(f"  {ruta_auto.name} incluido en commit (auto-actualizado esta ejecución)")
+
     comandos = [
         ["git", "-C", str(BASE_DIR), "add"] + archivos,
         ["git", "-C", str(BASE_DIR), "commit", "-m", commit_msg],
