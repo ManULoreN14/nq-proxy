@@ -618,7 +618,12 @@ def _persistir_amplitud_sma_historico(pct_sma50, pct_sma20, pct_sma200, precio_n
             w.writeheader()
             w.writerows(filas)
     except Exception as e:
-        _csv_log(f"Amplitud SMA: error guardando histórico ({AMPLITUD_SMA_CSV}): {e}")
+        motivo = ""
+        if isinstance(e, PermissionError):
+            motivo = (" — típico si el archivo está abierto en Excel/Notepad (ciérralo) "
+                      "o tiene el atributo 'Solo lectura' marcado. El cálculo de HOY se hizo "
+                      "bien, solo falló guardarlo — se reintentará la próxima ejecución.")
+        _csv_log(f"Amplitud SMA: error guardando histórico ({AMPLITUD_SMA_CSV}): {e}{motivo}")
 
     return [
         {"fecha": r["fecha"],
@@ -6998,6 +7003,48 @@ def calcular_comparativa_nradas(log=None) -> dict:
     }
 
 
+def _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80):
+    """
+    Petición explícita del usuario (07/07/2026): quiere ver, día a día, el
+    % de exposición que recomienda cada estrategia — no solo el equity
+    acumulado — porque va a guiarse por este número para decisiones
+    reales. Mismo patrón que el histórico de Módulo de Deterioro (serie
+    mensual + valor de HOY bien visible).
+    """
+    try:
+        cols = {"simplificada": hm["exp_pct"]}
+        if exp_v2_50 is not None:
+            cols["v2_p50"] = exp_v2_50
+        if exp_v2_80 is not None:
+            cols["v2_p80"] = exp_v2_80
+        df_exp = pd.DataFrame(cols)
+
+        mensual = df_exp.resample("MS").first().dropna(how="all")
+        ultimo = df_exp.iloc[[-1]]
+        mensual = pd.concat([mensual, ultimo]).sort_index()
+        mensual = mensual[~mensual.index.duplicated(keep="last")]
+
+        hoy = df_exp.iloc[-1]
+        return {
+            "fechas": [d.strftime("%Y-%m-%d") for d in mensual.index],
+            "simplificada_pct": [round(float(v) * 100, 1) if pd.notna(v) else None for v in mensual["simplificada"]],
+            "v2_p50_pct": ([round(float(v) * 100, 1) if pd.notna(v) else None for v in mensual["v2_p50"]]
+                           if "v2_p50" in mensual.columns else None),
+            "v2_p80_pct": ([round(float(v) * 100, 1) if pd.notna(v) else None for v in mensual["v2_p80"]]
+                           if "v2_p80" in mensual.columns else None),
+            "hoy": {
+                "simplificada_pct": round(float(hoy["simplificada"]) * 100, 1) if pd.notna(hoy["simplificada"]) else None,
+                "v2_p50_pct": (round(float(hoy["v2_p50"]) * 100, 1)
+                               if "v2_p50" in hoy.index and pd.notna(hoy["v2_p50"]) else None),
+                "v2_p80_pct": (round(float(hoy["v2_p80"]) * 100, 1)
+                               if "v2_p80" in hoy.index and pd.notna(hoy["v2_p80"]) else None),
+                "fecha": df_exp.index[-1].strftime("%Y-%m-%d"),
+            },
+        }
+    except Exception:
+        return None
+
+
 def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
     """
     Backtest historico 2006-hoy: reconstruye un risk_score simplificado
@@ -7170,6 +7217,8 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
         # "nos hemos complicado de mas") — dos variantes en paralelo (peso
         # tendencia 0.50 y 0.80) para que el usuario las compare dia a dia
         # y decida por experiencia acumulada, no una eleccion nuestra.
+        exp_v2_50 = None
+        exp_v2_80 = None
         try:
             sv2 = _construir_sistema_real_v2(df_maestro, log=log)
             if not sv2.get("error"):
@@ -7226,6 +7275,7 @@ def calcular_backtest_comparativo(df_maestro: "pd.DataFrame") -> dict:
             "asignacion_60_40": [round(v, 3) for v in mensual["b60"]],
             "asignacion_70_30": [round(v, 3) for v in mensual["b70"]],
             "metricas": metricas,
+            "exposicion": _construir_exposicion_historico_y_hoy(hm, exp_v2_50, exp_v2_80),
             "periodo": {"desde": hm.index[0].strftime("%Y-%m-%d"), "hasta": hm.index[-1].strftime("%Y-%m-%d")},
             "limitaciones": (
                 "Risk score simplificado: RSI+VIX+VIX Term Structure+COT percentil. "
