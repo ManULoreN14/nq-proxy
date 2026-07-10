@@ -18,6 +18,21 @@ if errorlevel 1 goto ERROR_PREPARAR
 
 echo.
 echo ============================================================
+echo   1b/2  Recalculando amplitud NDX-100 (yfinance local)
+echo ============================================================
+REM El amplitud_ndx100_simple.csv NO se puede recalcular de noche en
+REM GitHub Actions porque yfinance suele estar bloqueado alli (Yahoo veta
+REM IPs de datacenter). Se calcula AQUI, en local, donde yfinance funciona,
+REM y se sube junto con DATOS_CSV. El cron nocturno usa este archivo ya
+REM fresco (si su propio yfinance falla, _persistir NO sobrescribe: linea
+REM 594 de actualizar_radar.py retorna sin tocar el archivo).
+REM NOTA: confirma que amplitud_ndx100_simple.py escribe en
+REM       DATOS_CSV\amplitud_ndx100_simple.csv (no en la raiz).
+python amplitud_ndx100_simple.py
+if errorlevel 1 echo   (aviso: fallo el calculo de amplitud - se sube el resto igualmente)
+
+echo.
+echo ============================================================
 echo   2/2  Subiendo DATOS_CSV al repositorio
 echo ============================================================
 REM Orden correcto: primero commiteamos LO NUESTRO (deja el working tree

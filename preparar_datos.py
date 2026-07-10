@@ -1068,6 +1068,8 @@ def main():
                                    "VIX3M_History.csv", "VIX3M_History.csv", ["DATE"]))
     resultados.append(h_copia_fija(src, dst, args.dry_run, "VVIX",
                                    "VVIX_History.csv", "VVIX_History.csv", ["DATE"]))
+    resultados.append(h_copia_fija(src, dst, args.dry_run, "VIX9D",
+                                   "VIX9D_History.csv", "VIX9D_History.csv", ["DATE"]))
     resultados.append(h_dix(src, dst, args.dry_run))
     resultados.append(h_skew(src, dst, args.dry_run))
     resultados.append(h_qqq(src, dst, args.dry_run))
@@ -1075,6 +1077,8 @@ def main():
                              "fred_NFCI_*.csv", "NFCI.csv", "NFCI"))
     resultados.append(h_fred(src, dst, args.dry_run, "WALCL (balance Fed)",
                              "fred_WALCL_*.csv", "WALCL.csv", "WALCL"))
+    resultados.append(h_fred(src, dst, args.dry_run, "DFF (fed funds rate)",
+                             "fred_DFF_*.csv", "DFF.csv", "DFF"))
     resultados.append(h_cot(src, dst, args.dry_run))
     resultados.append(h_pcr(src, dst.parent, args.dry_run))
     resultados.append(h_pcr_ratios_historico(src, dst, args.dry_run))

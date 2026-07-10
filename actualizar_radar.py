@@ -8011,7 +8011,8 @@ def git_push() -> bool:
     )
 
     # Archivos base siempre
-    archivos = ["datos_radar.json", "manengis_tactico.json"]
+    archivos = ["datos_radar.json", "manengis_tactico.json", "sistema_regimen_tilt.json"]
+    
 
     # Añadir historico_maestro.csv SOLO si git detecta cambios en él
     # (evita commits de 9.8MB innecesarios en días sin nuevos datos)
@@ -10042,6 +10043,13 @@ def main():
     datos_json.pop("_vix_ts_auto", None)
 
     exportar_json(datos_json)
+
+    # ── Generar JSON de la pestaña Sistema (Régimen+Tilt) ──
+    try:
+        import generar_sistema_json
+        generar_sistema_json.generar(BASE_DIR, DATA_CSV_DIR, log=log)
+    except Exception as e:
+        log.warning(f"  ⚠️  sistema_regimen_tilt.json no generado: {e}")
 
     # ── 8. Git push ────────────────────────────────────────────────────────────
     if not args.nogit:
