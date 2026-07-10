@@ -827,51 +827,51 @@
     "top_call_strikes": [
       {
         "strike": 790.0,
-        "oi": 38802,
-        "dist": 9.27
+        "oi": 38924,
+        "dist": 8.78
       },
       {
         "strike": 800.0,
-        "oi": 31942,
-        "dist": 10.66
+        "oi": 36793,
+        "dist": 10.16
       },
       {
         "strike": 805.0,
-        "oi": 29938,
-        "dist": 11.35
+        "oi": 30129,
+        "dist": 10.85
       }
     ],
     "top_put_strikes": [
       {
         "strike": 570.0,
-        "oi": 68285,
-        "dist": -21.16
+        "oi": 68432,
+        "dist": -21.51
       },
       {
         "strike": 700.0,
-        "oi": 57940,
-        "dist": -3.17
+        "oi": 58995,
+        "dist": -3.61
       },
       {
         "strike": 600.0,
-        "oi": 57175,
-        "dist": -17.01
+        "oi": 57330,
+        "dist": -17.38
       }
     ],
     "resistencia_principal": {
       "strike": 790.0,
-      "oi": 38802,
-      "dist": 9.27
+      "oi": 38924,
+      "dist": 8.78
     },
     "soporte_principal": {
       "strike": 570.0,
-      "oi": 68285,
-      "dist": -21.16
+      "oi": 68432,
+      "dist": -21.51
     },
     "rango_semana": {
       "techo": 790.0,
       "suelo": 570.0,
-      "amplitudPct": 30.43
+      "amplitudPct": 30.29
     }
   },
   "skew": {},
@@ -880,29 +880,29 @@
     "zona_barrida": false
   },
   "pcr": {
-    "equity": 0.86,
-    "total": 1.03,
+    "equity": 0.57,
+    "total": 0.86,
     "index": 1.01,
-    "spx": 1.12,
-    "señal": "precaucion",
-    "fecha": "08 July 2026",
+    "spx": 1.08,
+    "señal": "neutro",
+    "fecha": "09 July 2026",
     "fuente": "cboe_txt_manual"
   },
   "vixTermStructure": {
-    "spot": 15.84,
-    "vx1": 17.4187,
-    "vx2": 18.6556,
+    "spot": 15.04,
+    "vx1": 16.9545,
+    "vx2": 18.2982,
     "vx1_symbol": "VX/N6",
     "vx2_symbol": "VX/Q6",
     "vx1_expiry": "07/22/2026",
-    "spread1": 1.58,
-    "spread1Pct": 10.0,
+    "spread1": 1.91,
+    "spread1Pct": 12.7,
     "backwardation": false,
-    "vixPercentil": 45.7,
-    "señal": "neutro",
-    "desc": "Term structure normal — spot=15.84 front=17.4187 (+10.0%)",
+    "vixPercentil": 37.6,
+    "señal": "bajista",
+    "desc": "Contango elevado — spot=15.04 front=16.9545 (+12.7%) — complacencia, vigilar",
     "fuente": "vix_txt_manual",
     "usando_settlement": true,
-    "slope_1m2m": 1.325
+    "slope_1m2m": 1.44
   }
 }
