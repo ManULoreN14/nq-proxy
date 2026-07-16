@@ -1,6 +1,6 @@
 {
   "version": "8.0-unificado",
-  "ts": "2026-07-16T09:32:19.561914",
+  "ts": "2026-07-16T22:52:36.821719",
   "precio": {
     "ndx": 29502.5996,
     "qqq": 717.74,
@@ -155,20 +155,20 @@
   },
   "vixTS": {
     "spot": 15.67,
-    "vix3m": 19.2317,
-    "spread1": 0.72,
-    "spread1Pct": 4.5,
+    "vix3m": 19.4492,
+    "spread1": 0.56,
+    "spread1Pct": 3.4,
     "backwardation": false,
     "vixPercentil": 36.6,
     "señal": "neutro",
-    "desc": "Term structure normal — spot=15.83 front=16.5489 (+4.5%)",
+    "desc": "Term structure normal — spot=16.71 front=17.2746 (+3.4%)",
     "front_month": {
       "symbol": "VX/N6",
       "expiry": "07/22/2026",
       "expiry_date": "2026-07-22",
-      "precio": 16.5489,
+      "precio": 17.2746,
       "last": null,
-      "settlement": 16.5489,
+      "settlement": 17.2746,
       "dte": 6,
       "is_weekly": false,
       "using_settlement": true
@@ -177,22 +177,22 @@
       "symbol": "VX/Q6",
       "expiry": "08/19/2026",
       "expiry_date": "2026-08-19",
-      "precio": 18.0542,
+      "precio": 18.508,
       "last": null,
-      "settlement": 18.0542,
+      "settlement": 18.508,
       "dte": 34,
       "is_weekly": false,
       "using_settlement": true
     },
-    "slope_1m2m": 1.613,
+    "slope_1m2m": 1.321,
     "curva": [
       {
         "symbol": "VX/N6",
         "expiry": "07/22/2026",
         "expiry_date": "2026-07-22",
-        "precio": 16.5489,
+        "precio": 17.2746,
         "last": null,
-        "settlement": 16.5489,
+        "settlement": 17.2746,
         "dte": 6,
         "is_weekly": false,
         "using_settlement": true
@@ -201,9 +201,9 @@
         "symbol": "VX30/N6",
         "expiry": "07/29/2026",
         "expiry_date": "2026-07-29",
-        "precio": 16.5489,
+        "precio": 17.2746,
         "last": null,
-        "settlement": 16.5489,
+        "settlement": 17.2746,
         "dte": 13,
         "is_weekly": true,
         "using_settlement": true
@@ -212,9 +212,9 @@
         "symbol": "VX31/Q6",
         "expiry": "08/05/2026",
         "expiry_date": "2026-08-05",
-        "precio": 16.5489,
+        "precio": 17.2746,
         "last": null,
-        "settlement": 16.5489,
+        "settlement": 17.2746,
         "dte": 20,
         "is_weekly": true,
         "using_settlement": true
@@ -223,9 +223,9 @@
         "symbol": "VX32/Q6",
         "expiry": "08/12/2026",
         "expiry_date": "2026-08-12",
-        "precio": 16.5489,
+        "precio": 17.2746,
         "last": null,
-        "settlement": 16.5489,
+        "settlement": 17.2746,
         "dte": 27,
         "is_weekly": true,
         "using_settlement": true
@@ -234,9 +234,9 @@
         "symbol": "VX/Q6",
         "expiry": "08/19/2026",
         "expiry_date": "2026-08-19",
-        "precio": 18.0542,
+        "precio": 18.508,
         "last": null,
-        "settlement": 18.0542,
+        "settlement": 18.508,
         "dte": 34,
         "is_weekly": false,
         "using_settlement": true
@@ -245,10 +245,21 @@
         "symbol": "VX34/Q6",
         "expiry": "08/26/2026",
         "expiry_date": "2026-08-26",
-        "precio": 18.0542,
+        "precio": 18.508,
         "last": null,
-        "settlement": 18.0542,
+        "settlement": 18.508,
         "dte": 41,
+        "is_weekly": true,
+        "using_settlement": true
+      },
+      {
+        "symbol": "VX35/U6",
+        "expiry": "09/02/2026",
+        "expiry_date": "2026-09-02",
+        "precio": 18.508,
+        "last": null,
+        "settlement": 18.508,
+        "dte": 48,
         "is_weekly": true,
         "using_settlement": true
       },
@@ -256,26 +267,15 @@
         "symbol": "VX/U6",
         "expiry": "09/16/2026",
         "expiry_date": "2026-09-16",
-        "precio": 19.2317,
+        "precio": 19.4492,
         "last": null,
-        "settlement": 19.2317,
+        "settlement": 19.4492,
         "dte": 62,
-        "is_weekly": false,
-        "using_settlement": true
-      },
-      {
-        "symbol": "VX/V6",
-        "expiry": "10/21/2026",
-        "expiry_date": "2026-10-21",
-        "precio": 20.165,
-        "last": null,
-        "settlement": 20.165,
-        "dte": 97,
         "is_weekly": false,
         "using_settlement": true
       }
     ],
-    "n_contratos": 13,
+    "n_contratos": 14,
     "fuente": "vix_txt_manual",
     "usando_settlement": true,
     "csv_extras": {
@@ -474,18 +474,18 @@
   },
   "vixTermStructure": {
     "spot": 15.67,
-    "vx1": 16.5489,
-    "vx2": 18.0542,
+    "vx1": 17.2746,
+    "vx2": 18.508,
     "vx1_symbol": "VX/N6",
     "vx2_symbol": "VX/Q6",
     "vx1_expiry": "07/22/2026",
     "vx2_expiry": "08/19/2026",
-    "spread1": 0.72,
-    "spread1Pct": 4.5,
+    "spread1": 0.56,
+    "spread1Pct": 3.4,
     "backwardation": false,
-    "slope_1m2m": 1.613,
+    "slope_1m2m": 1.321,
     "señal": "neutro",
-    "desc": "Term structure normal — spot=15.83 front=16.5489 (+4.5%)",
+    "desc": "Term structure normal — spot=16.71 front=17.2746 (+3.4%)",
     "fuente": "vix_txt_manual",
     "usando_settlement": true
   },
@@ -572,11 +572,6 @@
     "qqq_flows_reales": {
       "dias": [
         {
-          "fecha": "2026-07-01",
-          "flujo_estimado": -164.0,
-          "cambio": -0.55
-        },
-        {
           "fecha": "2026-07-02",
           "flujo_estimado": -661.5,
           "cambio": -1.79
@@ -618,23 +613,27 @@
         },
         {
           "fecha": "2026-07-15",
-          "flujo_estimado": -198.6,
+          "flujo_estimado": -199.4,
           "cambio": -0.84
+        },
+        {
+          "fecha": "2026-07-16",
+          "flujo_estimado": -217.5,
+          "cambio": -0.85
         }
       ],
-      "flujo_neto_5d_m": -847.6,
-      "dias_neg_consec": 3,
+      "flujo_neto_5d_m": -901.9,
+      "dias_neg_consec": 4,
       "dias_pos_consec": 0,
       "señal": "bajista",
-      "descripcion": "3 días consecutivos de salidas · flujo neto -848M$",
-      "zscore_20d": 0.16,
-      "zscore_label": "+0.16σ — flujo en rango normal",
+      "descripcion": "4 días consecutivos de salidas · flujo neto -902M$",
+      "zscore_20d": 0.35,
+      "zscore_label": "+0.35σ — flujo en rango normal",
       "zscore_senal": "neutro",
-      "flujo_acum_actual_m": -2082.4,
+      "flujo_acum_actual_m": -1702.5,
       "divergencia": false,
       "divergencia_desc": "Sin divergencia detectada",
       "serie_fechas_20d": [
-        "2026-06-16",
         "2026-06-17",
         "2026-06-18",
         "2026-06-22",
@@ -653,10 +652,10 @@
         "2026-07-10",
         "2026-07-13",
         "2026-07-14",
-        "2026-07-15"
+        "2026-07-15",
+        "2026-07-16"
       ],
       "serie_precio_20d": [
-        729.06,
         721.72,
         739.81,
         737.95,
@@ -675,29 +674,30 @@
         725.51,
         711.74,
         719.69,
-        717.74
+        717.74,
+        705.94
       ],
       "serie_acum_20d": [
-        -598.2,
-        -1294.3,
-        -1163.5,
-        -1340.6,
-        -1452.1,
-        -1701.4,
-        -2174.2,
-        -2202.9,
-        -1749.5,
-        -1234.8,
-        -1398.8,
-        -2060.3,
-        -1973.0,
-        -2174.4,
-        -1943.3,
-        -1776.7,
-        -1649.6,
-        -1868.2,
-        -1883.8,
-        -2082.4
+        -696.1,
+        -565.3,
+        -742.4,
+        -853.9,
+        -1103.2,
+        -1576.0,
+        -1604.7,
+        -1151.3,
+        -636.6,
+        -800.6,
+        -1462.1,
+        -1374.8,
+        -1576.2,
+        -1345.1,
+        -1178.5,
+        -1051.4,
+        -1270.0,
+        -1285.6,
+        -1485.0,
+        -1702.5
       ],
       "fxg_valor": 0,
       "fxg_label": "neutro",
@@ -812,10 +812,10 @@
   },
   "macro": {
     "curva": {
-      "t3m": 3.84,
-      "t2y": 4.18,
-      "t5y": 4.31,
-      "t10y": 4.58,
+      "t3m": 3.83,
+      "t2y": 4.13,
+      "t5y": 4.26,
+      "t10y": 4.55,
       "t30y": 5.08,
       "sp10_2": 0.42,
       "sp10_3m": 0.72,
@@ -825,21 +825,21 @@
     },
     "fred": {
       "walcl": {
-        "v": 6735609.0,
-        "prev": 6724564.0,
-        "fecha": "2026-07-08",
+        "v": 6743028.0,
+        "prev": 6735609.0,
+        "fecha": "2026-07-15",
         "trend": "up"
       },
       "wtregen": {
-        "v": 774062.0,
-        "prev": 880237.0,
-        "fecha": "2026-07-08",
+        "v": 756218.0,
+        "prev": 774062.0,
+        "fecha": "2026-07-15",
         "trend": "down"
       },
       "rrpontsyd": {
-        "v": 0.151,
-        "prev": 0.278,
-        "fecha": "2026-07-15",
+        "v": 0.125,
+        "prev": 0.151,
+        "fecha": "2026-07-16",
         "trend": "down"
       },
       "fedfunds": {
@@ -849,16 +849,16 @@
         "trend": "down"
       },
       "sofr": {
-        "v": 3.63,
-        "prev": 3.6,
-        "fecha": "2026-07-14",
+        "v": 3.64,
+        "prev": 3.63,
+        "fecha": "2026-07-15",
         "trend": "up"
       },
       "hySpread": {
-        "v": 2.72,
-        "prev": 2.69,
-        "fecha": "2026-07-14",
-        "trend": "up"
+        "v": 2.71,
+        "prev": 2.72,
+        "fecha": "2026-07-15",
+        "trend": "down"
       },
       "nfci": {
         "v": -0.538,
@@ -885,33 +885,33 @@
         "trend": "down"
       },
       "tipoReal10y": {
-        "v": 2.33,
-        "prev": 2.36,
-        "fecha": "2026-07-14",
+        "v": 2.32,
+        "prev": 2.33,
+        "fecha": "2026-07-15",
         "trend": "down"
       },
-      "sofrSpread": 0.0,
+      "sofrSpread": 0.01,
       "wlcflpcl": {
-        "v": 5771.0,
-        "prev": 7778.0,
-        "fecha": "2026-07-08",
+        "v": 4755.0,
+        "prev": 5771.0,
+        "fecha": "2026-07-15",
         "trend": "down"
       },
       "cpi_yoy": -5.07
     },
     "liquidezNeta": {
-      "valor": 5961547.0,
+      "valor": 5986810.0,
       "trend": "up",
-      "walcl": 6735609.0,
-      "wtregen": 774062.0,
-      "rrpontsyd": 0.151,
-      "desc": "Liquidez Neta = WALCL - TGA - RRP = 5,961,547M"
+      "walcl": 6743028.0,
+      "wtregen": 756218.0,
+      "rrpontsyd": 0.125,
+      "desc": "Liquidez Neta = WALCL - TGA - RRP = 5,986,810M"
     },
     "tiposRealesOro": {
-      "tipoReal": 2.33,
+      "tipoReal": 2.32,
       "señal": "drenaje_liquidez",
       "alerta": true,
-      "desc": "⚠️ Tipos reales elevados (2.33%) — DRENAJE DE LIQUIDEZ, coste oportunidad alto para QQQ",
+      "desc": "⚠️ Tipos reales elevados (2.32%) — DRENAJE DE LIQUIDEZ, coste oportunidad alto para QQQ",
       "oroPrice": 4044.0
     },
     "dxy": {
@@ -2071,10 +2071,10 @@
     }
   },
   "flujos_ici": {
-    "suma_4sem_equity_millones": 49398.0,
+    "suma_4sem_equity_millones": 75449.0,
     "señal": "alcista",
     "semanas_usadas": 4,
-    "ultima_fecha": "2026-07-01",
+    "ultima_fecha": "2026-07-08",
     "historico_mensual": [
       {
         "fecha": "2024-01-31",
@@ -14690,130 +14690,440 @@
     "error": null
   },
   "opciones": {
-    "precio": 717.3799,
+    "precio": 705.14,
     "vencimientos": [
       {
         "fecha": "2026-07-16",
-        "maxPain": 717.74,
-        "distPct": 0.0,
-        "topCalls": [],
-        "topPuts": [],
+        "maxPain": 720.0,
+        "distPct": 0.31,
+        "topCalls": [
+          {
+            "strike": 730.0,
+            "oi": 31437,
+            "vol": 12843,
+            "dist": 1.71
+          },
+          {
+            "strike": 725.0,
+            "oi": 27465,
+            "vol": 31495,
+            "dist": 1.01
+          },
+          {
+            "strike": 720.0,
+            "oi": 16047,
+            "vol": 75705,
+            "dist": 0.31
+          },
+          {
+            "strike": 735.0,
+            "oi": 11151,
+            "vol": 506,
+            "dist": 2.4
+          },
+          {
+            "strike": 740.0,
+            "oi": 5514,
+            "vol": 168,
+            "dist": 3.1
+          }
+        ],
+        "topPuts": [
+          {
+            "strike": 700.0,
+            "oi": 26562,
+            "vol": 179736,
+            "dist": -2.47
+          },
+          {
+            "strike": 710.0,
+            "oi": 16030,
+            "vol": 276358,
+            "dist": -1.08
+          },
+          {
+            "strike": 695.0,
+            "oi": 15333,
+            "vol": 32105,
+            "dist": -3.17
+          },
+          {
+            "strike": 715.0,
+            "oi": 12826,
+            "vol": 20414,
+            "dist": -0.38
+          },
+          {
+            "strike": 690.0,
+            "oi": 9475,
+            "vol": 54738,
+            "dist": -3.86
+          }
+        ],
         "señal": "neutro",
-        "desc": "Max Pain no calculable (OI insuficiente en venc. corto)"
+        "desc": "Max Pain 720 — precio cerca, zona equilibrio"
       },
       {
         "fecha": "2026-07-17",
-        "maxPain": 717.74,
-        "distPct": 0.0,
-        "topCalls": [],
-        "topPuts": [],
+        "maxPain": 712.0,
+        "distPct": -0.8,
+        "topCalls": [
+          {
+            "strike": 800.0,
+            "oi": 45270,
+            "vol": 22,
+            "dist": 11.46
+          },
+          {
+            "strike": 711.0,
+            "oi": 29250,
+            "vol": 30944,
+            "dist": -0.94
+          },
+          {
+            "strike": 750.0,
+            "oi": 28697,
+            "vol": 929,
+            "dist": 4.49
+          },
+          {
+            "strike": 740.0,
+            "oi": 25614,
+            "vol": 1640,
+            "dist": 3.1
+          },
+          {
+            "strike": 720.0,
+            "oi": 22682,
+            "vol": 40680,
+            "dist": 0.31
+          }
+        ],
+        "topPuts": [
+          {
+            "strike": 675.0,
+            "oi": 46720,
+            "vol": 2304,
+            "dist": -5.95
+          },
+          {
+            "strike": 700.0,
+            "oi": 45900,
+            "vol": 110939,
+            "dist": -2.47
+          },
+          {
+            "strike": 685.0,
+            "oi": 36048,
+            "vol": 13798,
+            "dist": -4.56
+          },
+          {
+            "strike": 690.0,
+            "oi": 31598,
+            "vol": 27462,
+            "dist": -3.86
+          },
+          {
+            "strike": 711.0,
+            "oi": 30021,
+            "vol": 23660,
+            "dist": -0.94
+          }
+        ],
         "señal": "neutro",
-        "desc": "Max Pain no calculable (OI insuficiente en venc. corto)"
+        "desc": "Max Pain 712 — precio cerca, zona equilibrio"
       },
       {
         "fecha": "2026-07-20",
-        "maxPain": 717.74,
-        "distPct": 0.0,
-        "topCalls": [],
-        "topPuts": [],
+        "maxPain": 715.0,
+        "distPct": -0.38,
+        "topCalls": [
+          {
+            "strike": 740.0,
+            "oi": 2814,
+            "vol": 308,
+            "dist": 3.1
+          },
+          {
+            "strike": 755.0,
+            "oi": 2051,
+            "vol": 273,
+            "dist": 5.19
+          },
+          {
+            "strike": 730.0,
+            "oi": 2034,
+            "vol": 3339,
+            "dist": 1.71
+          },
+          {
+            "strike": 725.0,
+            "oi": 1927,
+            "vol": 5034,
+            "dist": 1.01
+          },
+          {
+            "strike": 715.0,
+            "oi": 1720,
+            "vol": 15188,
+            "dist": -0.38
+          }
+        ],
+        "topPuts": [
+          {
+            "strike": 680.0,
+            "oi": 7791,
+            "vol": 4600,
+            "dist": -5.26
+          },
+          {
+            "strike": 691.0,
+            "oi": 6062,
+            "vol": 1212,
+            "dist": -3.73
+          },
+          {
+            "strike": 685.0,
+            "oi": 4216,
+            "vol": 2658,
+            "dist": -4.56
+          },
+          {
+            "strike": 692.0,
+            "oi": 3046,
+            "vol": 2090,
+            "dist": -3.59
+          },
+          {
+            "strike": 690.0,
+            "oi": 2541,
+            "vol": 3872,
+            "dist": -3.86
+          }
+        ],
         "señal": "neutro",
-        "desc": "Max Pain no calculable (OI insuficiente en venc. corto)"
+        "desc": "Max Pain 715 — precio cerca, zona equilibrio"
       }
     ],
     "v1": {
       "fecha": "Fri Jul 17 2026",
       "maxPain": 690.0,
-      "distPct": -3.8,
+      "distPct": -2.1,
       "topCalls": [
         {
           "strike": 800.0,
           "oi": 45270,
-          "dist": 11.52
+          "dist": 13.45
+        },
+        {
+          "strike": 711.0,
+          "oi": 29250,
+          "dist": 0.83
         },
         {
           "strike": 750.0,
           "oi": 28697,
-          "dist": 4.55
-        },
-        {
-          "strike": 740.0,
-          "oi": 25614,
-          "dist": 3.15
+          "dist": 6.36
         }
       ],
       "topPuts": [
         {
           "strike": 630.0,
           "oi": 55491,
-          "dist": -12.18
+          "dist": -10.66
         },
         {
           "strike": 675.0,
           "oi": 46720,
-          "dist": -5.91
+          "dist": -4.27
         },
         {
           "strike": 700.0,
           "oi": 45900,
-          "dist": -2.42
+          "dist": -0.73
         }
       ],
       "señal": "neutro",
-      "desc": "Max Pain=690.0 (-3.8%) - precio cerca del Max Pain, rango estable"
+      "desc": "Max Pain=690.0 (-2.1%) - precio cerca del Max Pain, rango estable"
     },
     "v2": {
       "fecha": "2026-07-17",
-      "maxPain": 717.74,
-      "distPct": 0.0,
-      "topCalls": [],
-      "topPuts": [],
+      "maxPain": 712.0,
+      "distPct": -0.8,
+      "topCalls": [
+        {
+          "strike": 800.0,
+          "oi": 45270,
+          "vol": 22,
+          "dist": 11.46
+        },
+        {
+          "strike": 711.0,
+          "oi": 29250,
+          "vol": 30944,
+          "dist": -0.94
+        },
+        {
+          "strike": 750.0,
+          "oi": 28697,
+          "vol": 929,
+          "dist": 4.49
+        },
+        {
+          "strike": 740.0,
+          "oi": 25614,
+          "vol": 1640,
+          "dist": 3.1
+        },
+        {
+          "strike": 720.0,
+          "oi": 22682,
+          "vol": 40680,
+          "dist": 0.31
+        }
+      ],
+      "topPuts": [
+        {
+          "strike": 675.0,
+          "oi": 46720,
+          "vol": 2304,
+          "dist": -5.95
+        },
+        {
+          "strike": 700.0,
+          "oi": 45900,
+          "vol": 110939,
+          "dist": -2.47
+        },
+        {
+          "strike": 685.0,
+          "oi": 36048,
+          "vol": 13798,
+          "dist": -4.56
+        },
+        {
+          "strike": 690.0,
+          "oi": 31598,
+          "vol": 27462,
+          "dist": -3.86
+        },
+        {
+          "strike": 711.0,
+          "oi": 30021,
+          "vol": 23660,
+          "dist": -0.94
+        }
+      ],
       "señal": "neutro",
-      "desc": "Max Pain no calculable (OI insuficiente en venc. corto)"
+      "desc": "Max Pain 712 — precio cerca, zona equilibrio"
     },
     "v3": {
       "fecha": "2026-07-20",
-      "maxPain": 717.74,
-      "distPct": 0.0,
-      "topCalls": [],
-      "topPuts": [],
+      "maxPain": 715.0,
+      "distPct": -0.38,
+      "topCalls": [
+        {
+          "strike": 740.0,
+          "oi": 2814,
+          "vol": 308,
+          "dist": 3.1
+        },
+        {
+          "strike": 755.0,
+          "oi": 2051,
+          "vol": 273,
+          "dist": 5.19
+        },
+        {
+          "strike": 730.0,
+          "oi": 2034,
+          "vol": 3339,
+          "dist": 1.71
+        },
+        {
+          "strike": 725.0,
+          "oi": 1927,
+          "vol": 5034,
+          "dist": 1.01
+        },
+        {
+          "strike": 715.0,
+          "oi": 1720,
+          "vol": 15188,
+          "dist": -0.38
+        }
+      ],
+      "topPuts": [
+        {
+          "strike": 680.0,
+          "oi": 7791,
+          "vol": 4600,
+          "dist": -5.26
+        },
+        {
+          "strike": 691.0,
+          "oi": 6062,
+          "vol": 1212,
+          "dist": -3.73
+        },
+        {
+          "strike": 685.0,
+          "oi": 4216,
+          "vol": 2658,
+          "dist": -4.56
+        },
+        {
+          "strike": 692.0,
+          "oi": 3046,
+          "vol": 2090,
+          "dist": -3.59
+        },
+        {
+          "strike": 690.0,
+          "oi": 2541,
+          "vol": 3872,
+          "dist": -3.86
+        }
+      ],
       "señal": "neutro",
-      "desc": "Max Pain no calculable (OI insuficiente en venc. corto)"
+      "desc": "Max Pain 715 — precio cerca, zona equilibrio"
     },
     "gex": {
       "estado": "negativo",
-      "valor": -1034.41,
+      "valor": -3027.81,
       "trampa": false,
-      "desc": "GEX=-1034.4M — dealers amplificando movimientos (peligro)"
+      "desc": "GEX=-3027.8M — dealers amplificando movimientos (peligro)"
     },
     "gex_real": {
-      "valor_total": -1034410000.0,
-      "valor_total_M": -1034.41,
-      "gamma_flip_level": 559.0,
-      "dist_gamma_flip_pct": -22.08,
+      "valor_total": -3027810000.0,
+      "valor_total_M": -3027.81,
+      "gamma_flip_level": 583.0,
+      "dist_gamma_flip_pct": -17.32,
       "fuente": "csv_barchart_local"
     },
     "skew": {
-      "valor": 2.0,
-      "put_iv": 0.25,
-      "call_iv": 0.125,
-      "senal": "cisne_negro",
-      "desc": "SKEW=2.0 - cobertura institucional extrema contra colapso"
+      "valor": 0.374,
+      "put_iv": 0.1211,
+      "call_iv": 0.3242,
+      "senal": "complacencia",
+      "desc": "SKEW=0.374 - sin cobertura, complacencia extrema"
     },
     "ratio_0dte": {
-      "valor": 0.408,
-      "vol_0dte": 848513,
-      "vol_total": 2077632,
-      "senal": "elevado",
-      "desc": "0DTE=40.8% - actividad intradiaria elevada"
+      "valor": 0.456,
+      "vol_0dte": 1810842,
+      "vol_total": 3970781,
+      "senal": "extremo",
+      "desc": "0DTE=45.6% - delta hedging forzado al cierre, amplificacion movimientos"
     },
-    "pcrOI": 1.49,
-    "pcrVol": 1.036,
+    "pcrOI": 1.51,
+    "pcrVol": 1.315,
     "fuente": "Barchart QQQ CSV local",
     "error": null,
     "resistencia_1": 800.0,
     "soporte_1": 630.0,
-    "total_calls_oi": 633832,
-    "total_puts_oi": 946978
+    "total_calls_oi": 633454,
+    "total_puts_oi": 954061
   },
   "pcr": {
     "total": 0.93,
@@ -14829,9 +15139,9 @@
     "percentil_historico": 61.9,
     "señal_percentil": "neutro",
     "n_dias_historico": 1689,
-    "pcr_qqq": 1.49,
-    "pcr_qqq_señal": "precaucion",
-    "pcr_qqq_texto": "PCR=1.49 - sesgo hacia puts, cautela institucional"
+    "pcr_qqq": 1.51,
+    "pcr_qqq_señal": "miedo",
+    "pcr_qqq_texto": "PCR=1.51 - ratio puts/calls alto, mercado comprando proteccion"
   },
   "comparativa_correcciones": {
     "micro_3pct": 73,
@@ -14844,7 +15154,7 @@
     "confianza": 5,
     "detalle": "Escenario dominante: Micro-retracción técnica (2-3%) (73% similitud). Contexto: VIX=15.7, RSI=50. Confianza del sistema: 5%. ✅ Entorno compatible con corrección menor — mantener posiciones core. ",
     "fuente": "market_regime_matching_v4",
-    "ts_calculo": "2026-07-16T09:20:48.222675"
+    "ts_calculo": "2026-07-16T22:36:48.625572"
   },
   "amplitud_mercado": {
     "ratio_cobre_oro": 0.001556,
@@ -14862,18 +15172,18 @@
     "error": null,
     "ndx100_breadth": {
       "new_highs_52w": 5,
-      "new_lows_52w": 2,
+      "new_lows_52w": 0,
       "total_componentes": 100,
-      "net_breadth_pct": 3.0,
+      "net_breadth_pct": 5.0,
       "senal": "neutro",
-      "desc": "Amplitud NDX100 neutra: 5 maximos vs 2 minimos",
+      "desc": "Amplitud NDX100 neutra: 5 maximos vs 0 minimos",
       "score": 0.0,
       "errores_descarga": 0,
       "fuente": "ndx100_yfinance_bulk",
       "fuente_tickers": "fallback",
-      "pct_sma50": 57.0,
-      "pct_sma20": 55.0,
-      "pct_sma200": 65.0,
+      "pct_sma50": 58.0,
+      "pct_sma20": 56.0,
+      "pct_sma200": 68.0,
       "historico_sma": [
         {
           "fecha": "2023-08-14",
@@ -19251,9 +19561,9 @@
         },
         {
           "fecha": "2026-07-16",
-          "pct_sobre_ma20": 55.0,
-          "pct_sobre_ma50": 57.0,
-          "pct_sobre_ma200": 65.0
+          "pct_sobre_ma20": 56.0,
+          "pct_sobre_ma50": 58.0,
+          "pct_sobre_ma200": 68.0
         }
       ],
       "aviso_sma": "Equivalente propio a $NDXA20R/$NDXA50R de StockCharts, calculado con datos de yfinance (StockCharts prohíbe scraping en su robots.txt). Se integra con el histórico ya existente en amplitud_ndx100_simple.csv (2021-09-14 en adelante) — no lo sustituye.",
@@ -19262,7 +19572,7 @@
   },
   "knn_predictor": {
     "version": "1.0",
-    "generado": "2026-07-16T09:20:48.355606",
+    "generado": "2026-07-16T22:36:48.771487",
     "fecha_referencia": "2026-07-15",
     "n_vecinos": 50,
     "n_dias_historico": 3176,
@@ -21282,61 +21592,61 @@
   },
   "csv_qqq_opciones": {
     "vencimiento": "Fri Jul 17 2026",
-    "precio_qqq": 717.3799,
+    "precio_qqq": 705.14,
     "max_pain": 690.0,
-    "dist_max_pain_pct": -3.8,
+    "dist_max_pain_pct": -2.1,
     "max_pain_señal": "neutro",
-    "max_pain_texto": "Max Pain=690.0 (-3.8%) - precio cerca del Max Pain, rango estable",
+    "max_pain_texto": "Max Pain=690.0 (-2.1%) - precio cerca del Max Pain, rango estable",
     "resistencia_1": 800.0,
     "soporte_1": 630.0,
     "top_resistencias": [
       {
         "strike": 800.0,
         "oi": 45270,
-        "dist": 11.52
+        "dist": 13.45
+      },
+      {
+        "strike": 711.0,
+        "oi": 29250,
+        "dist": 0.83
       },
       {
         "strike": 750.0,
         "oi": 28697,
-        "dist": 4.55
-      },
-      {
-        "strike": 740.0,
-        "oi": 25614,
-        "dist": 3.15
+        "dist": 6.36
       }
     ],
     "top_soportes": [
       {
         "strike": 630.0,
         "oi": 55491,
-        "dist": -12.18
+        "dist": -10.66
       },
       {
         "strike": 675.0,
         "oi": 46720,
-        "dist": -5.91
+        "dist": -4.27
       },
       {
         "strike": 700.0,
         "oi": 45900,
-        "dist": -2.42
+        "dist": -0.73
       }
     ],
     "resistencia_principal": {
       "strike": 800.0,
       "oi": 45270,
-      "dist": 11.52
+      "dist": 13.45
     },
     "soporte_principal": {
       "strike": 630.0,
       "oi": 55491,
-      "dist": -12.18
+      "dist": -10.66
     },
     "rango_semana": {
       "techo": 800.0,
       "suelo": 630.0,
-      "amplitudPct": 23.7
+      "amplitudPct": 24.11
     },
     "maxpain_por_vencimiento": {
       "Thu Jul 16 2026": 710.0,
@@ -21374,17 +21684,17 @@
       "Fri Jun 16 2028": 755.0,
       "Fri Dec 15 2028": 650.0
     },
-    "pcr": 1.49,
-    "pcr_señal": "precaucion",
-    "pcr_texto": "PCR=1.49 - sesgo hacia puts, cautela institucional",
-    "total_calls_oi": 633832,
-    "total_puts_oi": 946978,
-    "gex_total": -1034410000.0,
-    "gex_total_M": -1034.41,
-    "gamma_flip_level": 559.0,
-    "dist_gamma_flip_pct": -22.08,
+    "pcr": 1.51,
+    "pcr_señal": "miedo",
+    "pcr_texto": "PCR=1.51 - ratio puts/calls alto, mercado comprando proteccion",
+    "total_calls_oi": 633454,
+    "total_puts_oi": 954061,
+    "gex_total": -3027810000.0,
+    "gex_total_M": -3027.81,
+    "gamma_flip_level": 583.0,
+    "dist_gamma_flip_pct": -17.32,
     "gex_estado": "negativo",
-    "gex_desc": "GEX=-1034.4M — dealers amplificando movimientos (peligro)",
+    "gex_desc": "GEX=-3027.8M — dealers amplificando movimientos (peligro)",
     "fuente": "Barchart QQQ CSV local",
     "csv_dias_antiguedad": 0.0,
     "csv_obsoleto": false
@@ -21395,7 +21705,7 @@
   "maxpain": {
     "valor": 690.0,
     "precio": 717.74,
-    "distPct": -3.8,
+    "distPct": -2.1,
     "expiracion": "Fri Jul 17 2026",
     "señal": "neutro",
     "descripcion": "Max Pain 690 — precio cerca, zona equilibrio",
