@@ -789,9 +789,8 @@
     "tickers_72h": []
   },
   "derivados": {
-    "precio_qqq": 719.69,
+    "precio_qqq": 717.74,
     "vencimientos": [
-      "Wed Jul 15 2026",
       "Thu Jul 16 2026",
       "Fri Jul 17 2026",
       "Mon Jul 20 2026",
@@ -801,6 +800,8 @@
       "Fri Jul 24 2026",
       "Mon Jul 27 2026",
       "Tue Jul 28 2026",
+      "Wed Jul 29 2026",
+      "Thu Jul 30 2026",
       "Fri Jul 31 2026",
       "Fri Aug 07 2026",
       "Fri Aug 14 2026",
@@ -828,51 +829,51 @@
     "top_call_strikes": [
       {
         "strike": 800.0,
-        "oi": 45285,
-        "dist": 11.1
+        "oi": 45270,
+        "dist": 11.52
       },
       {
         "strike": 750.0,
-        "oi": 28896,
-        "dist": 4.15
+        "oi": 28697,
+        "dist": 4.55
       },
       {
         "strike": 740.0,
-        "oi": 28127,
-        "dist": 2.76
+        "oi": 25614,
+        "dist": 3.15
       }
     ],
     "top_put_strikes": [
       {
         "strike": 630.0,
-        "oi": 56441,
-        "dist": -12.51
+        "oi": 55491,
+        "dist": -12.18
       },
       {
         "strike": 675.0,
-        "oi": 50537,
-        "dist": -6.26
+        "oi": 46720,
+        "dist": -5.91
       },
       {
         "strike": 700.0,
-        "oi": 46168,
-        "dist": -2.79
+        "oi": 45900,
+        "dist": -2.42
       }
     ],
     "resistencia_principal": {
       "strike": 800.0,
-      "oi": 45285,
-      "dist": 11.1
+      "oi": 45270,
+      "dist": 11.52
     },
     "soporte_principal": {
       "strike": 630.0,
-      "oi": 56441,
-      "dist": -12.51
+      "oi": 55491,
+      "dist": -12.18
     },
     "rango_semana": {
       "techo": 800.0,
       "suelo": 630.0,
-      "amplitudPct": 23.61
+      "amplitudPct": 23.7
     }
   },
   "skew": {},
@@ -881,29 +882,29 @@
     "zona_barrida": false
   },
   "pcr": {
-    "equity": 0.67,
-    "total": 0.96,
-    "index": 1.1,
-    "spx": 1.23,
+    "equity": 0.69,
+    "total": 0.93,
+    "index": 1.02,
+    "spx": 1.15,
     "señal": "neutro",
-    "fecha": "13 July 2026",
+    "fecha": "15 July 2026",
     "fuente": "cboe_txt_manual"
   },
   "vixTermStructure": {
-    "spot": 16.5,
-    "vx1": 17.3067,
-    "vx2": 18.5165,
+    "spot": 15.83,
+    "vx1": 16.5489,
+    "vx2": 18.0542,
     "vx1_symbol": "VX/N6",
     "vx2_symbol": "VX/Q6",
     "vx1_expiry": "07/22/2026",
-    "spread1": 0.81,
-    "spread1Pct": 4.9,
+    "spread1": 0.72,
+    "spread1Pct": 4.5,
     "backwardation": false,
-    "vixPercentil": 47.4,
+    "vixPercentil": 36.6,
     "señal": "neutro",
-    "desc": "Term structure normal — spot=16.5 front=17.3067 (+4.9%)",
+    "desc": "Term structure normal — spot=15.83 front=16.5489 (+4.5%)",
     "fuente": "vix_txt_manual",
     "usando_settlement": true,
-    "slope_1m2m": 1.296
+    "slope_1m2m": 1.613
   }
 }
