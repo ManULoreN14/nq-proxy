@@ -18,21 +18,6 @@ if errorlevel 1 goto ERROR_PREPARAR
 
 echo.
 echo ============================================================
-echo   1b/2  Recalculando amplitud NDX-100 (yfinance local)
-echo ============================================================
-REM El amplitud_ndx100_simple.csv NO se puede recalcular de noche en
-REM GitHub Actions porque yfinance suele estar bloqueado alli (Yahoo veta
-REM IPs de datacenter). Se calcula AQUI, en local, donde yfinance funciona,
-REM y se sube junto con DATOS_CSV. El cron nocturno usa este archivo ya
-REM fresco (si su propio yfinance falla, _persistir NO sobrescribe: linea
-REM 594 de actualizar_radar.py retorna sin tocar el archivo).
-REM NOTA: confirma que amplitud_ndx100_simple.py escribe en
-REM       DATOS_CSV\amplitud_ndx100_simple.csv (no en la raiz).
-python amplitud_ndx100_simple.py
-if errorlevel 1 echo   (aviso: fallo el calculo de amplitud - se sube el resto igualmente)
-
-echo.
-echo ============================================================
 echo   2/2  Subiendo DATOS_CSV al repositorio
 echo ============================================================
 REM Orden correcto: primero commiteamos LO NUESTRO (deja el working tree
@@ -40,8 +25,12 @@ REM limpio), y DESPUES hacemos pull --rebase (git SI sabe rebasear un commit
 REM local tuyo sobre lo nuevo que haya llegado del cron). Al reves (pull antes
 REM de commitear) siempre falla con "cannot pull with rebase: unstaged changes"
 REM porque preparar_datos.py acaba de dejar DATOS_CSV modificado sin commitear.
-git add DATOS_CSV PCR.txt
-git commit -m "data manual: DATOS_CSV + PCR.txt %date% %time%"
+REM IMPORTANTE: VIX.txt y PCR.txt los escribe preparar_datos.py en la RAIZ del
+REM repo (no en DATOS_CSV) - hay que incluirlos los dos o se quedan sin
+REM commitear y bloquean el pull --rebase la proxima vez (esto rompio el
+REM script el 10/07: VIX.txt cambiaba y nunca se incluia en el git add).
+git add DATOS_CSV PCR.txt VIX.txt
+git commit -m "data manual: DATOS_CSV + PCR.txt + VIX.txt %date% %time%"
 if errorlevel 1 echo   (sin cambios que commitear, o commit vacio - continuando)
 
 git pull --rebase

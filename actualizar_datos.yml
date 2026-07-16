@@ -1,7 +1,8 @@
 name: Actualizar datos NQ
 on:
   schedule:
-    - cron: '30 20 * * 1-5'   # 22:30 Madrid (20:30 UTC en verano)
+    - cron: '0 0 * 3-10 1-5'      # 00:00 UTC = 2:00 CEST (marzo-octubre)
+    - cron: '0 1 * 1,2,11,12 1-5' # 01:00 UTC = 2:00 CET (nov-febrero)
   workflow_dispatch:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
