@@ -8011,8 +8011,7 @@ def git_push() -> bool:
     )
 
     # Archivos base siempre
-    archivos = ["datos_radar.json", "manengis_tactico.json", "sistema_regimen_tilt.json"]
-    
+    archivos = ["datos_radar.json", "manengis_tactico.json"]
 
     # Añadir historico_maestro.csv SOLO si git detecta cambios en él
     # (evita commits de 9.8MB innecesarios en días sin nuevos datos)
@@ -8533,7 +8532,7 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
     """
     kNN Predictor Multivariable v1.0 para actualizar_radar.py.
 
-    Construye un fingerprint de 12 features para cada día del histórico
+    Construye un fingerprint de 13 features para cada día del histórico
     maestro (2014-hoy), normaliza con z-score rolling 504d y busca los
     50 días más similares al día actual mediante distancia euclidiana
     ponderada.
@@ -8567,6 +8566,7 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
         dix_df_raw  = _knn_load_csv("DIX.csv")
         vvix_df_raw = _knn_load_csv("VVIX_History.csv")
         skew_df_raw = _knn_load_csv("SKEW_History.csv")
+        amp_df_raw  = _knn_load_csv("amplitud_ndx100_simple.csv")
 
         merged = df.copy()
         if not isinstance(merged.index, pd.DatetimeIndex):
@@ -8598,6 +8598,10 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
         gex_series, _  = _merge_csv(dix_df_raw,  ["date","fecha","DATE"], ["gex"])
         vvix_series, _ = _merge_csv(vvix_df_raw, ["date","fecha","DATE"], ["VVIX","vvix"])
         skew_series, _ = _merge_csv(skew_df_raw, ["date","fecha","DATE"], ["SKEW","skew"])
+        # amplitud_ndx100_simple.csv: fecha,pct_sobre_ma20,pct_sobre_ma50,pct_sobre_ma200
+        # Usamos pct_sobre_ma50 — ya es el campo de referencia usado en
+        # calcular_amplitud_mercado() (línea ~7003) para el resto del sistema.
+        amp_series, _  = _merge_csv(amp_df_raw,  ["fecha","date","DATE"], ["pct_sobre_ma50"])
 
         # Reindex con tolerancia de ±3 días para CSVs con gaps
         def _reindex_tol(series_df, target_idx, col_name, scale=1.0):
@@ -8615,12 +8619,13 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
         merged["_gex"]  = _reindex_tol(gex_series,   merged.index, "_gex",  scale=1/1e9)
         merged["_vvix"] = _reindex_tol(vvix_series,  merged.index, "_vvix")
         merged["_skew"] = _reindex_tol(skew_series,  merged.index, "_skew")
+        merged["_breadth_ndx100"] = _reindex_tol(amp_series, merged.index, "_breadth_ndx100")
 
-        csv_enriched = sum(1 for s in [merged["_dix"], merged["_vvix"], merged["_skew"]]
+        csv_enriched = sum(1 for s in [merged["_dix"], merged["_vvix"], merged["_skew"], merged["_breadth_ndx100"]]
                            if s.notna().sum() > 100)
-        log.info(f"  [kNN] CSVs enriquecedores activos: {csv_enriched}/3 "
+        log.info(f"  [kNN] CSVs enriquecedores activos: {csv_enriched}/4 "
                  f"(dix={merged['_dix'].notna().sum()}, vvix={merged['_vvix'].notna().sum()}, "
-                 f"skew={merged['_skew'].notna().sum()})")
+                 f"skew={merged['_skew'].notna().sum()}, breadth={merged['_breadth_ndx100'].notna().sum()})")
 
         # ── Feature engineering ───────────────────────────────────────────────
         ndx  = _safe_col(merged, "NDX_close",  "NDX_Close").ffill()
@@ -8693,6 +8698,7 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
             "roc20d_ndx":     roc20d_ndx,
             "vix_ch3d":       vix_ch3d,
             "cobre_oro_roc":  cobre_oro_roc,
+            "breadth_ndx100": merged["_breadth_ndx100"],
         }, index=merged.index)
 
         # Restringir ventana 2014+ (donde DIX/VVIX/SKEW tienen cobertura)
@@ -8713,6 +8719,7 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
             "roc20d_ndx":     1.0,
             "vix_ch3d":       1.0,
             "cobre_oro_roc":  0.8,
+            "breadth_ndx100": 1.0,
         }
 
         feat_norm = pd.DataFrame(index=feat.index)
@@ -8722,7 +8729,7 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
             rs = s.rolling(504, min_periods=100).std().replace(0, np.nan)
             feat_norm[col] = ((s - rm) / rs).clip(-4, 4)
 
-        # Umbral de cobertura mínima: al menos 6 de 12 features no-NaN
+        # Umbral de cobertura mínima: al menos 6 de 13 features no-NaN
         feat_norm = feat_norm.dropna(thresh=6)
 
         if len(feat_norm) < 200:
@@ -8908,6 +8915,7 @@ def calcular_knn_predictor(df: "pd.DataFrame") -> dict:
             "config": {
                 "k_vecinos":              K,
                 "horizonte_max_dias":     LOOKAHEAD,
+                "n_dias_base":            n_total,
                 "similitud_minima_fiable": 0.75,
                 "pesos":                  PESOS,
                 "csv_enriquecedores":     csv_enriched,
@@ -10043,13 +10051,6 @@ def main():
     datos_json.pop("_vix_ts_auto", None)
 
     exportar_json(datos_json)
-
-    # ── Generar JSON de la pestaña Sistema (Régimen+Tilt) ──
-    try:
-        import generar_sistema_json
-        generar_sistema_json.generar(BASE_DIR, DATA_CSV_DIR, log=log)
-    except Exception as e:
-        log.warning(f"  ⚠️  sistema_regimen_tilt.json no generado: {e}")
 
     # ── 8. Git push ────────────────────────────────────────────────────────────
     if not args.nogit:
