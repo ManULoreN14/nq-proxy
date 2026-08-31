@@ -1,145 +1,145 @@
 {
   "version": "2.4",
-  "generado": "2026-08-28T07:46:10+00:00",
+  "generado": "2026-08-31T02:13:53+00:00",
   "fuente": "motor_manengis.py / GitHub Actions",
   "modo": "full",
   "variables_crudas": {
-    "precio_qqq": 721.11,
-    "precio_ndx": 29641.5605,
-    "vix": 14.55,
-    "rsi": 54.86,
-    "ema20": 713.93,
-    "ema50": 710.26,
-    "atr14": 8.07,
-    "roc5d": 1.43,
-    "vix3m": 17.56,
-    "vix_ts_ratio": 0.8286,
+    "precio_qqq": 716.43,
+    "precio_ndx": 29433.4297,
+    "vix": 14.43,
+    "rsi": 51.82,
+    "ema20": 714.17,
+    "ema50": 710.8,
+    "atr14": 8.41,
+    "roc5d": 0.42,
+    "vix3m": 17.48,
+    "vix_ts_ratio": 0.8255,
     "vix_ts_backwardation": false,
     "vix_ts_estado": "contango_profundo",
-    "cot_lev_net": -61771,
-    "cot_sesgo": "alcista",
-    "breadth_pct_ema20": 57.1,
+    "cot_lev_net": -41232,
+    "cot_sesgo": "neutro",
+    "breadth_pct_ema20": 100.0,
     "breadth_pct_ema50": 57.1,
     "breadth_divergencia": true,
     "exposicion_sugerida_pct": 80,
     "exposicion_semaforo": "verde",
-    "dist_desde_max_pct": -3.0,
-    "fear_greed_score": 73.0,
+    "dist_desde_max_pct": -3.6,
+    "fear_greed_score": 62.0,
     "fear_greed_estado": "codicia",
     "regimen_mercado": "tendencia_alcista",
     "regimen_confianza": 100,
     "risk_score": 0.2,
     "fedfunds": 3.63,
-    "us2y": 4.19,
-    "us10y": 4.66,
-    "us30y": 5.18,
+    "us2y": 4.2,
+    "us10y": 4.67,
+    "us30y": 5.19,
     "spread_2_10": 0.47,
-    "spread_3m_10": 0.81,
+    "spread_3m_10": 0.83,
     "curva_invertida": false
   },
   "tecnicos": {
-    "precio": 721.11,
-    "rsi14": 54.86,
-    "ema20": 713.93,
-    "ema50": 710.26,
-    "atr14": 8.07,
-    "roc5d": 1.43
+    "precio": 716.43,
+    "rsi14": 51.82,
+    "ema20": 714.17,
+    "ema50": 710.8,
+    "atr14": 8.41,
+    "roc5d": 0.42
   },
   "vix_term_structure": {
-    "vix": 14.55,
-    "vix3m": 17.56,
-    "ratio": 0.8286,
-    "spread": 3.01,
+    "vix": 14.43,
+    "vix3m": 17.48,
+    "ratio": 0.8255,
+    "spread": 3.05,
     "backwardation": false,
     "estado": "contango_profundo",
-    "descripcion": "VIX (14.55) < VIX3M (17.56): contango_profundo"
+    "descripcion": "VIX (14.43) < VIX3M (17.48): contango_profundo"
   },
   "cot": {
-    "fecha_reporte": "2026-08-18",
-    "leveraged_long": 45490,
-    "leveraged_short": 107261,
-    "leveraged_net": -61771,
-    "leveraged_net_prev": -89125,
-    "asset_manager_long": 105786,
-    "asset_manager_short": 37454,
-    "asset_manager_net": 68332,
-    "dealer_long": 62420,
-    "dealer_short": 97462,
-    "dealer_net": -35042,
-    "pct_largo": 29.8,
-    "sesgo": "alcista",
-    "descripcion": "Leveraged Funds corto neto 61,771 contratos en NQ. Sesgo: ALCISTA. (29.8% largos · Dealers neto -35,042)"
+    "fecha_reporte": "2026-08-25",
+    "leveraged_long": 51841,
+    "leveraged_short": 93073,
+    "leveraged_net": -41232,
+    "leveraged_net_prev": -61771,
+    "asset_manager_long": 109400,
+    "asset_manager_short": 36184,
+    "asset_manager_net": 73216,
+    "dealer_long": 59255,
+    "dealer_short": 122503,
+    "dealer_net": -63248,
+    "pct_largo": 35.8,
+    "sesgo": "neutro",
+    "descripcion": "Leveraged Funds corto neto 41,232 contratos en NQ. Sesgo: NEUTRO. (35.8% largos · Dealers neto -63,248)"
   },
   "cot_vix": {
-    "fecha_reporte": "2026-08-18",
-    "nc_long": 95147,
-    "nc_short": 114240,
-    "neto": -19093,
-    "neto_prev": -12127,
-    "pct_largo": 45.4,
+    "fecha_reporte": "2026-08-25",
+    "nc_long": 78872,
+    "nc_short": 109015,
+    "neto": -30143,
+    "neto_prev": -19093,
+    "pct_largo": 42.0,
     "senal": "alcista",
-    "descripcion": "Leveraged Money cortos netos en VIX: 19,093 contratos. Senal: ALCISTA."
+    "descripcion": "Leveraged Money cortos netos en VIX: 30,143 contratos. Senal: ALCISTA."
   },
   "breadth": {
     "tickers_validos": 7,
-    "sobre_ema20": 4,
+    "sobre_ema20": 7,
     "sobre_ema50": 4,
-    "pct_sobre_ema20": 57.1,
+    "pct_sobre_ema20": 100.0,
     "pct_sobre_ema50": 57.1,
     "detalle": [
       {
         "ticker": "AAPL",
-        "precio": 314.58,
-        "ema20": 312.07,
-        "ema50": 311.89,
+        "precio": 319.7,
+        "ema20": 312.8,
+        "ema50": 312.29,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "MSFT",
-        "precio": 505.06,
-        "ema20": 478.04,
-        "ema50": 449.0,
+        "precio": 513.53,
+        "ema20": 481.42,
+        "ema50": 451.6,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "NVDA",
-        "precio": 227.98,
-        "ema20": 215.46,
-        "ema50": 211.97,
+        "precio": 217.55,
+        "ema20": 215.67,
+        "ema50": 212.57,
         "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "GOOGL",
-        "precio": 340.65,
-        "ema20": 346.43,
-        "ema50": 349.9,
-        "sobre_ema20": false,
+        "precio": 346.59,
+        "ema20": 346.47,
+        "ema50": 350.97,
+        "sobre_ema20": true,
         "sobre_ema50": false
       },
       {
         "ticker": "AMZN",
-        "precio": 256.26,
-        "ema20": 260.38,
-        "ema50": 255.3,
-        "sobre_ema20": false,
+        "precio": 266.43,
+        "ema20": 260.97,
+        "ema50": 256.07,
+        "sobre_ema20": true,
         "sobre_ema50": true
       },
       {
         "ticker": "META",
-        "precio": 571.1,
-        "ema20": 574.79,
-        "ema50": 588.83,
-        "sobre_ema20": false,
+        "precio": 578.02,
+        "ema20": 575.11,
+        "ema50": 588.82,
+        "sobre_ema20": true,
         "sobre_ema50": false
       },
       {
         "ticker": "TSLA",
-        "precio": 354.81,
-        "ema20": 344.76,
-        "ema50": 358.93,
+        "precio": 348.75,
+        "ema20": 345.12,
+        "ema50": 358.06,
         "sobre_ema20": true,
         "sobre_ema50": false
       }
@@ -148,15 +148,15 @@
     "fuente": "Mag7_local"
   },
   "ndx100_breadth": {
-    "new_highs_52w": 7,
+    "new_highs_52w": 1,
     "new_lows_52w": 0,
-    "net_breadth_pct": 7.0,
+    "net_breadth_pct": 1.0,
     "senal": "neutro",
     "score": 0.0,
     "fuente": "NDX100_radar"
   },
   "fear_greed": {
-    "score": 73.0,
+    "score": 62.0,
     "estado": "codicia",
     "rating": "Greed",
     "fuente": "alternative.me"
@@ -165,10 +165,10 @@
     "valor": 0.2,
     "estado": "Bajo riesgo",
     "factores": [
-      "Contango extremo futuros VIX (+29.2%) — complacencia",
+      "Contango extremo futuros VIX (+30.3%) — complacencia",
       "Breadth Mag7 debil vs precio",
       "Tendencia alcista (precio>EMA20>EMA50)",
-      "VIX=14.55 zona óptima"
+      "VIX=14.43 zona óptima"
     ]
   },
   "regimen": {
@@ -178,8 +178,8 @@
       "precio_sobre_ema20": true,
       "precio_sobre_ema50": true,
       "ema20_sobre_ema50": true,
-      "rsi": 54.86,
-      "breadth_pct_ema20": 57.1
+      "rsi": 51.82,
+      "breadth_pct_ema20": 100.0
     }
   },
   "plan_exposicion": {
@@ -188,18 +188,18 @@
     "semaforo": "verde",
     "estado": "Exposicion plena",
     "accion": "Mantener",
-    "dist_desde_max_pct": -3.0,
-    "max_referencia": 743.39,
+    "dist_desde_max_pct": -3.6,
+    "max_referencia": 743.18,
     "motivos": [
-      "Contango extremo futuros VIX (+29.2%) — complacencia",
+      "Contango extremo futuros VIX (+30.3%) — complacencia",
       "Breadth Mag7 debil vs precio",
       "Tendencia alcista (precio>EMA20>EMA50)",
-      "VIX=14.55 zona óptima"
+      "VIX=14.43 zona óptima"
     ],
-    "descripcion": "Exposicion 80%. Mantener. Contango extremo futuros VIX (+29.2%) — complacencia, Breadth Mag7 debil vs precio, Tendencia alcista (precio>EMA20>EMA50), VIX=14.55 zona óptima",
+    "descripcion": "Exposicion 80%. Mantener. Contango extremo futuros VIX (+30.3%) — complacencia, Breadth Mag7 debil vs precio, Tendencia alcista (precio>EMA20>EMA50), VIX=14.43 zona óptima",
     "barrida_estructural": {
-      "nivel_barrida": 643.62,
-      "dist_barrida_pct": 12.04,
+      "nivel_barrida": 650.7,
+      "dist_barrida_pct": 10.1,
       "zona_barrida": false,
       "sesiones_ventana": 90
     }
@@ -211,35 +211,35 @@
       "pcr_sobre_media": false,
       "aceleracion_riesgo": false
     },
-    "descripcion": "Sin aceleracion. VIX -5.83% (3 dias)."
+    "descripcion": "Sin aceleracion. VIX -6.6% (3 dias)."
   },
   "fred": {
     "score": 1,
     "estado": "normal",
     "curva_invertida": false,
-    "curva_descripcion": "2Y=4.19% 10Y=4.66% 30Y=5.18% | Spread=0.47",
+    "curva_descripcion": "2Y=4.2% 10Y=4.67% 30Y=5.19% | Spread=0.47",
     "fedfunds": {
       "valor": 3.63,
       "anterior": 3.63,
-      "fecha": "2026-08-28"
+      "fecha": "2026-08-31"
     },
     "us2y": {
-      "valor": 4.19,
-      "anterior": 4.17
+      "valor": 4.2,
+      "anterior": 4.19
     },
     "us10y": {
-      "valor": 4.66,
-      "anterior": 4.64
+      "valor": 4.67,
+      "anterior": 4.66
     },
     "us30y": {
-      "valor": 5.18,
-      "anterior": 5.17
+      "valor": 5.19,
+      "anterior": 5.18
     },
     "spread_2_10": {
       "valor": 0.47
     },
     "spread_3m_10": {
-      "valor": 0.81
+      "valor": 0.83
     },
     "cpi_yoy": {
       "valor": 332.813
@@ -255,8 +255,8 @@
       "valor": 23218.0
     },
     "umcsent": {
-      "valor": 49.5,
-      "anterior": 44.8
+      "valor": 55.2,
+      "anterior": 49.5
     },
     "nfci": {
       "valor": -0.566
@@ -278,10 +278,10 @@
       },
       {
         "ind": "US 10Y",
-        "val": "4.66%",
+        "val": "4.67%",
         "tend": "bajando",
         "senal": "neutro",
-        "desc": "2Y:4.19% 30Y:5.18%"
+        "desc": "2Y:4.2% 30Y:5.19%"
       },
       {
         "ind": "NFCI",
@@ -293,27 +293,27 @@
     ],
     "estadoCurva": {
       "t10y2y": 0.47,
-      "t10y3m": 0.81,
+      "t10y3m": 0.83,
       "senalRecesion": "baja",
       "descripcion": "Curva normal"
     }
   },
   "similitud_historica": {
     "version": "1.0",
-    "generado": "2026-08-28T07:43:37.859332",
-    "fecha_referencia": "2026-08-27",
+    "generado": "2026-08-31T02:09:12.976753",
+    "fecha_referencia": "2026-08-30",
     "n_vecinos": 50,
-    "n_dias_historico": 3219,
+    "n_dias_historico": 3221,
     "ventana_historico": "2014-hoy",
     "fiable": true,
-    "mejor_similitud": 0.911,
+    "mejor_similitud": 0.9217,
     "escenario_tipo": "consolidacion",
     "escenario_desc": "50 análogos. 56% positivo. Consolidación con sesgo alcista.",
-    "interpretacion": "50 análogos históricos — NDX +0.8% medio a 5d (56% positivo, mediana +0.8%). Rango P10/P90: [-2.5%, +4.1%].",
+    "interpretacion": "50 análogos históricos — NDX +0.8% medio a 5d (56% positivo, mediana +0.8%). Rango P10/P90: [-2.5%, +4.5%].",
     "config": {
       "k_vecinos": 50,
       "horizonte_max_dias": 22,
-      "n_dias_base": 3219,
+      "n_dias_base": 3221,
       "similitud_minima_fiable": 0.75,
       "pesos": {
         "spread_vix_pct": 2.0,
@@ -335,54 +335,54 @@
     "retornos": {
       "2d": {
         "n": 50,
-        "media": 0.62,
+        "media": 0.63,
         "mediana": 0.57,
-        "p10": -1.54,
+        "p10": -1.64,
         "p25": -0.41,
-        "p75": 1.29,
-        "p90": 2.85,
-        "pct_positivo": 70.0,
-        "pct_negativo": 30.0,
-        "max": 5.13,
+        "p75": 1.17,
+        "p90": 2.71,
+        "pct_positivo": 68.0,
+        "pct_negativo": 32.0,
+        "max": 7.08,
         "min": -2.54
       },
       "5d": {
         "n": 50,
-        "media": 0.8,
-        "mediana": 0.78,
+        "media": 0.79,
+        "mediana": 0.81,
         "p10": -2.5,
-        "p25": -0.86,
+        "p25": -0.99,
         "p75": 2.2,
-        "p90": 4.07,
+        "p90": 4.49,
         "pct_positivo": 56.0,
         "pct_negativo": 44.0,
-        "max": 9.09,
+        "max": 7.51,
         "min": -4.72
       },
       "10d": {
         "n": 50,
-        "media": 1.6,
-        "mediana": 1.71,
-        "p10": -2.19,
+        "media": 1.75,
+        "mediana": 1.79,
+        "p10": -2.36,
         "p25": -0.79,
-        "p75": 3.64,
-        "p90": 5.35,
+        "p75": 3.83,
+        "p90": 6.19,
         "pct_positivo": 70.0,
         "pct_negativo": 30.0,
-        "max": 12.13,
+        "max": 10.92,
         "min": -6.91
       },
       "20d": {
         "n": 50,
-        "media": 3.41,
-        "mediana": 4.12,
-        "p10": -2.84,
-        "p25": 0.99,
-        "p75": 5.78,
-        "p90": 8.22,
-        "pct_positivo": 78.0,
-        "pct_negativo": 20.0,
-        "max": 20.43,
+        "media": 4.24,
+        "mediana": 4.43,
+        "p10": -1.84,
+        "p25": 2.31,
+        "p75": 5.88,
+        "p90": 10.51,
+        "pct_positivo": 84.0,
+        "pct_negativo": 16.0,
+        "max": 16.91,
         "min": -12.45
       }
     },
@@ -393,30 +393,30 @@
         "descripcion": "Sin caída (<3%)"
       },
       "leve": {
-        "porcentaje": 34.0,
-        "n": 17,
+        "porcentaje": 32.0,
+        "n": 16,
         "descripcion": "Leve (3-5%)"
       },
       "moderada": {
-        "porcentaje": 28.0,
-        "n": 14,
+        "porcentaje": 26.0,
+        "n": 13,
         "descripcion": "Moderada (5-10%)"
       },
       "fuerte": {
-        "porcentaje": 8.0,
-        "n": 4,
+        "porcentaje": 14.0,
+        "n": 7,
         "descripcion": "Fuerte (10-20%)"
       },
       "crash": {
-        "porcentaje": 2.0,
-        "n": 1,
+        "porcentaje": 0.0,
+        "n": 0,
         "descripcion": "Crash (>20%)"
       }
     },
     "vecinos_top10": [
       {
         "fecha": "2018-08-22",
-        "similitud": 0.911,
+        "similitud": 0.9217,
         "ret_2d": -1.86,
         "ret_5d": 0.93,
         "ret_10d": 2.73,
@@ -425,48 +425,8 @@
         "categoria": "ruido"
       },
       {
-        "fecha": "2015-11-24",
-        "similitud": 0.9096,
-        "ret_2d": 1.58,
-        "ret_5d": 4.06,
-        "ret_10d": 6.24,
-        "ret_20d": 5.76,
-        "caida_max_20d": 5.76,
-        "categoria": "moderada"
-      },
-      {
-        "fecha": "2026-01-26",
-        "similitud": 0.9067,
-        "ret_2d": 0.79,
-        "ret_5d": 1.86,
-        "ret_10d": 4.12,
-        "ret_20d": 4.79,
-        "caida_max_20d": 4.79,
-        "categoria": "leve"
-      },
-      {
-        "fecha": "2018-08-03",
-        "similitud": 0.9052,
-        "ret_2d": -0.17,
-        "ret_5d": -1.62,
-        "ret_10d": -6.91,
-        "ret_20d": -2.76,
-        "caida_max_20d": -2.76,
-        "categoria": "ruido"
-      },
-      {
-        "fecha": "2025-09-08",
-        "similitud": 0.9035,
-        "ret_2d": 5.13,
-        "ret_5d": 6.94,
-        "ret_10d": 8.29,
-        "ret_20d": 16.91,
-        "caida_max_20d": 16.91,
-        "categoria": "fuerte"
-      },
-      {
         "fecha": "2018-08-23",
-        "similitud": 0.9031,
+        "similitud": 0.9132,
         "ret_2d": 2.84,
         "ret_5d": 3.03,
         "ret_10d": 3.65,
@@ -475,60 +435,89 @@
         "categoria": "moderada"
       },
       {
-        "fecha": "2024-09-23",
-        "similitud": 0.9021,
-        "ret_2d": 0.12,
-        "ret_5d": 1.28,
-        "ret_10d": 3.44,
-        "ret_20d": 3.11,
-        "caida_max_20d": 3.11,
+        "fecha": "2026-07-22",
+        "similitud": 0.9056,
+        "ret_2d": -0.68,
+        "ret_5d": -3.15,
+        "ret_10d": -1.27,
+        "ret_20d": 8.12,
+        "caida_max_20d": 8.12,
+        "categoria": "moderada"
+      },
+      {
+        "fecha": "2018-08-03",
+        "similitud": 0.9051,
+        "ret_2d": -0.17,
+        "ret_5d": -1.62,
+        "ret_10d": -6.91,
+        "ret_20d": -2.76,
+        "caida_max_20d": -2.76,
+        "categoria": "ruido"
+      },
+      {
+        "fecha": "2026-08-02",
+        "similitud": 0.9033,
+        "ret_2d": 0.65,
+        "ret_5d": 4.45,
+        "ret_10d": 10.92,
+        "ret_20d": 15.24,
+        "caida_max_20d": 15.24,
+        "categoria": "fuerte"
+      },
+      {
+        "fecha": "2026-01-22",
+        "similitud": 0.9024,
+        "ret_2d": 1.01,
+        "ret_5d": 1.86,
+        "ret_10d": 3.45,
+        "ret_20d": 5.92,
+        "caida_max_20d": 5.92,
+        "categoria": "moderada"
+      },
+      {
+        "fecha": "2026-01-08",
+        "similitud": 0.8983,
+        "ret_2d": 1.07,
+        "ret_5d": 1.36,
+        "ret_10d": 0.71,
+        "ret_20d": 4.19,
+        "caida_max_20d": 4.19,
         "categoria": "leve"
       },
       {
-        "fecha": "2015-11-25",
-        "similitud": 0.9009,
-        "ret_2d": 3.27,
-        "ret_5d": 5.58,
-        "ret_10d": 5.76,
-        "ret_20d": 4.06,
-        "caida_max_20d": 4.06,
+        "fecha": "2021-05-27",
+        "similitud": 0.8982,
+        "ret_2d": -1.63,
+        "ret_5d": -2.3,
+        "ret_10d": 1.99,
+        "ret_20d": 3.81,
+        "caida_max_20d": 3.81,
         "categoria": "leve"
       },
       {
-        "fecha": "2015-11-23",
-        "similitud": 0.9002,
-        "ret_2d": -1.74,
-        "ret_5d": 2.13,
-        "ret_10d": 5.54,
-        "ret_20d": 3.13,
-        "caida_max_20d": 3.13,
-        "categoria": "leve"
+        "fecha": "2015-11-24",
+        "similitud": 0.8978,
+        "ret_2d": 1.58,
+        "ret_5d": 4.06,
+        "ret_10d": 6.24,
+        "ret_20d": 5.76,
+        "caida_max_20d": 5.76,
+        "categoria": "moderada"
       },
       {
-        "fecha": "2018-08-24",
-        "similitud": 0.8984,
-        "ret_2d": 1.72,
-        "ret_5d": 3.13,
-        "ret_10d": 2.73,
-        "ret_20d": 5.4,
-        "caida_max_20d": 5.4,
+        "fecha": "2026-07-21",
+        "similitud": 0.8972,
+        "ret_2d": -2.16,
+        "ret_5d": -1.07,
+        "ret_10d": -1.66,
+        "ret_20d": 7.29,
+        "caida_max_20d": 7.29,
         "categoria": "moderada"
       }
     ],
     "fuente": "radar.knn_predictor"
   },
   "historico_30d": [
-    {
-      "fecha": "2026-07-24",
-      "risk_score": 0.5,
-      "fear_greed_score": 28.0,
-      "regimen_mercado": "lateral",
-      "exposicion_semaforo": "verde",
-      "exposicion_pct": 80,
-      "precio_qqq": 691.96,
-      "vix": 18.7,
-      "score_avg": -0.583
-    },
     {
       "fecha": "2026-07-27",
       "risk_score": 0.5,
@@ -803,6 +792,17 @@
       "precio_qqq": 721.11,
       "vix": 14.55,
       "score_avg": 0.15
+    },
+    {
+      "fecha": "2026-08-31",
+      "risk_score": 0.2,
+      "fear_greed_score": 62.0,
+      "regimen_mercado": "tendencia_alcista",
+      "exposicion_semaforo": "verde",
+      "exposicion_pct": 80,
+      "precio_qqq": 716.43,
+      "vix": 14.43,
+      "score_avg": 0.15
     }
   ],
   "sentimiento": {
@@ -815,11 +815,11 @@
     "tickers_72h": []
   },
   "derivados": {
-    "precio_qqq": 721.11
+    "precio_qqq": 716.43
   },
   "skew": {},
   "barrida_estructural": {
-    "nivel_barrida": 643.62,
+    "nivel_barrida": 650.7,
     "zona_barrida": false
   },
   "pcr": {
